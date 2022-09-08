@@ -32,7 +32,7 @@ setup(
     license="MIT",
     python_requires=">=3.7",
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         'Programming Language :: Python',
         "Programming Language :: Python",
