@@ -52,6 +52,11 @@ class Cursor(BaseCursor, CursorIterator):
     def description(self) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
         return self._result_set.description
 
+    @property
+    def errors(self) -> List[Dict[str, str]]:
+        return self._result_set.errors
+
+
     @synchronized
     def execute(
         self: _T,

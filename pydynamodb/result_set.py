@@ -1,5 +1,4 @@
 
-import collections
 import logging
 from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, Type, cast
@@ -38,6 +37,7 @@ class DynamoDBResultSet(CursorIterator):
         self._retry_config = retry_config
         self._metadata: Optional[OrderedDict[str, Dict[str, Any]]] = OrderedDict()
         self._rows: Deque[Dict[str, Optional[Any]]] = deque()
+        self._errors: List[Dict[str, str]] = list()
         self._next_token: Optional[str] = None
         self._rownumber = 0
         self._pre_fetch()
@@ -47,6 +47,10 @@ class DynamoDBResultSet(CursorIterator):
         if self.is_closed:
             raise ProgrammingError("DynamoDBResultSet is closed.")
         return cast("Connection", self._connection)
+
+    @property
+    def errors(self) -> List[Dict[str, str]]:
+        return self._errors
 
     @property
     def description(
@@ -160,12 +164,23 @@ class DynamoDBResultSet(CursorIterator):
         rows = response.get("Responses", None)
         if rows is None:
             raise DataError("KeyError `Responses` in BatchStatementResponse")
-        
+
+        processed_error_rows = list()
         processed_rows = list()
         for row in rows:
+            error = row.get("Error", None)
+            if error:
+                processed_error_rows.append({
+                    error.get("Code"): error.get("Message"),
+                })
+                continue
+
             item = row.get("Item", None)
             if item:
                 row_ = self._process_row_item(item)
+                processed_rows.append(row_)
+
+        self._errors.extend(processed_error_rows)
         self._rows.extend(processed_rows)
 
     def _process_rows(self, response: Dict[str, Any]) -> None:
