@@ -116,7 +116,7 @@ class Deserializer(metaclass=ABCMeta):
     def _to_binary(self, value: Optional[str]) -> Optional[bytes]:
         if value is None:
             return None
-        return value.encode()
+        return value
 
     def _to_string_set(self, value: Optional[List[str]]) -> Optional[Set[str]]:
         if value is None:
