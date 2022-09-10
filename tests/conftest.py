@@ -138,6 +138,12 @@ def dict_cursor(request):
 
     yield from _cursor(DictCursor, request)
 
+@pytest.fixture
+def converter(request):
+    from pydynamodb.converter import DefaultTypeConverter
+
+    yield DefaultTypeConverter()
+
 def _drop_tables(client, tables):
     for table in tables:
         client.delete_table(
