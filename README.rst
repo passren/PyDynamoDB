@@ -40,6 +40,35 @@ Basic usage
     print(cursor.fetchall())
     print(cursor.description)
 
+Cursor iteration
+~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    from pydynamodb import connect
+
+    cursor = connect(aws_access_key_id="aws_access_key_id",
+                    aws_secret_access_key="aws_secret_access_key"
+                     region_name="region_name").cursor()
+    cursor.execute('SELECT * FROM "ddb_table_name"')
+    rows = cursor.fetchall()
+    for row in rows:
+        print(row)
+
+Query with parameter
+~~~~~~~~~~~~~~~~~~~~
+
+PyDynamoDB is able to serialize the parameters which passed to DDB 
+and deserialize the response to Python built-in types.
+
+.. code:: python
+    from pydynamodb import connect
+    cursor = connect(aws_access_key_id="aws_access_key_id",
+                    aws_secret_access_key="aws_secret_access_key"
+                     region_name="region_name").cursor()
+    cursor.execute('SELECT * FROM "ddb_table_name" WHERE partition_key = ?', ["key_value"])
+    print(cursor.fetchall())
+
 License
 =======
 
