@@ -131,7 +131,7 @@ class Deserializer(metaclass=ABCMeta):
     def _to_binary_set(self, value: Optional[List[str]]) -> Optional[Set[bytes]]:
         if value is None:
             return None
-        return set([ v.encode() for v in value ])
+        return set([ v for v in value ])
 
     def _to_map(self, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         if value is None:
