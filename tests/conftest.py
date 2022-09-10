@@ -7,28 +7,38 @@ from tests import ENV
 def connect(**kwargs):
     from pydynamodb import connect
 
-    return connect(
+    if ENV.use_local_ddb:
+        return connect(
+            endpoint_url=ENV.endpoint_url,
+            **kwargs
+        )
+    else:
+        return connect(
+                        region_name=ENV.region_name,
+                        aws_access_key_id=ENV.aws_access_key_id,
+                        aws_secret_access_key=ENV.aws_secret_access_key,
+                        verify=ENV.verify,
+                        use_ssl=ENV.use_ssl,
+                        **kwargs
+                    )
+
+def boto3_connect():
+    if ENV.use_local_ddb:
+        from boto3 import client 
+        return client('dynamodb', endpoint_url=ENV.endpoint_url)
+    else:
+        from boto3.session import Session
+        session = Session(
                     region_name=ENV.region_name,
                     aws_access_key_id=ENV.aws_access_key_id,
                     aws_secret_access_key=ENV.aws_secret_access_key,
-                    verify=ENV.verify,
-                    use_ssl=ENV.use_ssl,
-                    **kwargs
                 )
 
-def boto3_connect():
-    from boto3.session import Session
-    session = Session(
-                region_name=ENV.region_name,
-                aws_access_key_id=ENV.aws_access_key_id,
-                aws_secret_access_key=ENV.aws_secret_access_key,
-            )
-
-    return session.client(
-                        "dynamodb",
-                        verify=ENV.verify,
-                        use_ssl=ENV.use_ssl
-                    )
+        return session.client(
+                            "dynamodb",
+                            verify=ENV.verify,
+                            use_ssl=ENV.use_ssl
+                        )
 
 
 @pytest.fixture(scope="session", autouse=True)
