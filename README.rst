@@ -9,7 +9,7 @@ PyDynamoDB is a Python `DB API 2.0 (PEP 249)`_ client for `Amazon DynamoDB`_.
 Objectives
 ----------
 PyDynamoDB implement the DB API 2.0 interfaces based on  `PartiQL`_ supported by AWS DynamoDB.
-The project is based on laughingman7743's `PyAthena`_.
+This project is based on laughingman7743's `PyAthena`_.
 
 .. _`PartiQL`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.html
 .. _`PyAthena`: https://github.com/laughingman7743/PyAthena
@@ -62,12 +62,33 @@ PyDynamoDB is able to serialize the parameters which passed to DDB
 and deserialize the response to Python built-in types.
 
 .. code:: python
+
     from pydynamodb import connect
     cursor = connect(aws_access_key_id="aws_access_key_id",
                     aws_secret_access_key="aws_secret_access_key"
                      region_name="region_name").cursor()
+    cursor.execute("""INSERT INTO "ddb_table_name" VALUE {
+                        'partition_key' = ?,
+                        'sort_key' = ?,
+                        'col_str' = ?,
+                        'col_num' = ?,
+                        'col_byte' = ?,
+                        'col_ss' = ?,
+                        'col_ns' = ?,
+                        'col_bs' = ?,
+                        'col_list' = ?,
+                        'col_map' = ?,
+                        'col_nested' = ?
+                    }""", ["pkey_value", "skey_value", "str", 100, b"ABC", # String, Number, Bytes
+                            {"str", "str"}, {100, 100}, {b"A", b"B"}, # String/Numnber/Bytes Set
+                            ["str", 100, b"ABC"],  # List
+                            {"key1": "val", "key2": "val"}, # Map
+                            ["str", 100, {"key1": "val"}] # Nested Structure
+                        ])
+
     cursor.execute('SELECT * FROM "ddb_table_name" WHERE partition_key = ?', ["key_value"])
     print(cursor.fetchall())
+
 
 License
 =======
