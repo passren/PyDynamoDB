@@ -44,7 +44,7 @@ class TestCursor:
             }
         """ % self.table_name
         params_2_1_ = [
-            "test_one_row_2", 1, "test case 3", 
+            "test_one_row_2", 1,
             ["Hello", "World", 1.0, b"1", {1, 2, 3}, {"1", "2", "3"}, {"name": "test case 3", "version": 1.0}],
             {
                 "name": "test case 3", 
@@ -72,8 +72,9 @@ class TestCursor:
             ["test_many_rows_1", 3, "test case many 3", "3", b"3"],
             ["test_many_rows_1", 4, "test case many 4", "4", b"4"],
             ["test_many_rows_1", 5, "test case many 5", "5", b"5"],
-            ["test_many_rows_1", "6", "test case many 6", "6", b"6"],
-            [9999, 7, "test case many 7", "7", b"7"],
+            ["test_many_rows_1", 6, "test case many 6", "6", b"6"],
+            ["test_many_rows_1", "7", "test case many 7", "7", b"7"],
+            [9999, 8, "test case many 8", "8", b"8"],
         ]
         cursor.executemany(sql_many_rows_, params_)
         assert len(cursor.errors) == 2
@@ -103,3 +104,53 @@ class TestCursor:
         assert cursor.fetchone() == tuple(expected_data_)
         assert cursor.rownumber == 1
         assert cursor.fetchone() is None
+
+        cursor.execute("""
+            SELECT * FROM "%s"
+            WHERE key_partition = ?
+        """ % self.table_name, [
+            "test_one_row_1"
+        ])
+        assert cursor.rownumber == 0
+        cursor.fetchone()
+        assert cursor.rownumber == 1
+        cursor.fetchone()
+        assert cursor.rownumber == 2
+        cursor.fetchone()
+        assert cursor.rownumber == 3
+        assert cursor.fetchone() is None
+        assert len(cursor.description) == 10
+        for desc in cursor.description:
+            assert desc[0] in ["key_partition", "key_sort",
+                                "col_str", "col_num", 
+                                "col_byte", "col_map",
+                                "col_ss", "col_ns",
+                                "col_list", "col_bs"]
+
+    def test_fetchmany(self, cursor):
+        cursor.execute("""
+            SELECT * FROM "%s"
+            WHERE key_partition = ?
+        """ % self.table_name, [
+            "test_many_rows_1"
+        ])
+        assert cursor.rownumber == 0
+        assert len(cursor.fetchmany(3)) == 3
+        assert cursor.rownumber == 3
+        assert len(cursor.fetchmany(3)) == 3
+        assert cursor.rownumber == 6
+        assert len(cursor.fetchmany(3)) == 1
+        assert cursor.rownumber == 7
+        assert cursor.fetchmany(3) == []
+
+    def test_fetchall(self, cursor):
+        cursor.execute("""
+            SELECT * FROM "%s"
+            WHERE key_partition = ?
+        """ % self.table_name, [
+            "test_many_rows_1"
+        ])
+        assert cursor.rownumber == 0
+        assert len(cursor.fetchall()) == 7
+        assert cursor.rownumber == 7
+        assert cursor.fetchall() == []
