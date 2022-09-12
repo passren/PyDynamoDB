@@ -9,6 +9,9 @@ PyDynamoDB is a Python `DB API 2.0 (PEP 249)`_ client for `Amazon DynamoDB`_.
 Objectives
 ----------
 PyDynamoDB implement the DB API 2.0 interfaces based on  `PartiQL`_ supported by AWS DynamoDB.
+You have to create DDB tables before using pydynamodb, because `PartiQL`_ can only support SELECT, INSERT, UPDATE, DELETE operations on the tables.
+PyDynamodb provide parameters and result set converter to make you easily manipulate `PartiQL`_ operations with Python built-in types.
+Transaction is also partially supported with DB standard operations, like begin() and commit().
 This project is based on laughingman7743's `PyAthena`_.
 
 .. _`PartiQL`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.html
@@ -20,6 +23,16 @@ Requirements
 
   - CPython 3.7 3.8 3.9 3.10
 
+Dependencies
+--------------
+* Boto3 (Python SDK for AWS Services)
+
+  - boto3 >= 1.21.0
+  - botocore >= 1.24.7
+
+* Tenacity (Retry Utility for API calling)
+
+  - tenacity >= 4.1.0
 
 Getting Started
 ---------------
@@ -38,7 +51,6 @@ Basic usage
                      region_name="region_name").cursor()
     cursor.execute('SELECT * FROM "ddb_table_name"')
     print(cursor.fetchall())
-    print(cursor.description)
 
 Cursor iteration
 ~~~~~~~~~~~~~~~~
@@ -55,7 +67,7 @@ Cursor iteration
     for row in rows:
         print(row)
 
-Query with parameter
+Query with parameters
 ~~~~~~~~~~~~~~~~~~~~
 
 PyDynamoDB is able to serialize the parameters which passed to DDB 
@@ -89,6 +101,74 @@ and deserialize the response to Python built-in types.
     cursor.execute('SELECT * FROM "ddb_table_name" WHERE partition_key = ?', ["key_value"])
     print(cursor.fetchall())
 
+
+Description of Result Set
+~~~~~~~~~~~~~~~~~~~~
+DDB is a NoSQL database. That means except key schema, the data in each row may have flexible columns or types.
+PyDynamoDB cannot get a completed result set description before fetching all result data. So you have to use 
+fetch* method to iterate the whole result set, then call cursor.description to get the full columns description.
+
+.. code:: python
+
+    from pydynamodb import connect
+
+    cursor = connect(aws_access_key_id="aws_access_key_id",
+                    aws_secret_access_key="aws_secret_access_key"
+                     region_name="region_name").cursor()
+    cursor.execute('SELECT * FROM "ddb_table_name"')
+    print(cursor.fetchall())
+    print(cursor.description)
+
+Dict Cursor and Result Set
+~~~~~~~~~~~~~~~~~~~~
+Using DictCursor, you can get a dict result set with column name and value pair. This type of cursor 
+has better performance and manipulate result data easily. But cursor.description will return empty with this way.
+
+.. code:: python
+
+    from pydynamodb import connect
+    from pydynamodb.cursor import DictCursor
+
+    cursor = connect(aws_access_key_id="aws_access_key_id",
+                    aws_secret_access_key="aws_secret_access_key"
+                     region_name="region_name").cursor(cursor=DictCursor)
+    cursor.execute('SELECT * FROM "ddb_table_name"')
+    print(cursor.fetchall())
+
+Transaction
+~~~~~~~~~~~~~~~~~~~~
+Transaction is partially supported also. connection.rollback() is not implemented.
+Regarding information and restrictions of DDB transaction, please see the page: `Performing transactions with PartiQL for DynamoDB`_
+
+.. _`Performing transactions with PartiQL for DynamoDB`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.multiplestatements.transactions.html
+
+.. code:: python
+
+    from pydynamodb import connect
+
+    conn = connect(aws_access_key_id="aws_access_key_id",
+                    aws_secret_access_key="aws_secret_access_key"
+                     region_name="region_name")
+    cursor = conn.cursor()
+    
+    conn.begin()
+    cursor.execute("""INSERT INTO "ddb_table_name" VALUE {'key_partition': ?, 'key_sort': ?, 'col1': ?}""", 
+                    ["pk1", "sk1", "test"])
+    cursor.execute("""INSERT INTO "ddb_table_name" VALUE {'key_partition': ?, 'key_sort': ?, 'col1': ?}""", 
+                    ["pk2", "sk2", "test"])
+    conn.commit()
+
+Test with local DynamoDB
+~~~~~~~~~~~~~~~~~~~~
+Install Local DDB, please see: `Deploying DynamoDB locally on your computer`_.
+If you want to run tests with local DDB, please make sure environment variables are set properly.
+
+.. code:: shell
+
+    USE_LOCAL_DDB=true
+    LOCAL_DDB_ENDPOINT_URL=http://localhost:8000
+
+.. _`Deploying DynamoDB locally on your computer`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.DownloadingAndRunning.html
 
 License
 =======

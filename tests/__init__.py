@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
-
+from distutils.util import strtobool
 
 class Env:
     def __init__(self):
         _use_local_ddb = os.getenv("USE_LOCAL_DDB", None)
         assert _use_local_ddb is not None, "Required environment variable `USE_LOCAL_DDB` not found."
 
-        self.use_local_ddb = True if _use_local_ddb=="True" else False
+        self.use_local_ddb = bool(strtobool(_use_local_ddb))
 
         if self.use_local_ddb:
             self.endpoint_url = os.getenv("LOCAL_DDB_ENDPOINT_URL")

@@ -72,6 +72,8 @@ class Connection:
         self._retry_config = retry_config if retry_config else RetryConfig()
         self.cursor_class = cursor_class
         self.cursor_kwargs = cursor_kwargs if cursor_kwargs else dict()
+        self._cursor_pool = list()
+        self._autocommit = True
 
     @property
     def _session_kwargs(self) -> Dict[str, Any]:
@@ -89,6 +91,14 @@ class Connection:
     def client(self) -> "BaseClient":
         return self._client
 
+    @property
+    def autocommit(self) -> bool:
+        return self._autocommit
+
+    @property
+    def cursor_pool(self) -> List[Optional[BaseCursor]]:
+        return self._cursor_pool
+
     def __enter__(self):
         return self
 
@@ -102,18 +112,29 @@ class Connection:
         converter = kwargs.pop("converter", self._converter)
         if not converter:
             converter = cursor.get_default_converter()
-        return cursor(
+        cursor_ = cursor(
             connection=self,
             converter=converter,
             retry_config=kwargs.pop("retry_config", self._retry_config),
             **kwargs,
         )
 
+        self._cursor_pool.append(cursor_)
+        return cursor_
+
     def close(self) -> None:
-        pass
+        self._session = None
+        self._client = None
+        self._autocommit = True
+        self.cursor_pool.clear()
+
+    def begin(self) -> None:
+        self._autocommit = False
 
     def commit(self) -> None:
-        pass
+        self._autocommit = True
+        for cursor_ in self.cursor_pool:
+            cursor_.execute_transaction()
 
     def rollback(self) -> None:
         raise NotSupportedError

@@ -23,6 +23,7 @@ class DynamoDBResultSet(CursorIterator):
         statements: List[Dict[str, Any]],
         arraysize: int,
         retry_config: RetryConfig,
+        is_transaction: bool = False,
     ) -> None:
         super(DynamoDBResultSet, self).__init__(arraysize=arraysize)
         self._connection: Optional["Connection"] = connection
@@ -40,6 +41,7 @@ class DynamoDBResultSet(CursorIterator):
         self._errors: List[Dict[str, str]] = list()
         self._next_token: Optional[str] = None
         self._rownumber = 0
+        self._is_transaction = is_transaction
         self._pre_fetch()
 
     @property
@@ -72,13 +74,27 @@ class DynamoDBResultSet(CursorIterator):
         ]
 
     def __batch_fetch(self) -> Dict[str, Any]:
-        request = {
-            "Statements": self._statements
-        }
+
+        if self._is_transaction:
+            request = {
+                "TransactStatements": [
+                    {
+                        "Statement": statement_["Statement"],
+                        "Parameters": statement_["Parameters"],
+                    }
+                    for statement_ in self._statements
+                ]
+            }
+            api_call_func = self.connection.client.execute_transaction
+        else:
+            request = {
+                "Statements": self._statements
+            }
+            api_call_func = self.connection.client.batch_execute_statement
 
         try:
             response = retry_api_call(
-                self.connection.client.batch_execute_statement,
+                api_call_func,
                 config=self._retry_config,
                 logger=_logger,
                 **request,
@@ -232,6 +248,7 @@ class DynamoDBResultSet(CursorIterator):
     def close(self) -> None:
         self._connection = None
         self._statements.clear()
+        self._is_transaction = None
         self._is_batch_execute = None
         self._metadata.clear()
         self._rows.clear()

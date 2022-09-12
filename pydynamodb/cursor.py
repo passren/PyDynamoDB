@@ -31,6 +31,7 @@ class Cursor(BaseCursor, CursorIterator):
         )
         self._result_set: Optional[DynamoDBResultSet] = None
         self._result_set_class = DynamoDBResultSet
+        self._transaction_statements = list()
 
     @property
     def result_set(self) -> Optional[DynamoDBResultSet]:
@@ -79,13 +80,19 @@ class Cursor(BaseCursor, CursorIterator):
                 "Limit": limit,
             })
         statements = [statement_]
-        self._result_set = self._result_set_class(
-                self._connection,
-                self._converter,
-                statements,
-                self.arraysize,
-                self._retry_config,
-        )
+
+        if not self.connection.autocommit:
+            self._transaction_statements.extend(statements)
+        else:
+            self._reset_state()
+            self._result_set = self._result_set_class(
+                    self._connection,
+                    self._converter,
+                    statements,
+                    self.arraysize,
+                    self._retry_config,
+                    is_transaction=False
+            )
 
         return self
 
@@ -107,13 +114,38 @@ class Cursor(BaseCursor, CursorIterator):
             }
             for parameters in seq_of_parameters
         ]
-        self._result_set = self._result_set_class(
+
+        if not self.connection.autocommit:
+            self._transaction_statements.extend(statements)
+        else:
+            self._reset_state()
+            self._result_set = self._result_set_class(
+                    self._connection,
+                    self._converter,
+                    statements,
+                    self.arraysize,
+                    self._retry_config,
+                    is_transaction=False
+            )
+
+    @synchronized
+    def execute_transaction(self) -> None:
+        if self._transaction_statements and len(self._transaction_statements) > 0:
+            statements = self._transaction_statements
+            self._reset_state()
+            self._result_set = self._result_set_class(
                 self._connection,
                 self._converter,
                 statements,
                 self.arraysize,
                 self._retry_config,
-        )
+                is_transaction=True
+            )
+            
+            self._post_transaction()
+    
+    def _post_transaction(self) -> None:
+        self._transaction_statements.clear()
 
     def fetchone(
         self,
@@ -146,6 +178,12 @@ class Cursor(BaseCursor, CursorIterator):
     def close(self) -> None:
         if self.result_set and not self.result_set.is_closed:
             self.result_set.close()
+        self._transaction_statements.clear()
+
+    def _reset_state(self) -> None:
+        if self.result_set and not self.result_set.is_closed:
+            self.result_set.close()
+        self.result_set = None  # type: ignore
 
 class DictCursor(Cursor):
     def __init__(self, **kwargs) -> None:

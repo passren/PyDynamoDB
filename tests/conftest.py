@@ -125,6 +125,16 @@ def _cursor(cursor_class, request):
         with conn.cursor() as cursor:
             yield cursor
 
+@pytest.fixture
+def conn(request):
+    from pydynamodb.cursor import Cursor
+
+    if not hasattr(request, "param"):
+        setattr(request, "param", {})
+    with contextlib.closing(
+        connect(cursor_class=Cursor, **request.param)
+    ) as conn:
+        yield conn
 
 @pytest.fixture
 def cursor(request):
