@@ -72,7 +72,7 @@ def create_engine(**kwargs):
         )
 
     return sqlalchemy.engine.create_engine(
-        conn_str
+        conn_str, echo=True
     )
 
 TEST_TABLES = ['pydynamodb_test_case01',
@@ -84,7 +84,6 @@ TEST_TABLES = ['pydynamodb_test_case01',
 def _setup_session(request):
     request.addfinalizer(_teardown_session)
 
-    
     client = boto3_connect()
     for t in TEST_TABLES:
         _create_table(client, t)

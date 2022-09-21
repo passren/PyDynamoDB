@@ -42,6 +42,10 @@ Dependencies
 
   - tenacity >= 4.1.0
 
+* SQLAlchemy (The ORM Toolkit for Python, only required if using PyDynamoDB Dialect)
+
+  - SQLAlchemy >= 1.0.0, < 2.0.0
+
 
 Installation
 --------------
