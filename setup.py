@@ -26,6 +26,7 @@ setup(
     version=VERSION,
     description="Python DB API 2.0 (PEP 249) client for Amazon DynamoDB",
     long_description=open(readme).read(),
+    long_description_content_type="text/x-rst",
     url="https://github.com/passren/PyDynamoDB",
     author="Peng Ren",
     author_email="passren9099@hotmail.com",
