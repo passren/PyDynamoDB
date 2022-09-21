@@ -25,7 +25,7 @@ class TestSQLAlchemyDynamoDB:
         engine, conn = engine
 
         sql_one_row_1_0_ = """
-        INSERT INTO "%s" VALUE {
+        INSERT INTO %s VALUE {
             'key_partition': :pk, 'key_sort': :sk, 
             'col_str': :col1, 'col_num': :col2, 'col_byte': :col3
         }

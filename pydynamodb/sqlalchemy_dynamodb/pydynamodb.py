@@ -5,7 +5,7 @@ from distutils.util import strtobool
 import pydynamodb
 from ..sqlalchemy_dynamodb import RESERVED_WORDS
 
-from sqlalchemy import exc, schema, types, util
+from sqlalchemy import exc
 from sqlalchemy.engine import Engine, reflection
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql.compiler import (
@@ -36,7 +36,7 @@ class DynamoDBDDLCompiler(DDLCompiler):
 class DynamoDBStatementCompiler(SQLCompiler):
 
     # DynamoDB can't guarantee the column orders of result
-    _textual_ordered_columns: bool = True
+    # _textual_ordered_columns: bool = True
     _ordered_columns: bool = False
 
     def visit_column(
@@ -112,6 +112,7 @@ class DynamoDBTypeCompiler(GenericTypeCompiler):
 
 class DynamoDBDialect(DefaultDialect):
     name = "dynamodb"
+    driver = ""
     preparer = DynamoDBIdentifierPreparer
     statement_compiler = DynamoDBStatementCompiler
     ddl_compiler = DynamoDBDDLCompiler
@@ -134,7 +135,7 @@ class DynamoDBDialect(DefaultDialect):
     _connect_options = dict()  # type: ignore
 
     @classmethod
-    def import_dbapi(cls):
+    def dbapi(cls):
         return pydynamodb
 
     def _raw_connection(self, connection):

@@ -50,9 +50,14 @@ setup(
         "Source": "https://github.com/passren/PyDynamoDB",
         "Tracker": "https://github.com/passren/PyDynamoDB/issues",
     },
-    packages=find_packages(include=["pydynamodb"]),
+    packages=find_packages(include=["pydynamodb", "pydynamodb.sqlalchemy_dynamodb"]),
     include_package_data=True,
     install_requires=install_requires,
     extras_require=extras_require,
     zip_safe=False,
+    entry_points={
+        "sqlalchemy.dialects": [
+            "dynamodb = pydynamodb.sqlalchemy_dynamodb.pydynamodb:DynamoDBDialect",
+        ]
+    },
 )
