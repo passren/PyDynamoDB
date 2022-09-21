@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
+import logging
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
 
 from .converter import Converter, DefaultTypeConverter
-from .error import ProgrammingError
-from .util import RetryConfig
+from .error import ProgrammingError, OperationalError
+from .util import RetryConfig, retry_api_call
 
 if TYPE_CHECKING:
     from .connection import Connection
 
+_logger = logging.getLogger(__name__)  # type: ignore
+
 class BaseCursor(metaclass=ABCMeta):
     
     DEFAULT_LIMIT_SIZE: int = 1000
+    DEFAULT_LIST_TABLES_LIMIT_SIZE: int = 100
 
     def __init__(
         self,
@@ -36,6 +40,39 @@ class BaseCursor(metaclass=ABCMeta):
     @property
     def description(self) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
         return None
+
+    def _list_tables(self, 
+        next_token: Optional[str] = None,
+        limit : int = DEFAULT_LIST_TABLES_LIMIT_SIZE
+    ) -> Tuple[Optional[str], List[str]]:
+        request: Dict[str, Any] = {"Limit": limit}
+
+        if next_token:
+            request.update({"ExclusiveStartTableName": next_token})
+
+        try:
+            response = retry_api_call(
+                self.connection._client.list_tables,
+                config=self._retry_config,
+                logger=_logger,
+                **request,
+            )
+        except Exception as e:
+            _logger.exception("Failed to list tables.")
+            raise OperationalError(*e.args) from e
+        else:
+            return response.get("LastEvaluatedTableName", None), \
+                    response.get("TableNames", [])
+
+    def list_tables(self,) -> List[str]:
+        tables_ = []
+        next_token = None
+        while True:
+            next_token, response = self._list_tables(next_token)
+            tables_.extend(response)
+            if not next_token:
+                break
+        return tables_
 
     @abstractmethod
     def execute(

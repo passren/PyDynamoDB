@@ -1,11 +1,15 @@
 PyDynamoDB
 ===========
 
-PyDynamoDB is a Python `DB API 2.0 (PEP 249)`_ client for `Amazon DynamoDB`_.
+PyDynamoDB is a Python `DB API 2.0 (PEP 249)`_ client for `Amazon DynamoDB`_. 
+SQLAlchemy dialect supported as well.
 
 .. _`DB API 2.0 (PEP 249)`: https://www.python.org/dev/peps/pep-0249/
 .. _`Amazon DynamoDB`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html
 
+.. contents:: Table of Contents:
+   :local:
+   :depth: 2
 
 Objectives
 ----------
@@ -176,6 +180,42 @@ Regarding information and restrictions of DDB transaction, please see the page: 
                     ["pk2", "sk2", "test"])
     conn.commit()
 
+SQLAlchemy
+~~~~~~~~~~~
+Install SQLAlchemy with ``pip install "SQLAlchemy>=1.0.0, <2.0.0"``.
+Supported SQLAlchemy is 1.0.0 or higher and less than 2.0.0.
+
+The connection string has the following format:
+
+.. code:: text
+
+    dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.amazonaws.com:443?verify=false&...
+
+.. code:: python
+
+    from pydynamodb import sqlalchemy_dynamodb
+    from sqlalchemy.engine import create_engine
+    from sqlalchemy.sql.schema import Column, MetaData, Table
+
+    conn_str = (
+            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.amazonaws.com:443"
+            + "?verify=false"
+        )
+    conn_str = conn_str.format(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            region_name=region_name,
+        )
+    engine = create_engine(conn_str)
+    with engine.connect() as connection:
+        many_rows = Table("many_rows", MetaData(), 
+                        Column('key_partition', String, nullable=False),
+                        Column('key_sort', Integer),
+                        Column('col_str', String),
+                        Column('col_num', Numeric)
+                )
+        rows = conn.execute(many_rows.select()).fetchall()
+        print(rows)
 
 Test with local DynamoDB
 ~~~~~~~~~~~~~~~~~~~~~~~~

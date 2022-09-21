@@ -1,15 +1,16 @@
+# -*- coding: utf-8 -*-
 
+TESTCASE01_TABLE = "pydynamodb_test_case01"
 
 class TestConnection:
-    table_name = "pydynamodb_test_case01"
 
     def test_transaction_both_read_write(self, conn):
         try:
             sql_trans_1_ = """
-                INSERT INTO "%s" VALUE {
+                INSERT INTO %s VALUE {
                     'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
                 }
-            """ % self.table_name
+            """ % TESTCASE01_TABLE
 
             conn.begin()
             with conn.cursor() as cursor:
@@ -22,8 +23,8 @@ class TestConnection:
                     ["test_trans_1", 5, "test case 1-5", 5],
                 ])
                 cursor.execute("""
-                    SELECT * FROM "%s" WHERE key_partition = ?
-                """% self.table_name, ["test_trans_1"])
+                    SELECT * FROM %s WHERE key_partition = ?
+                """% TESTCASE01_TABLE, ["test_trans_1"])
 
                 conn.commit()
         except Exception as e:
@@ -34,10 +35,10 @@ class TestConnection:
 
     def test_transaction_one_row(self, conn):
         sql_trans_2_ = """
-            INSERT INTO "%s" VALUE {
+            INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
             }
-        """ % self.table_name
+        """ % TESTCASE01_TABLE
 
         conn.begin()
         cursor = conn.cursor()
@@ -48,10 +49,10 @@ class TestConnection:
 
     def test_transaction_many_row(self, conn):
         sql_trans_3_ = """
-            INSERT INTO "%s" VALUE {
+            INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
             }
-        """ % self.table_name
+        """ % TESTCASE01_TABLE
 
         conn.begin()
         cursor = conn.cursor()
@@ -71,7 +72,7 @@ class TestConnection:
             INSERT INTO "%s" VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
             }
-        """ % self.table_name
+        """ % TESTCASE01_TABLE
 
         cursor = conn.cursor()
         cursor.execute(sql_trans_4_, ["test_trans_4", 0, "test case 4-0", 0])
@@ -107,6 +108,6 @@ class TestConnection:
 
     def _query_data(self, cursor, test_case):
         cursor.execute("""
-            SELECT * FROM "%s" WHERE key_partition = ?
-        """% self.table_name, [test_case])
+            SELECT * FROM %s WHERE key_partition = ?
+        """% TESTCASE01_TABLE, [test_case])
         return cursor.fetchall()
