@@ -211,3 +211,8 @@ class DynamoDBDialect(DefaultDialect):
     def _check_unicode_description(self, connection):
         # Requests gives back Unicode strings
         return True  # pragma: no cover
+
+
+class DynamoDBRestDialect(DynamoDBDialect):
+    driver = "rest"
+    supports_statement_cache = True

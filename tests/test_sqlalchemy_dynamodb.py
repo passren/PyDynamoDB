@@ -2,7 +2,7 @@
 from pytest import skip
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
-from sqlalchemy import Integer, String, Numeric, BINARY
+from sqlalchemy import Integer, String, Numeric
 from sqlalchemy.orm import declarative_base, Session
 
 Base = declarative_base()
@@ -17,6 +17,7 @@ class _TestCase02(Base):
     key_sort = Column(Integer, primary_key=True)
     col_str = Column(String)
     col_num = Column(Numeric)
+    col_nested = Column()
     # col_byte = Column(BINARY)
 
 class TestSQLAlchemyDynamoDB:
@@ -90,8 +91,7 @@ class TestSQLAlchemyDynamoDB:
 
         rows = conn.execute(text("""
             SELECT * FROM %s WHERE key_partition = :pk
-            AND key_sort = :sk
-            """ % TESTCASE02_TABLE), {"pk": "test_one_row_1", "sk": 0}).fetchall()
+            """ % TESTCASE02_TABLE), {"pk": "test_one_row_2"}).fetchall()
         assert len(rows) == 1
 
     def test_basic_update(self, engine):
@@ -138,6 +138,26 @@ class TestSQLAlchemyDynamoDB:
         assert rows[0].col_str == "test case many 1"
         assert rows[0].col_num == 1
 
+    def test_nested_data_in_reflect_table(self, engine):
+        engine, conn = engine
+        table = Table(TESTCASE02_TABLE, MetaData(), 
+                        Column('key_partition', String, nullable=False),
+                        Column('key_sort', Integer),
+                        Column('col_str', String),
+                        Column('col_nested')
+                )
+        rows = conn.execute(table.select().where(
+                    table.c.key_partition == "test_one_row_2",
+                    table.c.key_sort == 0)
+                ).fetchall()
+        assert len(rows) == 1
+        assert rows[0].col_str == "test case nested 0"
+        assert rows[0].col_nested == {
+                        "Key1": ["Val1-1", 1, {"Subkey1": "Val1-1"}],
+                        "Key2": {"Val2-1", "Val2-2"},
+                        "Key3": "Val3"
+                    }
+
     def test_has_table(self, engine):
         engine, conn = engine
         table = Table("NOT_EXISTED_TABLE", MetaData(),
@@ -175,6 +195,14 @@ class TestSQLAlchemyDynamoDB:
                             key_sort = 1
                         )).all()
             assert len(rows2) == 1
+            assert rows2[0]._TestCase02.col_str == "test case many 1"
+            assert rows2[0]._TestCase02.col_num == 1
+
+            rows3 = session.execute(select(_TestCase02).filter_by(
+                key_partition = "not_existed_row",
+                key_sort = 1
+            )).all()
+            assert len(rows3) == 0
 
 
 

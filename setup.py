@@ -58,6 +58,7 @@ setup(
     entry_points={
         "sqlalchemy.dialects": [
             "dynamodb = pydynamodb.sqlalchemy_dynamodb.pydynamodb:DynamoDBDialect",
+            "dynamodb.rest = pydynamodb.sqlalchemy_dynamodb.pydynamodb:DynamoDBRestDialect",
         ]
     },
 )
