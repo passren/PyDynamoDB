@@ -3,6 +3,9 @@ from sqlalchemy.dialects import registry
 registry.register(
     "dynamodb", "pydynamodb.sqlalchemy_dynamodb.pydynamodb", "DynamoDBDialect"
 )
+registry.register(
+    "dynamodb.rest", "pydynamodb.sqlalchemy_dynamodb.pydynamodb", "DynamoDBRestDialect"
+)
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html
 RESERVED_WORDS = [
