@@ -21,6 +21,7 @@ class DynamoDBResultSet(CursorIterator):
         connection: "Connection",
         converter: Converter,
         statements: List[Dict[str, Any]],
+        limit: int,
         arraysize: int,
         retry_config: RetryConfig,
         is_transaction: bool = False,
@@ -29,6 +30,7 @@ class DynamoDBResultSet(CursorIterator):
         self._connection: Optional["Connection"] = connection
         self._converter = converter
         self._statements = statements
+        self._limit = limit
 
         assert (
             self._statements or len(self._statements) > 0
@@ -36,6 +38,7 @@ class DynamoDBResultSet(CursorIterator):
 
         self._is_batch_execute = True if len(self._statements) > 1 else False
         self._retry_config = retry_config
+        self._arraysize = arraysize
         self._metadata: Optional[OrderedDict[str, Dict[str, Any]]] = OrderedDict()
         self._rows: Deque[Dict[str, Optional[Any]]] = deque()
         self._errors: List[Dict[str, str]] = list()
@@ -141,12 +144,18 @@ class DynamoDBResultSet(CursorIterator):
         self,
     ) -> Optional[Dict[Any, Optional[Any]]]:
         if not self._rows and self._next_token:
-            self._fetch()
+            if not self._limit or (
+                    self._limit and self._rownumber < self._limit
+            ):
+                self._fetch()
         if not self._rows:
             return None
         else:
             if self._rownumber is None:
                 self._rownumber = 0
+            if self._limit and self._rownumber >= self._limit:
+                self._rows.clear()
+                return None
             self._rownumber += 1
             return self._rows.popleft()
 
@@ -253,7 +262,7 @@ class DynamoDBResultSet(CursorIterator):
         self._metadata.clear()
         self._rows.clear()
         self._next_token = None
-        self._rownumber = None
+        self._rownumber = 0
 
     def __enter__(self):
         return self

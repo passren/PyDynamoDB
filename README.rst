@@ -184,6 +184,21 @@ Regarding information and restrictions of DDB transaction, please see the page: 
                     ["pk2", "sk2", "test"])
     conn.commit()
 
+Limit Expression
+~~~~~~~~~~~~~~~~~
+DynamoDB doesn't support LIMIT expression in PartiQL. This is inconvenient in many scenarios. PyDynamoDB \
+is able to support writing LIMIT expression in PartiQL.
+
+.. code:: python
+
+    from pydynamodb import connect
+
+    cursor = connect(aws_access_key_id="aws_access_key_id",
+                    aws_secret_access_key="aws_secret_access_key"
+                     region_name="region_name").cursor()
+    cursor.execute('SELECT * FROM "ddb_table_name" WHERE key_partition = ? LIMIT 10', ["pk1"])
+    print(cursor.fetchall())
+
 SQLAlchemy
 ~~~~~~~~~~~
 Install SQLAlchemy with ``pip install "SQLAlchemy>=1.0.0, <2.0.0"``.
