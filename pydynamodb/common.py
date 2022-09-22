@@ -14,7 +14,6 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class BaseCursor(metaclass=ABCMeta):
     
-    DEFAULT_LIMIT_SIZE: int = 1000
     DEFAULT_LIST_TABLES_LIMIT_SIZE: int = 100
 
     def __init__(
@@ -43,7 +42,7 @@ class BaseCursor(metaclass=ABCMeta):
 
     def _list_tables(self, 
         next_token: Optional[str] = None,
-        limit : int = DEFAULT_LIST_TABLES_LIMIT_SIZE
+        limit: int = DEFAULT_LIST_TABLES_LIMIT_SIZE
     ) -> Tuple[Optional[str], List[str]]:
         request: Dict[str, Any] = {"Limit": limit}
 
@@ -64,7 +63,7 @@ class BaseCursor(metaclass=ABCMeta):
             return response.get("LastEvaluatedTableName", None), \
                     response.get("TableNames", [])
 
-    def list_tables(self,) -> List[str]:
+    def list_tables(self) -> List[str]:
         tables_ = []
         next_token = None
         while True:
@@ -74,12 +73,31 @@ class BaseCursor(metaclass=ABCMeta):
                 break
         return tables_
 
+    def _get_table_metadata(self, table_name: str) -> Optional[Dict[str, Any]]:
+        request: Dict[str, Any] = {"TableName": table_name}
+
+        try:
+            response = retry_api_call(
+                self.connection._client.describe_table,
+                config=self._retry_config,
+                logger=_logger,
+                **request,
+            )
+        except Exception as e:
+            _logger.exception("Failed to get table metadata.")
+            raise OperationalError(*e.args) from e
+        else:
+            return response.get("Table", {})
+
+    def get_table_metadata(self, table_name: str) -> Optional[Dict[str, Any]]:
+        return self._get_table_metadata(table_name)
+
     @abstractmethod
     def execute(
         self,
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
-        limit: int = DEFAULT_LIMIT_SIZE,
+        limit: int = None,
         consistent_read: bool = False
     ):
         raise NotImplementedError  # pragma: no cover

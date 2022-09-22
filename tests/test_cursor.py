@@ -216,6 +216,16 @@ class TestCursor:
                     desc, rows[0], "col_num"
                 ) == 10
 
+    def test_limit_sql(self, cursor):
+        cursor.execute("""
+            SELECT * FROM %s
+            WHERE key_partition = ?
+            LIMIT 2
+        """ % TESTCASE01_TABLE, [
+            "test_many_rows_1"
+        ])
+        assert len(cursor.fetchall()) == 2
+
     def test_list_tables(self, cursor):
         tables_ = cursor.list_tables()
         assert tables_ == ['pydynamodb_test_case01',
@@ -232,3 +242,18 @@ class TestCursor:
                 break
 
         return row[col_str_index]
+
+    def test_get_table_metadata(self, cursor):
+        metadata_ = cursor.get_table_metadata(TESTCASE01_TABLE)
+        assert metadata_ is not None
+        assert metadata_["TableName"] == TESTCASE01_TABLE
+        assert len(metadata_["KeySchema"]) == 2
+        assert metadata_["KeySchema"][0]["AttributeName"] == "key_partition"
+        assert metadata_["KeySchema"][0]["KeyType"] == "HASH"
+        assert metadata_["KeySchema"][1]["AttributeName"] == "key_sort"
+        assert metadata_["KeySchema"][1]["KeyType"] == "RANGE"
+        assert len(metadata_["AttributeDefinitions"]) == 2
+        assert metadata_["AttributeDefinitions"][0]["AttributeName"] == "key_partition"
+        assert metadata_["AttributeDefinitions"][0]["AttributeType"] == "S"
+        assert metadata_["AttributeDefinitions"][1]["AttributeName"] == "key_sort"
+        assert metadata_["AttributeDefinitions"][1]["AttributeType"] == "N"

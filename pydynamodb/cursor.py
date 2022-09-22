@@ -6,7 +6,7 @@ from .converter import Converter
 from .common import BaseCursor, CursorIterator
 from .result_set import DynamoDBResultSet, DynamoDBDictResultSet
 from .error import NotSupportedError, ProgrammingError
-from .util import RetryConfig, synchronized
+from .util import RetryConfig, synchronized, parse_limit_expression
 
 if TYPE_CHECKING:
     from .connection import Connection
@@ -57,15 +57,19 @@ class Cursor(BaseCursor, CursorIterator):
     def errors(self) -> List[Dict[str, str]]:
         return self._result_set.errors
 
+    def _prepare_statement(self, statement: str) -> Tuple[str, int]:
+        return parse_limit_expression(statement)
 
     @synchronized
     def execute(
         self: _T,
         operation: str,
         parameters: Optional[List[Dict[str, Any]]] = None,
-        limit: int = BaseCursor.DEFAULT_LIMIT_SIZE,
+        limit: int = None,
         consistent_read: bool = False
     ) -> _T:
+        operation, limit = self._prepare_statement(operation)
+
         statement_ = {
             "Statement": operation, 
         }
@@ -77,8 +81,10 @@ class Cursor(BaseCursor, CursorIterator):
                     for parameter in parameters
                 ],
                 "ConsistentRead": consistent_read,
-                "Limit": limit,
             })
+
+            if limit:
+                statement_.update({"Limit": limit})
         statements = [statement_]
 
         if not self.connection.autocommit:
@@ -89,6 +95,7 @@ class Cursor(BaseCursor, CursorIterator):
                     self._connection,
                     self._converter,
                     statements,
+                    limit,
                     self.arraysize,
                     self._retry_config,
                     is_transaction=False
@@ -123,6 +130,7 @@ class Cursor(BaseCursor, CursorIterator):
                     self._connection,
                     self._converter,
                     statements,
+                    None,
                     self.arraysize,
                     self._retry_config,
                     is_transaction=False
@@ -137,6 +145,7 @@ class Cursor(BaseCursor, CursorIterator):
                 self._connection,
                 self._converter,
                 statements,
+                None,
                 self.arraysize,
                 self._retry_config,
                 is_transaction=True

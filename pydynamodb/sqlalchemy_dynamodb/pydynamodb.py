@@ -3,9 +3,11 @@ import re
 from distutils.util import strtobool
 
 import pydynamodb
+from pydynamodb.error import OperationalError
 from ..sqlalchemy_dynamodb import RESERVED_WORDS
 
-from sqlalchemy import exc
+import botocore
+from sqlalchemy import exc, types, util
 from sqlalchemy.engine import Engine, reflection
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.sql.compiler import (
@@ -76,6 +78,12 @@ class DynamoDBStatementCompiler(SQLCompiler):
             result_map_targets=result_map_targets,
             kw=kw,
         )
+
+    def limit_clause(self, select, **kw):
+        limit_clause = select._limit_clause
+        if limit_clause is not None and select._simple_int_clause(limit_clause):
+            return f" LIMIT {self.process(limit_clause.render_literal_execute(), **kw)}"
+        return ""
 
 
 class DynamoDBTypeCompiler(GenericTypeCompiler):
@@ -172,6 +180,22 @@ class DynamoDBDialect(DefaultDialect):
 
         return opts
 
+    def do_ping(self, dbapi_connection):
+        cursor = None
+        try:
+            cursor = dbapi_connection.cursor()
+            try:
+                cursor.execute(self._dialect_specific_select_one)
+            finally:
+                cursor.close()
+        except self.dbapi.Error as err:
+            if isinstance(err, OperationalError):
+                return True
+            else:
+                raise
+        else:
+            return True
+
     def get_schema_names(self, connection, **kw):
         # DynamoDB does not have the concept of a schema
         return ["default"]
@@ -181,6 +205,60 @@ class DynamoDBDialect(DefaultDialect):
         raw_connection = self._raw_connection(connection)
         with raw_connection.connection.cursor() as cursor:
             return cursor.list_tables()
+
+    def _get_column_type(self, metadata, attribute_name) -> str:
+        col_type = types.NullType
+        
+        for attr in metadata["AttributeDefinitions"]:
+            if attr["AttributeName"] == attribute_name:
+                type_ = attr["AttributeType"]
+                if type_ == "S":
+                    col_type = types.String
+                elif type_ == "N":
+                    col_type = types.Numeric
+                elif type_ == "B":
+                    col_type = types.BINARY
+                else:
+                    util.warn(f"Did not recognize type '{type_}'")
+                    col_type = types.NullType
+        return col_type()
+
+    def has_table(self, connection, table_name, schema=None, **kw):
+        try:
+            columns = self.get_columns(connection, table_name, schema)
+            return True if columns else False
+        except exc.NoSuchTableError as e:
+            return False
+
+    @reflection.cache
+    def get_columns(self, connection, table_name, schema=None, **kw):
+        raw_connection = self._raw_connection(connection)
+        with raw_connection.connection.cursor() as cursor:
+            try:
+                metadata_ = cursor.get_table_metadata(table_name)
+
+                columns = [
+                    {
+                        "name": c["AttributeName"],
+                        "type": self._get_column_type(metadata_, c["AttributeName"]),
+                        "nullable": False,
+                        "default": None,
+                        "autoincrement": False,
+                        "comment": None,
+                        "dialect_options": {},
+                    }
+                    for c in metadata_["KeySchema"]
+                ]
+
+                return columns
+            except OperationalError as e:
+                cause = e.__cause__
+                if (
+                    isinstance(cause, botocore.exceptions.ClientError)
+                    and cause.response["Error"]["Code"] == "ResourceNotFoundException"
+                ):
+                    raise exc.NoSuchTableError(table_name) from e
+                raise
 
     def get_table_names(self, connection, schema=None, **kw):
         return self._get_tables(connection, schema, **kw)

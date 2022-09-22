@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from pytest import skip
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
@@ -21,6 +21,11 @@ class _TestCase02(Base):
     # col_byte = Column(BINARY)
 
 class TestSQLAlchemyDynamoDB:
+
+    def test_ping(self, engine):
+        engine, conn = engine
+        conn = engine.raw_connection()
+        assert engine.dialect.do_ping(conn)
 
     def test_basic_insert(self, engine):
         engine, conn = engine
@@ -204,5 +209,29 @@ class TestSQLAlchemyDynamoDB:
             )).all()
             assert len(rows3) == 0
 
+    def test_has_table(self, engine):
+        engine, conn = engine
 
+        assert engine.dialect.has_table(conn, TESTCASE02_TABLE) == True
+        assert engine.dialect.has_table(conn, "NOT_EXISTED_TABLE") == False
+
+    def test_get_columns(self, engine):
+        engine, conn = engine
+
+        columns_ = engine.dialect.get_columns(conn, TESTCASE02_TABLE)
+        assert len(columns_) == 2
+        assert columns_[0]["name"] == "key_partition"
+        assert isinstance(columns_[0]["type"], String)
+        assert columns_[1]["name"] == "key_sort"
+        assert isinstance(columns_[1]["type"], Numeric)
+
+    def test_data_limit(self, engine):
+        engine, conn = engine
+        table = Table(TESTCASE02_TABLE, MetaData(), 
+                        Column('key_partition', String, nullable=False),
+                        Column('key_sort', Integer),
+                        Column('col_str', String),
+                )
+        rows = conn.execute(table.select().limit(1)).fetchall()
+        assert len(rows) == 1
 
