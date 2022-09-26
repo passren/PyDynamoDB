@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import datetime
-from typing import TYPE_CHECKING, FrozenSet, Type
+from typing import TYPE_CHECKING, FrozenSet
 
 from .error import *  # noqa
 

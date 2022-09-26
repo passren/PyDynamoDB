@@ -12,7 +12,7 @@ class Serializer(metaclass=ABCMeta):
         self,
         mapping: Optional[Dict[Any, Callable[[Optional[str]], Optional[Any]]]] = None,
     ) -> None:
-        if mapping == None:
+        if mapping is None:
             self._mapping = self.get_default_converters()
         else:
             self._mapping = mapping
@@ -42,10 +42,10 @@ class Serializer(metaclass=ABCMeta):
         if value is None:
             return None
 
-        type_ = type(next(iter(value)))
-        if type_ == type(1) or type_ == type(1.0):
+        value_ = next(iter(value))
+        if isinstance(value_, type(1)) or isinstance(value_, type(1.0)):
             return {"NS": [str(v) for v in value]}
-        elif type_ == type(b""):
+        elif isinstance(value_, type(b"")):
             return {"BS": [v.decode() for v in value]}
         else:
             return {"SS": [v for v in value]}
@@ -103,7 +103,7 @@ class Deserializer(metaclass=ABCMeta):
         self,
         mapping: Optional[Dict[Any, Callable[[Optional[str]], Optional[Any]]]] = None,
     ) -> None:
-        if mapping == None:
+        if mapping is None:
             self._mapping = self.get_default_converters()
         else:
             self._mapping = mapping

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from .converter import Converter, DefaultTypeConverter
 from .error import ProgrammingError, OperationalError

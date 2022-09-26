@@ -31,7 +31,7 @@ class DynamoDBDDLCompiler(DDLCompiler):
         schema_translate_map=None,
         compile_kwargs=None,
     ):
-        exc.CompileError(f"DDL statement is not supported by DDB PartiQL.")
+        exc.CompileError("DDL statement is not supported by DDB PartiQL.")
 
 
 class DynamoDBStatementCompiler(SQLCompiler):
@@ -230,7 +230,7 @@ class DynamoDBDialect(DefaultDialect):
         try:
             columns = self.get_columns(connection, table_name, schema)
             return True if columns else False
-        except exc.NoSuchTableError as e:
+        except exc.NoSuchTableError:
             return False
 
     @reflection.cache

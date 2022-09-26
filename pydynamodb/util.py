@@ -3,12 +3,10 @@ import functools
 import logging
 import re
 import threading
-from typing import Any, Callable, Iterable, Pattern, Tuple
+from typing import Any, Callable, Iterable, Tuple
 
 import tenacity
 from tenacity import after_log, retry_if_exception, stop_after_attempt, wait_exponential
-
-from .error import DataError
 
 _logger = logging.getLogger(__name__)  # type: ignore
 

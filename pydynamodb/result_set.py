@@ -2,7 +2,6 @@ import logging
 from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, Type, cast
 
-from .cursor import BaseCursor
 from .converter import Converter
 from .common import CursorIterator
 from .error import ProgrammingError, OperationalError, DataError
