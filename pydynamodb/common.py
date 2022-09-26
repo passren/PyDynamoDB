@@ -12,8 +12,9 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
+
 class BaseCursor(metaclass=ABCMeta):
-    
+
     DEFAULT_LIST_TABLES_LIMIT_SIZE: int = 100
 
     def __init__(
@@ -37,12 +38,15 @@ class BaseCursor(metaclass=ABCMeta):
         return DefaultTypeConverter()
 
     @property
-    def description(self) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
+    def description(
+        self,
+    ) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
         return None
 
-    def _list_tables(self, 
+    def _list_tables(
+        self,
         next_token: Optional[str] = None,
-        limit: int = DEFAULT_LIST_TABLES_LIMIT_SIZE
+        limit: int = DEFAULT_LIST_TABLES_LIMIT_SIZE,
     ) -> Tuple[Optional[str], List[str]]:
         request: Dict[str, Any] = {"Limit": limit}
 
@@ -60,8 +64,9 @@ class BaseCursor(metaclass=ABCMeta):
             _logger.exception("Failed to list tables.")
             raise OperationalError(*e.args) from e
         else:
-            return response.get("LastEvaluatedTableName", None), \
-                    response.get("TableNames", [])
+            return response.get("LastEvaluatedTableName", None), response.get(
+                "TableNames", []
+            )
 
     def list_tables(self) -> List[str]:
         tables_ = []
@@ -98,15 +103,13 @@ class BaseCursor(metaclass=ABCMeta):
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
         limit: int = None,
-        consistent_read: bool = False
+        consistent_read: bool = False,
     ):
         raise NotImplementedError  # pragma: no cover
 
     @abstractmethod
     def executemany(
-        self, 
-        operation: str,
-        seq_of_parameters: List[Optional[Dict[str, Any]]]
+        self, operation: str, seq_of_parameters: List[Optional[Dict[str, Any]]]
     ) -> None:
         raise NotImplementedError  # pragma: no cover
 
@@ -127,6 +130,7 @@ class BaseCursor(metaclass=ABCMeta):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
 
 class CursorIterator(metaclass=ABCMeta):
 

@@ -7,12 +7,13 @@ from .error import *  # noqa
 if TYPE_CHECKING:
     from .connection import Connection
 
-__version__: str = "0.3.3"
+__version__: str = "0.3.4"
 
 # Globals https://www.python.org/dev/peps/pep-0249/#globals
 apilevel: str = "2.0"
 threadsafety: int = 3
 paramstyle: str = "qmark"
+
 
 class DBAPITypeObject(FrozenSet[str]):
     """Type Objects and Constructors
@@ -35,12 +36,19 @@ class DBAPITypeObject(FrozenSet[str]):
     def __hash__(self):
         return frozenset.__hash__(self)
 
+
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
 STRING: DBAPITypeObject = DBAPITypeObject(("S",))
 BINARY: DBAPITypeObject = DBAPITypeObject(("B",))
-BOOLEAN: DBAPITypeObject = DBAPITypeObject(("BOOL","NULL",))
+BOOLEAN: DBAPITypeObject = DBAPITypeObject(
+    (
+        "BOOL",
+        "NULL",
+    )
+)
 NUMBER: DBAPITypeObject = DBAPITypeObject(("N",))
-JSON: DBAPITypeObject = DBAPITypeObject(("M","L","SS","NS","BS"))
+JSON: DBAPITypeObject = DBAPITypeObject(("M", "L", "SS", "NS", "BS"))
+
 
 def connect(*args, **kwargs) -> "Connection":
     from .connection import Connection
