@@ -38,7 +38,7 @@ jobs:
       - name: black
         run: black --check pydynamodb
       - name: flake8
-        run: flake8 pydynamodb
+        run: flake8 --max-line-length=100 pydynamodb
       - name: Download DynamoDB local
         run: |
           curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz
