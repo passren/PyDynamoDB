@@ -1,0 +1,49 @@
+name: Test
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    env:
+      USE_LOCAL_DDB: "true"
+      AWS_DEFAULT_REGION: "us-west-2"
+      AWS_ACCESS_KEY_ID: "***"
+      AWS_SECRET_ACCESS_KEY: "***"
+      LOCAL_DDB_ENDPOINT_URL: "http://localhost:8000"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8, 3.9, "3.10"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python-dev
+          pip install boto3
+          pip install tenacity
+          pip install sqlalchemy
+      - name: black
+        run: black --check setup.py pydynamodb
+      - name: flake8
+        run: flake8 pydynamodb
+      - name: Download DynamoDB local
+        run: |
+          curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz
+          tar xzf ./dynamodb_local_latest.tar.gz
+          nohup java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
+      - name: Run test with pytest
+        run: |
+          pip install pytest
+          pytest
