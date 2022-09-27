@@ -36,7 +36,7 @@ jobs:
           pip install black
           pip install flake8
       - name: black
-        run: black --check setup.py pydynamodb
+        run: black --check pydynamodb
       - name: flake8
         run: flake8 pydynamodb
       - name: Download DynamoDB local
