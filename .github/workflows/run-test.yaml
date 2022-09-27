@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8]
+        python-version: [3.8, 3.9]
 
     steps:
       - name: Checkout
@@ -33,12 +33,14 @@ jobs:
           pip install boto3
           pip install tenacity
           pip install sqlalchemy
-          pip install black
-          pip install flake8
       - name: black
-        run: black --check pydynamodb
+        run: |
+          pip install black
+          black --check pydynamodb
       - name: flake8
-        run: flake8 --max-line-length=100 pydynamodb
+        run: |
+          pip install flake8
+          flake8 --max-line-length=100 pydynamodb
       - name: Download DynamoDB local
         run: |
           curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz

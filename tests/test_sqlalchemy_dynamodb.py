@@ -132,16 +132,6 @@ class TestSQLAlchemyDynamoDB:
 
     def test_basic_query(self, engine):
         engine, conn = engine
-        # rows = conn.execute(
-        #     text(
-        #         """
-        #     SELECT * FROM %s
-        #     """
-        #         % TESTCASE02_TABLE
-        #     )
-        # ).fetchall()
-        # assert len(rows) == 6
-
         rows = conn.execute(
             text(
                 """
