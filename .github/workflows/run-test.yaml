@@ -49,4 +49,13 @@ jobs:
       - name: Run test with pytest
         run: |
           pip install pytest
-          pytest
+          pip install pytest-cov
+          pytest --cov=pydynamodb --cov-report=xml tests/
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v3
+        with:
+          env_vars: OS,PYTHON
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
