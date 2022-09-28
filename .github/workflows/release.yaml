@@ -22,6 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          pip install wheel
           pip install twine
 
       - name: Build
