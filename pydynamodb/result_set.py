@@ -1,9 +1,7 @@
-
 import logging
 from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, Type, cast
 
-from .cursor import BaseCursor
 from .converter import Converter
 from .common import CursorIterator
 from .error import ProgrammingError, OperationalError, DataError
@@ -14,8 +12,8 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
-class DynamoDBResultSet(CursorIterator):
 
+class DynamoDBResultSet(CursorIterator):
     def __init__(
         self,
         connection: "Connection",
@@ -90,9 +88,7 @@ class DynamoDBResultSet(CursorIterator):
             }
             api_call_func = self.connection.client.execute_transaction
         else:
-            request = {
-                "Statements": self._statements
-            }
+            request = {"Statements": self._statements}
             api_call_func = self.connection.client.batch_execute_statement
 
         try:
@@ -144,9 +140,7 @@ class DynamoDBResultSet(CursorIterator):
         self,
     ) -> Optional[Dict[Any, Optional[Any]]]:
         if not self._rows and self._next_token:
-            if not self._limit or (
-                    self._limit and self._rownumber < self._limit
-            ):
+            if not self._limit or (self._limit and self._rownumber < self._limit):
                 self._fetch()
         if not self._rows:
             return None
@@ -159,9 +153,7 @@ class DynamoDBResultSet(CursorIterator):
             self._rownumber += 1
             return self._rows.popleft()
 
-    def fetchmany(
-        self, size: Optional[int] = None
-    ) -> List[Dict[Any, Optional[Any]]]:
+    def fetchmany(self, size: Optional[int] = None) -> List[Dict[Any, Optional[Any]]]:
         if not size or size <= 0:
             size = self._arraysize
         rows = []
@@ -195,9 +187,11 @@ class DynamoDBResultSet(CursorIterator):
         for row in rows:
             error = row.get("Error", None)
             if error:
-                processed_error_rows.append({
-                    error.get("Code"): error.get("Message"),
-                })
+                processed_error_rows.append(
+                    {
+                        error.get("Code"): error.get("Message"),
+                    }
+                )
                 continue
 
             item = row.get("Item", None)
@@ -212,7 +206,7 @@ class DynamoDBResultSet(CursorIterator):
         rows = response.get("Items", None)
         if rows is None:
             raise DataError("KeyError `Items`")
-        
+
         processed_rows = list()
         for row in rows:
             row_ = self._process_row_item(row)
@@ -231,7 +225,7 @@ class DynamoDBResultSet(CursorIterator):
                 "name": col_name,
                 "type": types_,
             }
-        
+
         return list(self._metadata).index(col_name)
 
     def _process_row_item(self, row) -> Optional[Tuple]:
@@ -270,6 +264,7 @@ class DynamoDBResultSet(CursorIterator):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
+
 class DynamoDBDictResultSet(DynamoDBResultSet):
 
     # You can override this to use OrderedDict or other dict-like types.
@@ -277,10 +272,6 @@ class DynamoDBDictResultSet(DynamoDBResultSet):
 
     def _process_row_item(self, row) -> Optional[Dict]:
 
-        return self.dict_type([
-            (
-                col,
-                self._converter.deserialize(val)
-            )
-            for col, val in row.items()
-        ])
+        return self.dict_type(
+            [(col, self._converter.deserialize(val)) for col, val in row.items()]
+        )

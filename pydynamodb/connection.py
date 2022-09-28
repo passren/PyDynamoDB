@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)
 
+
 class Connection:
 
     _SESSION_PASSING_ARGS: List[str] = [
@@ -62,7 +63,7 @@ class Connection:
                 profile_name=self.profile_name,
                 **self._session_kwargs,
             )
-        
+
         self._client = self._session.client(
             "dynamodb", region_name=self.region_name, **self._client_kwargs
         )
@@ -76,7 +77,9 @@ class Connection:
 
     @property
     def _session_kwargs(self) -> Dict[str, Any]:
-        return {k: v for k, v in self._kwargs.items() if k in self._SESSION_PASSING_ARGS}
+        return {
+            k: v for k, v in self._kwargs.items() if k in self._SESSION_PASSING_ARGS
+        }
 
     @property
     def _client_kwargs(self) -> Dict[str, Any]:

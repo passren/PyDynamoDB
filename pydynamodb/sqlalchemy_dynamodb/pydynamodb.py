@@ -24,7 +24,6 @@ class DynamoDBIdentifierPreparer(IdentifierPreparer):
 
 
 class DynamoDBDDLCompiler(DDLCompiler):
-
     def __init__(
         self,
         dialect,
@@ -32,7 +31,7 @@ class DynamoDBDDLCompiler(DDLCompiler):
         schema_translate_map=None,
         compile_kwargs=None,
     ):
-        exc.CompileError(f"DDL statement is not supported by DDB PartiQL.")
+        exc.CompileError("DDL statement is not supported by DDB PartiQL.")
 
 
 class DynamoDBStatementCompiler(SQLCompiler):
@@ -44,10 +43,10 @@ class DynamoDBStatementCompiler(SQLCompiler):
     def visit_column(
         self,
         column,
-        add_to_result_map = None,
+        add_to_result_map=None,
         include_table: bool = True,
-        result_map_targets = (),
-        ambiguous_table_name_map = None,
+        result_map_targets=(),
+        ambiguous_table_name_map=None,
         **kwargs,
     ) -> str:
         return super(DynamoDBStatementCompiler, self).visit_column(
@@ -80,9 +79,13 @@ class DynamoDBStatementCompiler(SQLCompiler):
         )
 
     def limit_clause(self, select, **kw):
-        limit_clause = select._limit_clause
-        if limit_clause is not None and select._simple_int_clause(limit_clause):
-            return f" LIMIT {self.process(limit_clause.render_literal_execute(), **kw)}"
+        if hasattr(select, "_simple_int_clause"):
+            limit_clause = select._limit_clause
+            if limit_clause is not None and select._simple_int_clause(limit_clause):
+                return f" LIMIT {self.process(limit_clause.render_literal_execute(), **kw)}"
+        else:
+            if select._limit_clause is not None:
+                return " LIMIT " + self.process(select._limit_clause, **kw)
         return ""
 
 
@@ -199,7 +202,7 @@ class DynamoDBDialect(DefaultDialect):
     def get_schema_names(self, connection, **kw):
         # DynamoDB does not have the concept of a schema
         return ["default"]
-        
+
     @reflection.cache
     def _get_tables(self, connection, schema=None, **kw):
         raw_connection = self._raw_connection(connection)
@@ -208,7 +211,7 @@ class DynamoDBDialect(DefaultDialect):
 
     def _get_column_type(self, metadata, attribute_name) -> str:
         col_type = types.NullType
-        
+
         for attr in metadata["AttributeDefinitions"]:
             if attr["AttributeName"] == attribute_name:
                 type_ = attr["AttributeType"]
@@ -227,7 +230,7 @@ class DynamoDBDialect(DefaultDialect):
         try:
             columns = self.get_columns(connection, table_name, schema)
             return True if columns else False
-        except exc.NoSuchTableError as e:
+        except exc.NoSuchTableError:
             return False
 
     @reflection.cache

@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)  # type: ignore
 _T = TypeVar("_T", bound="Cursor")
 
-class Cursor(BaseCursor, CursorIterator):
 
+class Cursor(BaseCursor, CursorIterator):
     def __init__(
         self,
         connection: "Connection",
@@ -50,7 +50,9 @@ class Cursor(BaseCursor, CursorIterator):
         return self._result_set.rownumber if self._result_set else None
 
     @property
-    def description(self) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
+    def description(
+        self,
+    ) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
         return self._result_set.description
 
     @property
@@ -66,22 +68,23 @@ class Cursor(BaseCursor, CursorIterator):
         operation: str,
         parameters: Optional[List[Dict[str, Any]]] = None,
         limit: int = None,
-        consistent_read: bool = False
+        consistent_read: bool = False,
     ) -> _T:
         operation, limit = self._prepare_statement(operation)
 
         statement_ = {
-            "Statement": operation, 
+            "Statement": operation,
         }
 
         if parameters:
-            statement_.update({
-                "Parameters": [
-                    self._converter.serialize(parameter)
-                    for parameter in parameters
-                ],
-                "ConsistentRead": consistent_read,
-            })
+            statement_.update(
+                {
+                    "Parameters": [
+                        self._converter.serialize(parameter) for parameter in parameters
+                    ],
+                    "ConsistentRead": consistent_read,
+                }
+            )
 
             if limit:
                 statement_.update({"Limit": limit})
@@ -92,13 +95,13 @@ class Cursor(BaseCursor, CursorIterator):
         else:
             self._reset_state()
             self._result_set = self._result_set_class(
-                    self._connection,
-                    self._converter,
-                    statements,
-                    limit,
-                    self.arraysize,
-                    self._retry_config,
-                    is_transaction=False
+                self._connection,
+                self._converter,
+                statements,
+                limit,
+                self.arraysize,
+                self._retry_config,
+                is_transaction=False,
             )
 
         return self
@@ -108,14 +111,13 @@ class Cursor(BaseCursor, CursorIterator):
         self,
         operation: str,
         seq_of_parameters: List[Optional[Dict[str, Any]]],
-        consistent_read: bool = False
+        consistent_read: bool = False,
     ) -> None:
         statements = [
             {
-                "Statement": operation, 
+                "Statement": operation,
                 "Parameters": [
-                    self._converter.serialize(parameter)
-                    for parameter in parameters
+                    self._converter.serialize(parameter) for parameter in parameters
                 ],
                 "ConsistentRead": consistent_read,
             }
@@ -127,13 +129,13 @@ class Cursor(BaseCursor, CursorIterator):
         else:
             self._reset_state()
             self._result_set = self._result_set_class(
-                    self._connection,
-                    self._converter,
-                    statements,
-                    None,
-                    self.arraysize,
-                    self._retry_config,
-                    is_transaction=False
+                self._connection,
+                self._converter,
+                statements,
+                None,
+                self.arraysize,
+                self._retry_config,
+                is_transaction=False,
             )
 
     @synchronized
@@ -148,11 +150,11 @@ class Cursor(BaseCursor, CursorIterator):
                 None,
                 self.arraysize,
                 self._retry_config,
-                is_transaction=True
+                is_transaction=True,
             )
-            
+
             self._post_transaction()
-    
+
     def _post_transaction(self) -> None:
         self._transaction_statements.clear()
 
@@ -164,10 +166,7 @@ class Cursor(BaseCursor, CursorIterator):
         result_set = cast(DynamoDBResultSet, self._result_set)
         return result_set.fetchone()
 
-    def fetchmany(
-        self,
-        size: int = None
-    ) -> Optional[Dict[Any, Optional[Any]]]:
+    def fetchmany(self, size: int = None) -> Optional[Dict[Any, Optional[Any]]]:
         if not self.has_result_set:
             raise ProgrammingError("No result set.")
         result_set = cast(DynamoDBResultSet, self._result_set)
@@ -193,6 +192,7 @@ class Cursor(BaseCursor, CursorIterator):
         if self.result_set and not self.result_set.is_closed:
             self.result_set.close()
         self.result_set = None  # type: ignore
+
 
 class DictCursor(Cursor):
     def __init__(self, **kwargs) -> None:

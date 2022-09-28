@@ -6,13 +6,13 @@ from typing import Any, Callable, Dict, Optional, Set, List, Union, Type
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
-class Serializer(metaclass=ABCMeta):
 
+class Serializer(metaclass=ABCMeta):
     def __init__(
         self,
         mapping: Optional[Dict[Any, Callable[[Optional[str]], Optional[Any]]]] = None,
     ) -> None:
-        if mapping == None:
+        if mapping is None:
             self._mapping = self.get_default_converters()
         else:
             self._mapping = mapping
@@ -26,7 +26,9 @@ class Serializer(metaclass=ABCMeta):
             return None
         return {"S": value}
 
-    def _to_number(self, value: Optional[Union[int, float]]) -> Optional[Dict[str, str]]:
+    def _to_number(
+        self, value: Optional[Union[int, float]]
+    ) -> Optional[Dict[str, str]]:
         if value is None:
             return None
         return {"N": str(value)}
@@ -39,19 +41,19 @@ class Serializer(metaclass=ABCMeta):
     def _to_set(self, value: Optional[Set[Any]]) -> Optional[Dict[str, List[str]]]:
         if value is None:
             return None
-        
-        type_ = type(next(iter(value)))
-        if type_ == type(1) or type_ == type(1.0):
-            return {"NS": [ str(v) for v in value ]}
-        elif type_ == type(b""):
-            return {"BS": [ v.decode() for v in value ]}
+
+        value_ = next(iter(value))
+        if isinstance(value_, type(1)) or isinstance(value_, type(1.0)):
+            return {"NS": [str(v) for v in value]}
+        elif isinstance(value_, type(b"")):
+            return {"BS": [v.decode() for v in value]}
         else:
-            return {"SS": [ v for v in value ]}    
+            return {"SS": [v for v in value]}
 
     def _to_map(self, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         if value is None:
             return None
-        
+
         converted_ = {}
         for k, v in value.items():
             type_ = type(v)
@@ -80,7 +82,9 @@ class Serializer(metaclass=ABCMeta):
     def get(self, type_: Type) -> Callable[[Optional[str]], Optional[Any]]:
         return self._mapping.get(type_, self._to_default)
 
-    def get_default_converters(self) -> Dict[Type[Any], Callable[[Optional[str]], Optional[Any]]]:
+    def get_default_converters(
+        self,
+    ) -> Dict[Type[Any], Callable[[Optional[str]], Optional[Any]]]:
         return {
             str: self._to_string,
             int: self._to_number,
@@ -93,13 +97,13 @@ class Serializer(metaclass=ABCMeta):
             bool: self._to_bool,
         }
 
-class Deserializer(metaclass=ABCMeta):
 
+class Deserializer(metaclass=ABCMeta):
     def __init__(
         self,
         mapping: Optional[Dict[Any, Callable[[Optional[str]], Optional[Any]]]] = None,
     ) -> None:
-        if mapping == None:
+        if mapping is None:
             self._mapping = self.get_default_converters()
         else:
             self._mapping = mapping
@@ -121,22 +125,22 @@ class Deserializer(metaclass=ABCMeta):
     def _to_string_set(self, value: Optional[List[str]]) -> Optional[Set[str]]:
         if value is None:
             return None
-        return set([ v for v in value ])
+        return set([v for v in value])
 
     def _to_number_set(self, value: Optional[List[str]]) -> Optional[Set[float]]:
         if value is None:
             return None
-        return set([ float(v) for v in value ])
+        return set([float(v) for v in value])
 
     def _to_binary_set(self, value: Optional[List[str]]) -> Optional[Set[bytes]]:
         if value is None:
             return None
-        return set([ v for v in value ])
+        return set([v for v in value])
 
     def _to_map(self, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         if value is None:
             return None
-        
+
         converted_ = {}
         for k, v in value.items():
             type_, value_ = next(iter(v.items()))
@@ -146,7 +150,7 @@ class Deserializer(metaclass=ABCMeta):
     def _to_list(self, value: Optional[List[Any]]) -> Optional[List[Any]]:
         if value is None:
             return None
-        
+
         coverted_ = []
         for v in value:
             type_, value_ = next(iter(v.items()))
@@ -165,7 +169,9 @@ class Deserializer(metaclass=ABCMeta):
     def get(self, type_: str) -> Callable[[Optional[str]], Optional[Any]]:
         return self._mapping.get(type_, self._to_default)
 
-    def get_default_converters(self) -> Dict[Any, Callable[[Optional[str]], Optional[Any]]]:
+    def get_default_converters(
+        self,
+    ) -> Dict[Any, Callable[[Optional[str]], Optional[Any]]]:
         return {
             "S": self._to_default,
             "N": self._to_number,
@@ -179,8 +185,8 @@ class Deserializer(metaclass=ABCMeta):
             "BOOL": self._to_bool,
         }
 
-class Converter(metaclass=ABCMeta):
 
+class Converter(metaclass=ABCMeta):
     def __init__(
         self,
         serializer: Serializer,
@@ -197,10 +203,14 @@ class Converter(metaclass=ABCMeta):
     def deserializer(self) -> Deserializer:
         return self._deserializer
 
-    def get_serialize_converter(self, type_: str) -> Callable[[Optional[str]], Optional[Any]]:
+    def get_serialize_converter(
+        self, type_: str
+    ) -> Callable[[Optional[str]], Optional[Any]]:
         return self._serializer.get(type_)
 
-    def get_deserialize_converter(self, type_: str) -> Callable[[Optional[str]], Optional[Any]]:
+    def get_deserialize_converter(
+        self, type_: str
+    ) -> Callable[[Optional[str]], Optional[Any]]:
         return self._deserializer.get(type_)
 
     @abstractmethod
@@ -210,6 +220,7 @@ class Converter(metaclass=ABCMeta):
     @abstractmethod
     def deserialize(self, value: Optional[Any]) -> Optional[Any]:
         raise NotImplementedError  # pragma: no cover
+
 
 class DefaultTypeConverter(Converter):
     def __init__(self) -> None:
