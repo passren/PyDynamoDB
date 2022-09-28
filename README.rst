@@ -1,3 +1,15 @@
+.. image:: https://badge.fury.io/py/pydynamodb.svg
+    :target: https://badge.fury.io/py/pydynamodb
+
+.. image:: https://github.com/passren/PyDynamoDB/actions/workflows/run-test.yaml/badge.svg
+    :target: https://github.com/passren/PyDynamoDB/actions/workflows/run-test.yaml
+
+.. image:: https://pepy.tech/badge/pydynamodb/month
+    :target: https://pepy.tech/project/pydynamodb
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+
 PyDynamoDB
 ===========
 
