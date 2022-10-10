@@ -167,6 +167,29 @@ class TestCursor:
                 "col_bs",
             ]
 
+        cursor.execute(
+            """
+            SELECT col_nested_list, col_nested_map FROM %s
+            WHERE key_partition = ?
+            AND key_sort = ?
+        """
+            % TESTCASE01_TABLE,
+            ["test_one_row_2", 1],
+        )
+        row = cursor.fetchone()
+        desc = cursor.description
+        assert self._get_value_by_column_name(desc, row, "col_nested_list") == [
+                                                    "Hello", "World", 1.0,
+                                                    b"1", {1, 2, 3}, {"1", "2", "3"},
+                                                    {"name": "test case 3", "version": 1.0},
+                                                ]
+        assert self._get_value_by_column_name(desc, row, "col_nested_map") == {
+                                                    "name": "test case 3",
+                                                    "version": 1.0,
+                                                    "list": ["Hello", "World", {1, 2, 3}, {"1", "2"}, 2],
+                                                    "map": {"str": "Best", "num": 1, "chinese": u"你好"},
+                                                }
+
     def test_fetchmany(self, cursor):
         cursor.execute(
             """
