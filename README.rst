@@ -58,6 +58,9 @@ Dependencies
 
   - SQLAlchemy >= 1.0.0, < 2.0.0
 
+* Pyparsing (The approach to creating andexecuting simple grammars)
+
+  - pyparsing >= 3.0.0
 
 Installation
 --------------
