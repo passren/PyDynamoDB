@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Syntext of DDB table creation with SQL:
 -------------------------------------
 CREATE [GLOBAL] TABLE tbl_name
@@ -8,7 +8,7 @@ CREATE [GLOBAL] TABLE tbl_name
 
 create_definition: {
     col_name column_definition
-    | INDEX index_name index_type 
+    | INDEX index_name index_type
         (col_name key_type, ...)
       [index_option] ...
 }
@@ -84,24 +84,29 @@ StreamSpecification.StreamEnabled False
 SSESpecification.Enabled False
 TableClass STANDARD
 Tags (name:Issue, usage:test)
-'''
+"""
 
 import logging
 from .common import KeyWords, Tokens
 from .ddl import DdlBase
-from pyparsing import (Opt, Group, ZeroOrMore, OneOrMore,
-                        delimited_list, Forward, ParseResults)
+from pyparsing import (
+    Opt,
+    Group,
+    ZeroOrMore,
+    OneOrMore,
+    delimited_list,
+    Forward,
+)
 from typing import Any, Dict
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
+
 class DdlCreate(DdlBase):
-    _ATTRIBUTE = Group(
-                        Tokens.ATTRIBUTE_NAME
-                        + Tokens.DATA_TYPE
-                        + Tokens.OPT_KEY_TYPE
-                )("attribute").set_name("attribute")
-    
+    _ATTRIBUTE = Group(Tokens.ATTRIBUTE_NAME + Tokens.DATA_TYPE + Tokens.OPT_KEY_TYPE)(
+        "attribute"
+    ).set_name("attribute")
+
     _CREATE_TABLE_STATEMENT = (
         KeyWords.CREATE
         + Opt(KeyWords.GLOBAL)("global").set_name("global")
@@ -109,12 +114,8 @@ class DdlCreate(DdlBase):
         + Tokens.TABLE_NAME
         + Opt(
             KeyWords.LPAR
-            + delimited_list(
-                OneOrMore(_ATTRIBUTE)
-            )("attributes").set_name("attributes")
-            + delimited_list(
-                ZeroOrMore(DdlBase._INDEX)
-            )("indices").set_name("indices")
+            + delimited_list(OneOrMore(_ATTRIBUTE))("attributes").set_name("attributes")
+            + delimited_list(ZeroOrMore(DdlBase._INDEX))("indices").set_name("indices")
             + KeyWords.RPAR
         )
         + DdlBase._TABLE_OPTIONS
@@ -141,15 +142,11 @@ class DdlCreate(DdlBase):
         for attr in self.root_parse_results["attributes"]:
             attr_name = attr["attribute_name"]
             data_type = attr["data_type"]
-            attr_def_.append(
-                self._construct_attr_def(attr_name, data_type)
-            )
+            attr_def_.append(self._construct_attr_def(attr_name, data_type))
 
             key_type = attr["key_type"]
             if key_type != "":
-                key_schema_.append(
-                    self._construct_key_schema(attr_name, key_type)
-                )
+                key_schema_.append(self._construct_key_schema(attr_name, key_type))
         request.update({"AttributeDefinitions": attr_def_})
 
         table_name_ = self.root_parse_results["table"]
@@ -173,7 +170,7 @@ class DdlCreate(DdlBase):
                         lsis_ = list()
                     lsis_.append(self._construct_index(index))
                 else:
-                    raise ValueError("Index type is invalid")
+                    raise LookupError("Index type is invalid")
 
         if lsis_ is not None:
             request.update({"LocalSecondaryIndexes": lsis_})

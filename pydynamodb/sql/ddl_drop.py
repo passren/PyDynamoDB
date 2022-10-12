@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Syntext of DDB table dropping with SQL:
 DROP TABLE tbl_name
 
 Sample SQL of Dropping Table:
 -----------------------------
 DROP TABLE Issues
-'''
+"""
 import logging
 from .ddl import DdlBase
 from .common import KeyWords, Tokens
@@ -15,13 +15,12 @@ from typing import Any, Dict
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
+
 class DdlDrop(DdlBase):
-    _DROP_TABLE_STATEMENT = (
-        KeyWords.DROP
-        + KeyWords.TABLE
-        + Tokens.TABLE_NAME
-    )("drop_statement").set_name("drop_statement")
-    
+    _DROP_TABLE_STATEMENT = (KeyWords.DROP + KeyWords.TABLE + Tokens.TABLE_NAME)(
+        "drop_statement"
+    ).set_name("drop_statement")
+
     _DDL_DROP_EXPR = Forward()
     _DDL_DROP_EXPR <<= _DROP_TABLE_STATEMENT
 

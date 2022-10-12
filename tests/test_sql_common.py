@@ -19,7 +19,7 @@ class TestSQLCommon:
         )
         try:
             get_query_type("CREATE XXXXX")
-        except ValueError as err:
+        except LookupError as err:
             assert(err is not None)
 
     def test_get_query_type_alter(self):
@@ -40,7 +40,7 @@ class TestSQLCommon:
         )
         try:
             get_query_type("ALTER XXXXX")
-        except ValueError as err:
+        except LookupError as err:
             assert(err is not None)
 
     def test_get_query_type_drop(self):
@@ -57,5 +57,5 @@ class TestSQLCommon:
         )
         try:
             get_query_type("drop XXXXX")
-        except ValueError as err:
+        except LookupError as err:
             assert(err is not None)

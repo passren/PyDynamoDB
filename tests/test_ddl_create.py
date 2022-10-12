@@ -5,7 +5,7 @@ class TestDdlCreate:
     def test_parse_simple_case_1(self):
         sql = """
         CREATE TABLE Issues (
-            IssueId numeric PARTITION KEY,
+            IssueId numeric PARTITION KEY
         )
         """
         ret = SQLParser(sql).transform()

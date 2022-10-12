@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 Syntext of DDB table altering with SQL:
 -------------------------------------
 ALTER TABLE tbl_name (
@@ -10,7 +10,7 @@ ALTER TABLE tbl_name (
     [table_options]
 
 alter_option: {
-    CREATE INDEX [index_name] GLOBAL 
+    CREATE INDEX [index_name] GLOBAL
         (col_name key_type, ...)
         [index_option] ...
     | UPDATE INDEX [index_name] GLOBAL
@@ -110,32 +110,36 @@ SSESpecification.Enabled True
 SSESpecification.SSEType KMS
 SSESpecification.KMSMasterKeyId $$$$$$$$
 TableClass STANDARD_INFREQUENT_ACCESS
-'''
+"""
 import logging
 from .ddl import DdlBase
 from .common import KeyWords, Tokens
-from pyparsing import (Opt, Group, ZeroOrMore,
-                        delimited_list, one_of,
-                        Forward, ParseResults)
+from pyparsing import (
+    Opt,
+    Group,
+    ZeroOrMore,
+    delimited_list,
+    one_of,
+    Forward,
+    ParseResults,
+)
 from typing import Any, Dict, Optional
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
+
 class DdlAlter(DdlBase):
-    _ATTRIBUTE = Group(
-                        Tokens.ATTRIBUTE_NAME
-                        + Tokens.DATA_TYPE
-                )("attribute").set_name("attribute")
+    _ATTRIBUTE = Group(Tokens.ATTRIBUTE_NAME + Tokens.DATA_TYPE)("attribute").set_name(
+        "attribute"
+    )
 
     _ALTER_INDEX = Group(
         KeyWords.CREATE("alter_ops") + DdlBase._INDEX
         ^ KeyWords.UPDATE("alter_ops") + DdlBase._INDEX
-        ^ KeyWords.DELETE("alter_ops") 
-            + Group(
-                KeyWords.INDEX
-                + Tokens.INDEX_NAME
-                + Tokens.INDEX_TYPE
-            )("index").set_name("index")
+        ^ KeyWords.DELETE("alter_ops")
+        + Group(KeyWords.INDEX + Tokens.INDEX_NAME + Tokens.INDEX_TYPE)(
+            "index"
+        ).set_name("index")
     )
 
     _REPLICA = Group(
@@ -144,22 +148,27 @@ class DdlAlter(DdlBase):
         + Opt(
             ZeroOrMore(
                 Group(
-                    DdlBase._KMSMASTERKEYID + Opt(KeyWords.EQUALS) + Tokens.KMSMASTERKEYID
-                    ^ DdlBase._PROVISIONEDTHROUGHPUTOVERRIDE_READCAPACITYUNITS 
-                        + Opt(KeyWords.EQUALS) + Tokens.INT_VALUE
+                    DdlBase._KMSMASTERKEYID
+                    + Opt(KeyWords.EQUALS)
+                    + Tokens.KMSMASTERKEYID
+                    ^ DdlBase._PROVISIONEDTHROUGHPUTOVERRIDE_READCAPACITYUNITS
+                    + Opt(KeyWords.EQUALS)
+                    + Tokens.INT_VALUE
                     ^ DdlBase._TABLECLASSOVERRIDE
-                        + Opt(KeyWords.EQUALS)+ one_of("STANDARD STANDARD_INFREQUENT_ACCESS")
+                    + Opt(KeyWords.EQUALS)
+                    + one_of("STANDARD STANDARD_INFREQUENT_ACCESS")
                 )("replica_option").set_name("replica_option")
                 ^ Group(
                     DdlBase._GLOBALSECONDARYINDEXES
                     + KeyWords.LPAR
-                        + delimited_list(
-                            Group(
-                                Tokens.INDEX_NAME
-                                + DdlBase._PROVISIONEDTHROUGHPUTOVERRIDE_READCAPACITYUNITS
-                                    + Opt(KeyWords.EQUALS) + Tokens.INT_VALUE
-                            )("gsi").set_name("gsi")
-                        )("gsis").set_name("gsis")
+                    + delimited_list(
+                        Group(
+                            Tokens.INDEX_NAME
+                            + DdlBase._PROVISIONEDTHROUGHPUTOVERRIDE_READCAPACITYUNITS
+                            + Opt(KeyWords.EQUALS)
+                            + Tokens.INT_VALUE
+                        )("gsi").set_name("gsi")
+                    )("gsis").set_name("gsis")
                     + KeyWords.RPAR
                 )("replica_gsi_option").set_name("replica_gsi_option")
             )("replica_options").set_name("replica_options")
@@ -170,9 +179,7 @@ class DdlAlter(DdlBase):
         KeyWords.CREATE("alter_ops") + _REPLICA
         ^ KeyWords.UPDATE("alter_ops") + _REPLICA
         ^ KeyWords.DELETE("alter_ops")
-            + Group(
-                KeyWords.REPLICA + Tokens.REGION_NAME
-            )("replica").set_name("replica")
+        + Group(KeyWords.REPLICA + Tokens.REGION_NAME)("replica").set_name("replica")
     )
 
     _ALTER_TABLE_STATEMENT = (
@@ -180,15 +187,9 @@ class DdlAlter(DdlBase):
         + KeyWords.TABLE
         + Tokens.TABLE_NAME
         + KeyWords.LPAR
-            + delimited_list(
-                ZeroOrMore(_ATTRIBUTE)
-            )("attributes").set_name("attributes")
-            + delimited_list(
-                ZeroOrMore(_ALTER_INDEX)
-            )("indices").set_name("indices")
-            + delimited_list(
-                ZeroOrMore(_ALTER_REPLICA)
-            )("replicas").set_name("replicas")
+        + delimited_list(ZeroOrMore(_ATTRIBUTE))("attributes").set_name("attributes")
+        + delimited_list(ZeroOrMore(_ALTER_INDEX))("indices").set_name("indices")
+        + delimited_list(ZeroOrMore(_ALTER_REPLICA))("replicas").set_name("replicas")
         + KeyWords.RPAR
         + DdlBase._TABLE_OPTIONS
     )("alter_statement").set_name("alter_statement")
@@ -215,10 +216,8 @@ class DdlAlter(DdlBase):
                 attr_def_ = list()
             attr_name = attr["attribute_name"]
             data_type = attr["data_type"]
-            attr_def_.append(
-                self._construct_attr_def(attr_name, data_type)
-            )
-        
+            attr_def_.append(self._construct_attr_def(attr_name, data_type))
+
         if attr_def_ is not None:
             request.update({"AttributeDefinitions": attr_def_})
 
@@ -235,22 +234,25 @@ class DdlAlter(DdlBase):
                 if index_type == "GLOBAL":
                     if gsis_ is None:
                         gsis_ = list()
-                    
-                    if alter_ops == "CREATE" \
-                        or alter_ops == "UPDATE":
-                        gsis_.append({
-                            self._get_alter_operation(alter_ops)
-                            :
-                            self._construct_index(index["index"])
-                        })
+
+                    if alter_ops == "CREATE" or alter_ops == "UPDATE":
+                        gsis_.append(
+                            {
+                                self._get_alter_operation(
+                                    alter_ops
+                                ): self._construct_index(index["index"])
+                            }
+                        )
                     elif alter_ops == "DELETE":
-                        gsis_.append({
-                            self._get_alter_operation(alter_ops)
-                            :
-                            {"IndexName": index["index"]["index_name"]}
-                        })
+                        gsis_.append(
+                            {
+                                self._get_alter_operation(alter_ops): {
+                                    "IndexName": index["index"]["index_name"]
+                                }
+                            }
+                        )
                 else:
-                    raise ValueError("Index type is invalid")
+                    raise LookupError("Index type is invalid")
 
         if gsis_ is not None:
             request.update({"GlobalSecondaryIndexUpdates": gsis_})
@@ -263,19 +265,22 @@ class DdlAlter(DdlBase):
                     replicas_ = list()
                 alter_ops = replica["alter_ops"]
 
-                if alter_ops == "CREATE" \
-                    or alter_ops == "UPDATE":
-                    replicas_.append({
-                        self._get_alter_operation(alter_ops)
-                        :
-                        self._construct_replica(replica["replica"])
-                    })
+                if alter_ops == "CREATE" or alter_ops == "UPDATE":
+                    replicas_.append(
+                        {
+                            self._get_alter_operation(
+                                alter_ops
+                            ): self._construct_replica(replica["replica"])
+                        }
+                    )
                 elif alter_ops == "DELETE":
-                    replicas_.append({
-                        self._get_alter_operation(alter_ops)
-                        :
-                        {"RegionName": replica["replica"]["region_name"]}
-                })
+                    replicas_.append(
+                        {
+                            self._get_alter_operation(alter_ops): {
+                                "RegionName": replica["replica"]["region_name"]
+                            }
+                        }
+                    )
 
         if replicas_ is not None:
             request.update({"ReplicaUpdates": replicas_})
@@ -299,25 +304,23 @@ class DdlAlter(DdlBase):
         elif ops.lower() == "DELETE".lower():
             return "Delete"
         else:
-            raise ValueError("Alter operation is invalid")
+            raise LookupError("Alter operation is invalid")
 
     def _construct_replica(self, replica: ParseResults) -> Dict[str, Any]:
         replicas_ = dict()
 
         region_name = replica["region_name"]
-        replicas_.update({
-            "RegionName": region_name
-        })
+        replicas_.update({"RegionName": region_name})
 
         replica_options = replica.get("replica_options")
         replica_options_ = None
         replica_gsi_option_ = None
-        
+
         if replica_options is not None:
             for replica_option in replica_options:
                 if replica_options_ is None:
                     replica_options_ = list()
-                
+
                 if replica_option.get_name() == "replica_gsi_option":
                     replica_gsi_option_ = replica_option
                 else:
@@ -329,16 +332,22 @@ class DdlAlter(DdlBase):
                 replicas_.update(converted_options_)
 
         if replica_gsi_option_ is not None:
-            replicas_.update({
-                "GlobalSecondaryIndexes": self._construct_replica_gsi(replica_gsi_option_)
-            })
+            replicas_.update(
+                {
+                    "GlobalSecondaryIndexes": self._construct_replica_gsi(
+                        replica_gsi_option_
+                    )
+                }
+            )
 
         return replicas_
 
-    def _construct_replica_gsi(self, replica_gsi_option: ParseResults) -> Optional[Dict[str, Any]]:
+    def _construct_replica_gsi(
+        self, replica_gsi_option: ParseResults
+    ) -> Optional[Dict[str, Any]]:
         gsis = replica_gsi_option.get("gsis")
         gsis_ = None
-        
+
         if gsis is not None:
             for gsi in gsis:
                 index_name = gsi["index_name"]

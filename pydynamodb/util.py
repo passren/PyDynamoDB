@@ -1,26 +1,13 @@
 # -*- coding: utf-8 -*-
 import functools
 import logging
-import re
 import threading
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable, Iterable
 
 import tenacity
 from tenacity import after_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 _logger = logging.getLogger(__name__)  # type: ignore
-
-
-def parse_limit_expression(statement: str) -> Tuple[str, int]:
-    pattern_limit_ = re.compile(r"\w*(LIMIT)\s*(\d+)\w*", re.IGNORECASE)
-    match_ = pattern_limit_.search(statement)
-    if match_:
-        limit_exp_ = match_.group()
-        limit_groups_ = match_.groups()
-        if len(limit_groups_) == 2 and limit_groups_[0].upper() == "LIMIT":
-
-            return (statement.replace(limit_exp_, ""), int(limit_groups_[1]))
-    return statement, None
 
 
 def synchronized(wrapped: Callable[..., Any]) -> Any:

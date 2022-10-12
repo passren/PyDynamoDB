@@ -33,6 +33,7 @@ jobs:
           pip install boto3
           pip install tenacity
           pip install sqlalchemy
+          pip install pyparsing
       - name: black
         run: |
           pip install black

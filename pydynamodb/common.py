@@ -102,8 +102,6 @@ class BaseCursor(metaclass=ABCMeta):
         self,
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
-        limit: int = None,
-        consistent_read: bool = False,
     ):
         raise NotImplementedError  # pragma: no cover
 

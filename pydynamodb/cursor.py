@@ -2,11 +2,12 @@
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast, TypeVar, Tuple
 
+from .sql.parser import SQLParser
 from .converter import Converter
 from .common import BaseCursor, CursorIterator
 from .result_set import DynamoDBResultSet, DynamoDBDictResultSet
 from .error import NotSupportedError, ProgrammingError
-from .util import RetryConfig, synchronized, parse_limit_expression
+from .util import RetryConfig, synchronized
 
 if TYPE_CHECKING:
     from .connection import Connection
@@ -59,9 +60,6 @@ class Cursor(BaseCursor, CursorIterator):
     def errors(self) -> List[Dict[str, str]]:
         return self._result_set.errors
 
-    def _prepare_statement(self, statement: str) -> Tuple[str, int]:
-        return parse_limit_expression(statement)
-
     @synchronized
     def execute(
         self: _T,
@@ -70,11 +68,11 @@ class Cursor(BaseCursor, CursorIterator):
         limit: int = None,
         consistent_read: bool = False,
     ) -> _T:
-        operation, limit = self._prepare_statement(operation)
+        sp = SQLParser(operation)
+        statement_ = sp.transform()
 
-        statement_ = {
-            "Statement": operation,
-        }
+        if sp.operation_type == "DML":
+            limit = sp.parser.limit
 
         if parameters:
             statement_.update(
@@ -82,12 +80,9 @@ class Cursor(BaseCursor, CursorIterator):
                     "Parameters": [
                         self._converter.serialize(parameter) for parameter in parameters
                     ],
-                    "ConsistentRead": consistent_read,
                 }
             )
 
-            if limit:
-                statement_.update({"Limit": limit})
         statements = [statement_]
 
         if not self.connection.autocommit:

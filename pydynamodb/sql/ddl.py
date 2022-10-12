@@ -2,12 +2,21 @@
 import logging
 from .base import Base
 from .common import KeyWords, Tokens
-from pyparsing import (CaselessKeyword, Opt, Group, ZeroOrMore,
-                        OneOrMore, one_of, delimited_list, 
-                        ParseResults, ParserElement)
+from pyparsing import (
+    CaselessKeyword,
+    Opt,
+    Group,
+    ZeroOrMore,
+    OneOrMore,
+    one_of,
+    delimited_list,
+    ParseResults,
+    ParserElement,
+)
 from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)  # type: ignore
+
 
 class DdlBase(Base):
     ParserElement.enablePackrat()
@@ -52,80 +61,81 @@ class DdlBase(Base):
     (
         _GLOBALSECONDARYINDEXES,
         _PROVISIONEDTHROUGHPUTOVERRIDE_READCAPACITYUNITS,
-        _TABLECLASSOVERRIDE
-    )= map(
+        _TABLECLASSOVERRIDE,
+    ) = map(
         CaselessKeyword,
         [
             "GlobalSecondaryIndexes",
             "ProvisionedThroughputOverride.ReadCapacityUnits",
-            "TableClassOverride"
-        ]
+            "TableClassOverride",
+        ],
     )
 
     _TABLE_OPTIONS = ZeroOrMore(
         Group(
             _PROVISIONEDTHROUGHPUT_READCAPACITYUNITS
-                + Opt(KeyWords.EQUALS) + Tokens.INT_VALUE
+            + Opt(KeyWords.EQUALS)
+            + Tokens.INT_VALUE
             ^ _PROVISIONEDTHROUGHPUT_WRITECAPACITYUNITS
-                + Opt(KeyWords.EQUALS) + Tokens.INT_VALUE
+            + Opt(KeyWords.EQUALS)
+            + Tokens.INT_VALUE
             ^ _BILLINGMODE
-                + Opt(KeyWords.EQUALS) + one_of("PROVISIONED PAY_PER_REQUEST")
+            + Opt(KeyWords.EQUALS)
+            + one_of("PROVISIONED PAY_PER_REQUEST")
             ^ _STREAMSPECIFICATION_STREAMENABLED
-                + Opt(KeyWords.EQUALS) + Tokens.BOOL_VALUE
+            + Opt(KeyWords.EQUALS)
+            + Tokens.BOOL_VALUE
             ^ _STREAMSPECIFICATION_STREAMVIEWTYPE
-                + Opt(KeyWords.EQUALS) + one_of("NEW_IMAGE OLD_IMAGE NEW_AND_OLD_IMAGES KEYS_ONLY")
-            ^ _SSESPECIFICATION_ENABLED
-                + Opt(KeyWords.EQUALS) + Tokens.BOOL_VALUE
-            ^ _SSESPECIFICATION_SSETYPE
-                + Opt(KeyWords.EQUALS) + one_of("AES256 KMS")
+            + Opt(KeyWords.EQUALS)
+            + one_of("NEW_IMAGE OLD_IMAGE NEW_AND_OLD_IMAGES KEYS_ONLY")
+            ^ _SSESPECIFICATION_ENABLED + Opt(KeyWords.EQUALS) + Tokens.BOOL_VALUE
+            ^ _SSESPECIFICATION_SSETYPE + Opt(KeyWords.EQUALS) + one_of("AES256 KMS")
             ^ _SSESPECIFICATION_KMSMASTERKEYID
-                + Opt(KeyWords.EQUALS) + Tokens.KMSMASTERKEYID
+            + Opt(KeyWords.EQUALS)
+            + Tokens.KMSMASTERKEYID
             ^ _TABLECLASS
-                + Opt(KeyWords.EQUALS)+ one_of("STANDARD STANDARD_INFREQUENT_ACCESS")
+            + Opt(KeyWords.EQUALS)
+            + one_of("STANDARD STANDARD_INFREQUENT_ACCESS")
             ^ _TAGS
-                + Opt(KeyWords.EQUALS)
-                + KeyWords.LPAR
-                    + Group(
-                        delimited_list(Tokens.TAG)
-                    )("tags").set_name("tags")
-                + KeyWords.RPAR
+            + Opt(KeyWords.EQUALS)
+            + KeyWords.LPAR
+            + Group(delimited_list(Tokens.TAG))("tags").set_name("tags")
+            + KeyWords.RPAR
         )("table_option").set_name("table_option")
     )("table_options").set_name("table_options")
 
     _INDEX_OPTIONS = ZeroOrMore(
         Group(
             _PROVISIONEDTHROUGHPUT_READCAPACITYUNITS
-                + Opt(KeyWords.EQUALS) + Tokens.INT_VALUE
+            + Opt(KeyWords.EQUALS)
+            + Tokens.INT_VALUE
             ^ _PROVISIONEDTHROUGHPUT_WRITECAPACITYUNITS
-                + Opt(KeyWords.EQUALS) + Tokens.INT_VALUE
+            + Opt(KeyWords.EQUALS)
+            + Tokens.INT_VALUE
             ^ _PROJECTION_PROJECTIONTYPE
-                + Opt(KeyWords.EQUALS) + one_of("ALL KEYS_ONLY INCLUDE")
+            + Opt(KeyWords.EQUALS)
+            + one_of("ALL KEYS_ONLY INCLUDE")
             ^ _PROJECTION_NONKEYATTRIBUTES
-                + Opt(KeyWords.EQUALS)
-                + KeyWords.LPAR
-                    + Group(
-                        delimited_list(Tokens.ATTRIBUTE_NAME)
-                    )("nonkey_attributes").set_name("nonkey_attributes")
-                + KeyWords.RPAR
+            + Opt(KeyWords.EQUALS)
+            + KeyWords.LPAR
+            + Group(delimited_list(Tokens.ATTRIBUTE_NAME))(
+                "nonkey_attributes"
+            ).set_name("nonkey_attributes")
+            + KeyWords.RPAR
         )("index_option").set_name("index_option")
     )("index_options").set_name("index_options")
 
     _INDEX = Group(
-            KeyWords.INDEX
-            + Tokens.INDEX_NAME
-            + Tokens.INDEX_TYPE
-            + KeyWords.LPAR
-            + delimited_list(
-                OneOrMore(
-                    Group(
-                        Tokens.ATTRIBUTE_NAME
-                        + Tokens.KEY_TYPE
-                    )
-                )
-            )("attributes").set_name("attributes")
-            + KeyWords.RPAR
-            + _INDEX_OPTIONS
-        )("index").set_name("index")
+        KeyWords.INDEX
+        + Tokens.INDEX_NAME
+        + Tokens.INDEX_TYPE
+        + KeyWords.LPAR
+        + delimited_list(OneOrMore(Group(Tokens.ATTRIBUTE_NAME + Tokens.KEY_TYPE)))(
+            "attributes"
+        ).set_name("attributes")
+        + KeyWords.RPAR
+        + _INDEX_OPTIONS
+    )("index").set_name("index")
 
     def _construct_attr_def(self, attr_name: str, data_type: str) -> Dict[str, str]:
         converted_data_type = None
@@ -137,12 +147,9 @@ class DdlBase(Base):
         elif data_type == "BINARY":
             converted_data_type = "B"
         else:
-            raise ValueError("Data type is invalid")
+            raise LookupError("Data type is invalid")
 
-        return {
-            "AttributeName": attr_name,
-            "AttributeType": converted_data_type
-        }
+        return {"AttributeName": attr_name, "AttributeType": converted_data_type}
 
     def _construct_key_schema(self, attr_name: str, key_type: str) -> Dict[str, str]:
         converted_key_type = None
@@ -151,12 +158,9 @@ class DdlBase(Base):
         elif key_type == "SORT KEY" or key_type == "RANGE":
             converted_key_type = "RANGE"
         else:
-            raise ValueError("Key schema type is invalid")
+            raise LookupError("Key schema type is invalid")
 
-        return {
-            "AttributeName": attr_name,
-            "KeyType": converted_key_type
-        }
+        return {"AttributeName": attr_name, "KeyType": converted_key_type}
 
     def _construct_index(self, index: ParseResults) -> Dict[str, Any]:
         index_ = dict()
@@ -170,9 +174,7 @@ class DdlBase(Base):
             attr_name = attr["attribute_name"]
             key_type = attr["key_type"]
 
-            key_schema.append(
-                self._construct_key_schema(attr_name, key_type)
-            )
+            key_schema.append(self._construct_key_schema(attr_name, key_type))
         index_.update({"KeySchema": key_schema})
 
         options = index["index_options"]
@@ -188,18 +190,22 @@ class DdlBase(Base):
             option_value = option[1]
 
             if isinstance(option_value, ParseResults):
-                if option.get_name() == "index_option" \
-                    and option_value.get_name() == "nonkey_attributes":
+                if (
+                    option.get_name() == "index_option"
+                    and option_value.get_name() == "nonkey_attributes"
+                ):
                     option_value = [o for o in option_value]
-                elif option.get_name() == "table_option" \
-                    and option_value.get_name() == "tags":
-                    option_value = [{
-                                    "Key": o["tag_key"],
-                                    "Value": o["tag_value"]
-                                } for o in option_value]
+                elif (
+                    option.get_name() == "table_option"
+                    and option_value.get_name() == "tags"
+                ):
+                    option_value = [
+                        {"Key": o["tag_key"], "Value": o["tag_value"]}
+                        for o in option_value
+                    ]
                 else:
                     pass
-            
+
             self._parse_option_path(option_name_path, option_value, converted_)
         return converted_
 
@@ -207,7 +213,7 @@ class DdlBase(Base):
         self,
         option_name_path: str,
         option_value: Any,
-        return_dict: Dict[str, Any] = None
+        return_dict: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         if return_dict is None:
             return_dict = dict()
@@ -216,22 +222,14 @@ class DdlBase(Base):
         names_size = len(names)
 
         if names_size == 1:
-            return_dict.update({
-                names[0]: option_value
-            })
+            return_dict.update({names[0]: option_value})
         elif names_size == 2:
             if names[0] in return_dict:
-                return_dict[names[0]].update({
-                    names[1]: option_value
-                })
+                return_dict[names[0]].update({names[1]: option_value})
             else:
-                return_dict.update({
-                    names[0]: {
-                        names[1]: option_value
-                    }
-                })
+                return_dict.update({names[0]: {names[1]: option_value}})
         else:
             """Ignore the option"""
             pass
-            
+
         return return_dict

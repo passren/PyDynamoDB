@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pydynamodb.util import parse_limit_expression
+from pydynamodb.sql.util import parse_limit_expression
 
 
 class TestUtil:
