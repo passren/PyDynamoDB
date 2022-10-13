@@ -32,7 +32,7 @@ ConsistentRead False
 ReturnConsumedCapacity NONE
 """
 import logging
-from .dml import DmlBase
+from .dml_sql import DmlBase
 from .common import KeyWords, Tokens
 from pyparsing import Opt, Forward
 from typing import Any, Dict, List, Optional

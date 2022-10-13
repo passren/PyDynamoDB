@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import re
-from typing import Tuple
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
@@ -20,15 +18,3 @@ def strtobool(val: str) -> bool:
         return False
     else:
         raise ValueError("invalid truth value %r" % (val,))
-
-
-def parse_limit_expression(statement: str) -> Tuple[str, int]:
-    pattern_limit_ = re.compile(r"\w*(LIMIT)\s*(\d+)\w*", re.IGNORECASE)
-    match_ = pattern_limit_.search(statement)
-    if match_:
-        limit_exp_ = match_.group()
-        limit_groups_ = match_.groups()
-        if len(limit_groups_) == 2 and limit_groups_[0].upper() == "LIMIT":
-
-            return (statement.replace(limit_exp_, ""), int(limit_groups_[1]))
-    return statement, None

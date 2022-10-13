@@ -88,7 +88,7 @@ Tags (name:Issue, usage:test)
 
 import logging
 from .common import KeyWords, Tokens
-from .ddl import DdlBase
+from .ddl_sql import DdlBase
 from pyparsing import (
     Opt,
     Group,

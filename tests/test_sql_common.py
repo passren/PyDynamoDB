@@ -59,3 +59,37 @@ class TestSQLCommon:
             get_query_type("drop XXXXX")
         except LookupError as err:
             assert(err is not None)
+
+    def test_get_query_type_list(self):
+        assert(
+            get_query_type("""
+            LIST TABLES
+            """) == QueryType.LIST
+        )
+        assert(
+            get_query_type("""
+            show
+            tables
+            """) == QueryType.LIST
+        )
+        try:
+            get_query_type("show table XXXXX")
+        except LookupError as err:
+            assert(err is not None)
+
+    def test_get_query_type_desc(self):
+        assert(
+            get_query_type("""
+            DESC Issues
+            """) == QueryType.DESC
+        )
+        assert(
+            get_query_type("""
+            describe
+            Issues
+            """) == QueryType.DESC
+        )
+        try:
+            get_query_type("desc table XXXXX")
+        except LookupError as err:
+            assert(err is not None)

@@ -112,7 +112,7 @@ SSESpecification.KMSMasterKeyId $$$$$$$$
 TableClass STANDARD_INFREQUENT_ACCESS
 """
 import logging
-from .ddl import DdlBase
+from .ddl_sql import DdlBase
 from .common import KeyWords, Tokens
 from pyparsing import (
     Opt,

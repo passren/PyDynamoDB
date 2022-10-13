@@ -7,7 +7,8 @@ from .ddl_create import DdlCreate
 from .ddl_alter import DdlAlter
 from .ddl_drop import DdlDrop
 from .dml_select import DmlSelect
-from .dml import DmlBase
+from .dml_sql import DmlBase
+from .util_sql import UtilListTables, UtilDescTable
 from typing import Any, Dict, Tuple
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -66,6 +67,10 @@ class SQLParser(metaclass=ABCMeta):
             or self.query_type == QueryType.DELETE
         ):
             _parse_class = DmlBase
+        elif self.query_type == QueryType.LIST:
+            _parse_class = UtilListTables
+        elif self.query_type == QueryType.DESC:
+            _parse_class = UtilDescTable
 
         return _parse_class
 

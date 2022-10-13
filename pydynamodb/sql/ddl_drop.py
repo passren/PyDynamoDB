@@ -8,7 +8,7 @@ Sample SQL of Dropping Table:
 DROP TABLE Issues
 """
 import logging
-from .ddl import DdlBase
+from .ddl_sql import DdlBase
 from .common import KeyWords, Tokens
 from pyparsing import Forward
 from typing import Any, Dict
@@ -36,7 +36,6 @@ class DdlDrop(DdlBase):
             raise ValueError("Statement was not parsed yet")
 
         request = dict()
-        table_name_ = self.root_parse_results["table"]
-        request.update({"TableName": table_name_})
+        request.update({"TableName": self.root_parse_results["table"]})
 
         return request

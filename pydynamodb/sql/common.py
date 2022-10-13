@@ -114,6 +114,17 @@ class KeyWords:
         ],
     )
 
+    (LIST, SHOW, DESC, DESCRIBE, TABLES,) = map(
+        CaselessKeyword,
+        [
+            "LIST",
+            "SHOW",
+            "DESC",
+            "DESCRIBE",
+            "TABLES",
+        ],
+    )
+
 
 class Tokens:
     # Common token definition
@@ -182,13 +193,15 @@ class QueryType:
     Types of supported queries
     """
 
-    CREATE = ("DDL", "CREATE TABLE")
-    ALTER = ("DDL", "ALTER TABLE")
-    DROP = ("DDL", "DROP TABLE")
-    INSERT = ("DML", "INSERT")
-    UPDATE = ("DML", "UPDATE")
-    DELETE = ("DML", "DELETE")
-    SELECT = ("DML", "SELECT")
+    CREATE = ("DDL", "WRITE", "CREATE TABLE")
+    ALTER = ("DDL", "WRITE", "ALTER TABLE")
+    DROP = ("DDL", "WRITE", "DROP TABLE")
+    INSERT = ("DML", "WRITE", "INSERT")
+    UPDATE = ("DML", "WRITE", "UPDATE")
+    DELETE = ("DML", "WRITE", "DELETE")
+    SELECT = ("DML", "READ", "SELECT")
+    LIST = ("UTIL", "READ", "LIST TABLES")
+    DESC = ("UTIL", "READ", "DESC")
 
 
 SUPPORTED_QUERY_TYPES = {
@@ -199,6 +212,8 @@ SUPPORTED_QUERY_TYPES = {
     r"^\s*(UPDATE).*": QueryType.UPDATE,
     r"^\s*(SELECT).*": QueryType.SELECT,
     r"^\s*(DELETE).*": QueryType.DELETE,
+    r"^\s*(LIST|SHOW)\s+(TABLES).*": QueryType.LIST,
+    r"^\s*(DESC|DESCRIBE).*": QueryType.DESC,
 }
 
 
