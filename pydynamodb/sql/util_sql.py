@@ -13,6 +13,15 @@ class UtilBase(Base):
         self._statement = statement
 
 
+"""
+Syntext of list DDB tables:
+{LIST | SHOW} TABLES
+
+Sample SQL of Listing Tables:
+-----------------------------
+LIST TABLES
+SHOW TABLES
+"""
 class UtilListTables(UtilBase):
     _LIST_TABLES_STATEMENT = ((KeyWords.LIST | KeyWords.SHOW) + KeyWords.TABLES)(
         "list_tables_statement"
@@ -32,6 +41,15 @@ class UtilListTables(UtilBase):
         return None
 
 
+"""
+Syntext of describe DDB table:
+{DESC | DESCRIBE} tbl_name
+
+Sample SQL of Describing Table:
+-----------------------------
+DESC Issues
+DESCRIBE Issues
+"""
 class UtilDescTable(UtilBase):
     _DESC_TABLE_STATEMENT = ((KeyWords.DESC | KeyWords.DESCRIBE) + Tokens.TABLE_NAME)(
         "desc_table_statement"
