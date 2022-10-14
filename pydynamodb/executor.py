@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+import json
+from datetime import datetime
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, cast
@@ -8,7 +10,7 @@ from .sql.common import QueryType
 from .converter import Converter
 from .common import Statements
 from .error import OperationalError, DataError
-from .util import RetryConfig, retry_api_call, flatten_dict
+from .util import RetryConfig, retry_api_call
 
 if TYPE_CHECKING:
     from .connection import Connection
@@ -120,13 +122,13 @@ def dispatch_executor(
     elif statements.query_type == QueryType.CREATE:
         executor_class = DdlCreateExecutor
     elif statements.query_type == QueryType.ALTER:
-        return None
+        executor_class = DdlAlterExecutor
     elif statements.query_type == QueryType.DROP:
         executor_class = DdlDropExecutor
     elif statements.query_type == QueryType.LIST:
-        return None
+        executor_class = UtilListTablesExecutor
     elif statements.query_type == QueryType.DESC:
-        return None
+        executor_class = UtilDescTableExecutor
     else:
         raise LookupError(
             "Not support executor for query type: %s" % str(statements.query_type)
@@ -304,8 +306,10 @@ class DdlExecutor(BaseExecutor):
         )
 
     def process_rows(self, response: Dict[str, Any]) -> None:
-        flat_resp = flatten_dict(response)
-        self.rows.extend((str(k), str(v)) for k, v in flat_resp.items())
+        self.rows.extend(
+            (k, json.dumps(v, default=self._handle_conversion))
+            for k, v in response.items()
+        )
         self.metadata.update(
             {
                 "response_name": {
@@ -318,6 +322,12 @@ class DdlExecutor(BaseExecutor):
                 },
             }
         )
+
+    def _handle_conversion(self, val: Any) -> str:
+        if isinstance(val, datetime):
+            return str(val)
+        else:
+            return val
 
 
 class DdlCreateExecutor(DdlExecutor):
@@ -343,6 +353,29 @@ class DdlCreateExecutor(DdlExecutor):
         self.process_rows(response)
 
 
+class DdlAlterExecutor(DdlExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(DdlAlterExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        response = self._dispatch_api_call(self.connection.client.update_table, request)
+        self.process_rows(response)
+
+
 class DdlDropExecutor(DdlExecutor):
     def __init__(
         self,
@@ -363,4 +396,71 @@ class DdlDropExecutor(DdlExecutor):
         request = statement_.api_request
 
         response = self._dispatch_api_call(self.connection.client.delete_table, request)
+        self.process_rows(response)
+
+
+class UtilListTablesExecutor(BaseExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(UtilListTablesExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        if self.next_token:
+            request.update({"ExclusiveStartTableName": self.next_token})
+
+        response = self._dispatch_api_call(self.connection.client.list_tables, request)
+        self.process_rows(response)
+
+    def process_rows(self, response: Dict[str, Any]) -> None:
+        tables = response.get("TableNames", None)
+        if tables is None:
+            raise DataError("KeyError `TableNames`")
+
+        self._rows.extend((t) for t in tables)
+        self._next_token = response.get("LastEvaluatedTableName", None)
+        self.metadata.update(
+            {
+                "table_name": {
+                    "name": "table_name",
+                    "type": ["S"],
+                },
+            }
+        )
+
+
+class UtilDescTableExecutor(DdlExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(UtilDescTableExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        response = self._dispatch_api_call(
+            self.connection.client.describe_table, request
+        )
         self.process_rows(response)

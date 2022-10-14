@@ -239,7 +239,10 @@ class Statements(metaclass=ABCMeta):
                 self._query_category = query_category_
                 self._operation_type = operation_type_
 
-                if self._query_type == QueryType.SELECT:
+                if (
+                    self._query_type == QueryType.SELECT
+                    or self._query_type == QueryType.LIST
+                ):
                     self._limit = statement.sql_parser.parser.limit
 
                 return True

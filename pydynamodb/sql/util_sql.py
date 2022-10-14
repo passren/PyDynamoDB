@@ -2,7 +2,7 @@
 import logging
 from .base import Base
 from .common import KeyWords, Tokens
-from pyparsing import Forward
+from pyparsing import Opt, Group, Forward
 from typing import Any, Dict
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -25,22 +25,39 @@ SHOW TABLES
 
 
 class UtilListTables(UtilBase):
-    _LIST_TABLES_STATEMENT = ((KeyWords.LIST | KeyWords.SHOW) + KeyWords.TABLES)(
-        "list_tables_statement"
-    ).set_name("list_tables_statement")
+    _LIST_TABLES_STATEMENT = (
+        (KeyWords.LIST | KeyWords.SHOW)
+        + KeyWords.TABLES
+        + Opt(Group(KeyWords.LIMIT + Tokens.INT_VALUE)("limit").set_name("limit"))
+    )("list_tables_statement").set_name("list_tables_statement")
 
     _UTIL_LIST_TABLES_EXPR = Forward()
     _UTIL_LIST_TABLES_EXPR <<= _LIST_TABLES_STATEMENT
 
     def __init__(self, statement: str) -> None:
         super(UtilListTables, self).__init__(statement)
+        self._limit = None
+
+    @property
+    def limit(self) -> int:
+        return self._limit
 
     @property
     def syntex_def(self) -> Forward:
         return UtilListTables._UTIL_LIST_TABLES_EXPR
 
     def transform(self) -> Dict[str, Any]:
-        return None
+        if self.root_parse_results is None:
+            raise ValueError("Statement was not parsed yet")
+
+        request = dict()
+        limit_option = self.root_parse_results.get("limit", None)
+        if limit_option:
+            option_value = limit_option[1]
+            self._limit = option_value
+            request.update({"Limit": option_value})
+
+        return request
 
 
 """
