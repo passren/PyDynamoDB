@@ -19,10 +19,6 @@ SQLAlchemy dialect supported as well.
 .. _`DB API 2.0 (PEP 249)`: https://www.python.org/dev/peps/pep-0249/
 .. _`Amazon DynamoDB`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html
 
-.. contents:: Table of Contents:
-   :local:
-   :depth: 2
-
 Objectives
 ----------
 PyDynamoDB implement the DB API 2.0 interfaces based on  `PartiQL`_ supported by AWS DynamoDB. \
@@ -153,10 +149,11 @@ and deserialize the response to Python built-in types.
     print(cursor.fetchall())
 
 
-Vist WIKI to get more guidances
+Get more guidances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Please see: `Vist PyDynamoDB WIKI`_.
-.. _`Vist PyDynamoDB WIKI`: https://github.com/passren/PyDynamoDB/wiki
+Please visit: `PyDynamoDB WIKI`_.
+
+.. _`PyDynamoDB WIKI`: https://github.com/passren/PyDynamoDB/wiki
 
 
 Test with local DynamoDB
