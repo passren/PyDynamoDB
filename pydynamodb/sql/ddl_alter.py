@@ -135,7 +135,13 @@ class DdlAlter(DdlBase):
 
     _ALTER_INDEX = Group(
         KeyWords.CREATE("alter_ops") + DdlBase._INDEX
-        ^ KeyWords.UPDATE("alter_ops") + DdlBase._INDEX
+        ^ KeyWords.UPDATE("alter_ops")
+        + Group(
+            KeyWords.INDEX
+            + Tokens.INDEX_NAME
+            + Tokens.INDEX_TYPE
+            + DdlBase._INDEX_OPTIONS
+        )("index").set_name("index")
         ^ KeyWords.DELETE("alter_ops")
         + Group(KeyWords.INDEX + Tokens.INDEX_NAME + Tokens.INDEX_TYPE)(
             "index"

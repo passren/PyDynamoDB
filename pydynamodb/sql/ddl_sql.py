@@ -170,15 +170,16 @@ class DdlBase(Base):
         index_name = index["index_name"]
         index_.update({"IndexName": index_name})
 
-        attrs = index["attributes"]
-        key_schema = list()
+        attrs = index.get("attributes", None)
+        if attrs:
+            key_schema = list()
 
-        for attr in attrs:
-            attr_name = attr["attribute_name"]
-            key_type = attr["key_type"]
+            for attr in attrs:
+                attr_name = attr["attribute_name"]
+                key_type = attr["key_type"]
 
-            key_schema.append(self._construct_key_schema(attr_name, key_type))
-        index_.update({"KeySchema": key_schema})
+                key_schema.append(self._construct_key_schema(attr_name, key_type))
+            index_.update({"KeySchema": key_schema})
 
         options = index["index_options"]
         index_.update(self._construct_options(options))
