@@ -123,8 +123,3 @@ class DynamoDBDictResultSet(DynamoDBResultSet):
 
     # You can override this to use OrderedDict or other dict-like types.
     dict_type: Type[Any] = dict
-
-    def _process_row_item(self, row) -> Optional[Dict]:
-        return self.dict_type(
-            [(col, self._converter.deserialize(val)) for col, val in row.items()]
-        )
