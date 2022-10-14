@@ -2,7 +2,8 @@
 import functools
 import logging
 import threading
-from typing import Any, Callable, Iterable
+from collections.abc import MutableMapping, MutableSequence
+from typing import Any, Callable, Iterable, Dict
 
 import tenacity
 from tenacity import after_log, retry_if_exception, stop_after_attempt, wait_exponential
@@ -22,6 +23,28 @@ def synchronized(wrapped: Callable[..., Any]) -> Any:
             return wrapped(*args, **kwargs)
 
     return _wrapper
+
+
+def flatten_dict(
+    d: Dict[str, Any], parent_key: str = "", separator: str = "."
+) -> Dict[str, Any]:
+    items = list()
+    for key, val in d.items():
+        new_key = parent_key + separator + key if parent_key else key
+        if isinstance(val, MutableMapping):
+            items.extend(flatten_dict(val, new_key, separator=separator).items())
+        elif isinstance(val, MutableSequence):
+            for i, v in enumerate(val):
+                new_list_key = "%s[%s]" % (new_key, str(i))
+                if isinstance(v, MutableMapping):
+                    items.extend(
+                        flatten_dict(v, new_list_key, separator=separator).items()
+                    )
+                else:
+                    items.append((new_list_key, v))
+        else:
+            items.append((new_key, val))
+    return dict(items)
 
 
 class RetryConfig:

@@ -3,27 +3,21 @@
 TESTCASE01_TABLE = "pydynamodb_test_case01"
 
 
-class TestCursor:
+class TestCursorDML:
     def test_writeone(self, cursor):
-        sql_one_row_1_0_ = (
-            """
-        INSERT INTO %s VALUE {
-            'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_byte': ?
-        }
-        """
-            % TESTCASE01_TABLE
-        )
+        sql_one_row_1_0_ = """
+            INSERT INTO %s VALUE {
+                'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_byte': ?
+            }
+        """ % TESTCASE01_TABLE
         params_1_0_ = ["test_one_row_1", 0, "test case 0", 0, b"0"]
         cursor.execute(sql_one_row_1_0_, params_1_0_)
 
-        sql_one_row_1_1_ = (
-            """
+        sql_one_row_1_1_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_map': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_1_ = [
             "test_one_row_1",
             1,
@@ -33,14 +27,11 @@ class TestCursor:
         ]
         cursor.execute(sql_one_row_1_1_, params_1_1_)
 
-        sql_one_row_1_2_ = (
-            """
+        sql_one_row_1_2_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_ss': ?, 'col_ns': ?, 'col_bs': ?, 'col_list': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_2_ = [
             "test_one_row_1",
             2,
@@ -52,14 +43,11 @@ class TestCursor:
         ]
         cursor.execute(sql_one_row_1_2_, params_1_2_)
 
-        sql_one_row_2_1_ = (
-            """
+        sql_one_row_2_1_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_nested_list': ?, 'col_nested_map': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_2_1_ = [
             "test_one_row_2",
             1,
@@ -82,18 +70,15 @@ class TestCursor:
         cursor.execute(sql_one_row_2_1_, params_2_1_)
 
     def test_writemany(self, cursor):
-        sql_many_rows_ = (
-            """
-        INSERT INTO %s VALUE {
-            'key_partition': ?,
-            'key_sort': ?,
-            'col_str': ?,
-            'col_num': ?,
-            'col_byte': ?
-        }
-        """
-            % TESTCASE01_TABLE
-        )
+        sql_many_rows_ = """
+            INSERT INTO %s VALUE {
+                'key_partition': ?,
+                'key_sort': ?,
+                'col_str': ?,
+                'col_num': ?,
+                'col_byte': ?
+            }
+        """ % TESTCASE01_TABLE
         params_ = [
             ["test_many_rows_1", 0, "test case many 0", "0", b"0"],
             ["test_many_rows_1", 1, "test case many 1", "1", b"1"],
@@ -110,12 +95,11 @@ class TestCursor:
 
     def test_fetchone(self, cursor):
         cursor.execute(
-            """
+        """
             SELECT col_str, col_num, col_byte FROM %s
             WHERE key_partition = ?
             AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_1", 0],
         )
         assert len(cursor.description) == 3
@@ -137,11 +121,10 @@ class TestCursor:
         assert cursor.fetchone() is None
 
         cursor.execute(
-            """
+        """
             SELECT * FROM %s
             WHERE key_partition = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_1"],
         )
         assert cursor.rownumber == 0
@@ -168,12 +151,11 @@ class TestCursor:
             ]
 
         cursor.execute(
-            """
+        """
             SELECT col_nested_list, col_nested_map FROM %s
             WHERE key_partition = ?
             AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_2", 1],
         )
         row = cursor.fetchone()
@@ -192,11 +174,10 @@ class TestCursor:
 
     def test_fetchmany(self, cursor):
         cursor.execute(
-            """
+        """
             SELECT * FROM %s
             WHERE key_partition = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_many_rows_1"],
         )
         assert cursor.rownumber == 0
@@ -210,11 +191,10 @@ class TestCursor:
 
     def test_fetchall(self, cursor):
         cursor.execute(
-            """
+        """
             SELECT * FROM %s
             WHERE key_partition = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_many_rows_1"],
         )
         assert cursor.rownumber == 0
@@ -225,22 +205,20 @@ class TestCursor:
     def test_unicode(self, cursor):
         unicode_str = u"测试"
         sql_unicode_row_1_0_ = (
-            """
+        """
         INSERT INTO %s VALUE {
             'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_byte': ?
         }
-        """
-            % TESTCASE01_TABLE
+        """ % TESTCASE01_TABLE
         )
         params_1_0_ = ["test_unicode_row_1", 0, u"测试案例 0", 0, unicode_str.encode()]
         cursor.execute(sql_unicode_row_1_0_, params_1_0_)
 
         cursor.execute(
-            """
+        """
             SELECT * FROM %s
             WHERE key_partition = ? AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_unicode_row_1", 0],
         )
         rows = cursor.fetchall()
@@ -250,14 +228,13 @@ class TestCursor:
 
     def test_update(self, cursor):
         sql_update_row_1_0_ = (
-            """
+        """
             UPDATE %s 
             SET col_str=?
             SET col_num=?
             WHERE key_partition=? AND key_sort=?
             RETURNING ALL OLD *
-        """
-            % TESTCASE01_TABLE
+        """ % TESTCASE01_TABLE
         )
         params_1_0_ = ["test case update 0", 10, "test_one_row_1", 0]
         cursor.execute(sql_update_row_1_0_, params_1_0_)
@@ -268,11 +245,10 @@ class TestCursor:
         assert self._get_value_by_column_name(desc, rows[0], "col_num") == 0
 
         cursor.execute(
-            """
+        """
             SELECT col_str, col_num FROM %s
             WHERE key_partition = ? AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_1", 0],
         )
         rows = cursor.fetchall()
@@ -286,12 +262,11 @@ class TestCursor:
 
     def test_limit_sql(self, cursor):
         cursor.execute(
-            """
+        """
             SELECT * FROM %s
             WHERE key_partition = ?
             LIMIT 2
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_many_rows_1"],
         )
         assert len(cursor.fetchall()) == 2

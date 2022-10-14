@@ -6,14 +6,11 @@ TESTCASE01_TABLE = "pydynamodb_test_case01"
 class TestConnection:
     def test_transaction_both_read_write(self, conn):
         try:
-            sql_trans_1_ = (
-                """
+            sql_trans_1_ =  """
                 INSERT INTO %s VALUE {
                     'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
                 }
-            """
-                % TESTCASE01_TABLE
-            )
+            """ % TESTCASE01_TABLE
 
             conn.begin()
             with conn.cursor() as cursor:
@@ -28,18 +25,16 @@ class TestConnection:
                         ["test_trans_1", 5, "test case 1-5", 5],
                     ],
                 )
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT * FROM %s WHERE key_partition = ?
-                """
-                    % TESTCASE01_TABLE,
+                """ % TESTCASE01_TABLE,
                     ["test_trans_1"],
                 )
 
                 conn.commit()
         except Exception as e:
             assert (
-                "ExecuteTransaction API does not support both read and write operations in the same request"
+                "both read and write operation"
                 in str(e)
             )
 
@@ -47,14 +42,11 @@ class TestConnection:
             assert len(self._query_data(cursor, "test_trans_1")) == 0
 
     def test_transaction_one_row(self, conn):
-        sql_trans_2_ = (
-            """
+        sql_trans_2_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
 
         conn.begin()
         cursor = conn.cursor()
@@ -64,14 +56,11 @@ class TestConnection:
         assert len(self._query_data(cursor, "test_trans_2")) == 1
 
     def test_transaction_many_row(self, conn):
-        sql_trans_3_ = (
-            """
+        sql_trans_3_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
 
         conn.begin()
         cursor = conn.cursor()
@@ -90,14 +79,11 @@ class TestConnection:
         assert len(self._query_data(cursor, "test_trans_3")) == 5
 
     def test_transaction_mixed_no_trans(self, conn):
-        sql_trans_4_ = (
-            """
+        sql_trans_4_ = """
             INSERT INTO "%s" VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
 
         cursor = conn.cursor()
         cursor.execute(sql_trans_4_, ["test_trans_4", 0, "test case 4-0", 0])
@@ -139,10 +125,9 @@ class TestConnection:
 
     def _query_data(self, cursor, test_case):
         cursor.execute(
-            """
-            SELECT * FROM %s WHERE key_partition = ?
         """
-            % TESTCASE01_TABLE,
+            SELECT * FROM %s WHERE key_partition = ?
+        """ % TESTCASE01_TABLE,
             [test_case],
         )
         return cursor.fetchall()

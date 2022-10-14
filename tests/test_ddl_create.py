@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from pydynamodb.sql.parser import SQLParser
 
+
 class TestDdlCreate:
     def test_parse_simple_case_1(self):
         sql = """
@@ -10,17 +11,13 @@ class TestDdlCreate:
         """
         ret = SQLParser(sql).transform()
         expected_ret = {
-            "AttributeDefinitions": [{
-                    "AttributeName": "IssueId",
-                    "AttributeType": "N"
-            }],
+            "AttributeDefinitions": [
+                {"AttributeName": "IssueId", "AttributeType": "N"}
+            ],
             "TableName": "Issues",
-            "KeySchema": [{
-                    "AttributeName": "IssueId",
-                    "KeyType": "HASH"
-            }],
+            "KeySchema": [{"AttributeName": "IssueId", "KeyType": "HASH"}],
         }
-        assert(ret == expected_ret)
+        assert ret == expected_ret
 
     def test_parse_simple_case_2(self):
         sql = """
@@ -31,23 +28,17 @@ class TestDdlCreate:
         """
         ret = SQLParser(sql).transform()
         expected_ret = {
-            "AttributeDefinitions": [{
-                    "AttributeName": "IssueId",
-                    "AttributeType": "N"
-            }, {
-                    "AttributeName": "Title",
-                    "AttributeType": "S"
-            }],
+            "AttributeDefinitions": [
+                {"AttributeName": "IssueId", "AttributeType": "N"},
+                {"AttributeName": "Title", "AttributeType": "S"},
+            ],
             "TableName": "Issues",
-            "KeySchema": [{
-                    "AttributeName": "IssueId",
-                    "KeyType": "HASH"
-            }, {
-                    "AttributeName": "Title",
-                    "KeyType": "RANGE"
-            }],
+            "KeySchema": [
+                {"AttributeName": "IssueId", "KeyType": "HASH"},
+                {"AttributeName": "Title", "KeyType": "RANGE"},
+            ],
         }
-        assert(ret == expected_ret)
+        assert ret == expected_ret
 
     def test_parse_options_with_equal(self):
         sql = """
@@ -70,57 +61,40 @@ class TestDdlCreate:
         """
         ret = SQLParser(sql).transform()
         expected_ret = {
-            "AttributeDefinitions": [{
-                    "AttributeName": "IssueId",
-                    "AttributeType": "N"
-                }, {
-                    "AttributeName": "Title",
-                    "AttributeType": "S"
-                }, {
-                    "AttributeName": "CreateDate",
-                    "AttributeType": "S"
-            }],
+            "AttributeDefinitions": [
+                {"AttributeName": "IssueId", "AttributeType": "N"},
+                {"AttributeName": "Title", "AttributeType": "S"},
+                {"AttributeName": "CreateDate", "AttributeType": "S"},
+            ],
             "TableName": "Issues",
-            "KeySchema": [{
-                    "AttributeName": "IssueId",
-                    "KeyType": "HASH"
-                }, {
-                    "AttributeName": "Title",
-                    "KeyType": "RANGE"
-            }],
-            "LocalSecondaryIndexes": [{
+            "KeySchema": [
+                {"AttributeName": "IssueId", "KeyType": "HASH"},
+                {"AttributeName": "Title", "KeyType": "RANGE"},
+            ],
+            "LocalSecondaryIndexes": [
+                {
                     "IndexName": "CreateDateIndex",
-                    "KeySchema": [{
-                            "AttributeName": "CreateDate",
-                            "KeyType": "HASH"
-                        }, {
-                            "AttributeName": "IssueId",
-                            "KeyType": "RANGE"
-                    }],
+                    "KeySchema": [
+                        {"AttributeName": "CreateDate", "KeyType": "HASH"},
+                        {"AttributeName": "IssueId", "KeyType": "RANGE"},
+                    ],
                     "Projection": {
                         "ProjectionType": "INCLUDE",
-                        "NonKeyAttributes": [
-                            "Description", "Status"
-                        ]
-                    }
-            }],
+                        "NonKeyAttributes": ["Description", "Status"],
+                    },
+                }
+            ],
             "BillingMode": "PROVISIONED",
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 1,
-                "WriteCapacityUnits": 1
-            },
+            "ProvisionedThroughput": {"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
             "StreamSpecification": {
                 "StreamEnabled": False,
             },
-            "Tags": [{
-                    "Key": "name",
-                    "Value": "Issue"
-                }, {
-                    "Key": "usage",
-                    "Value": "test"
-            }]
+            "Tags": [
+                {"Key": "name", "Value": "Issue"},
+                {"Key": "usage", "Value": "test"},
+            ],
         }
-        assert(ret == expected_ret)
+        assert ret == expected_ret
 
     def test_parse_completed_case(self):
         sql = """
@@ -169,109 +143,79 @@ class TestDdlCreate:
 
         ret = SQLParser(sql).transform()
         expected_ret = {
-            "AttributeDefinitions": [{
-                    "AttributeName": "IssueId",
-                    "AttributeType": "N"
-                }, {
-                    "AttributeName": "Title",
-                    "AttributeType": "S"
-                }, {
-                    "AttributeName": "CreateDate",
-                    "AttributeType": "S"
-                }, {
-                    "AttributeName": "DueDate",
-                    "AttributeType": "S"
-                }, {
-                    "AttributeName": "Requester",
-                    "AttributeType": "S"
-                }, {
-                    "AttributeName": "Assignee",
-                    "AttributeType": "S"
-            }],
+            "AttributeDefinitions": [
+                {"AttributeName": "IssueId", "AttributeType": "N"},
+                {"AttributeName": "Title", "AttributeType": "S"},
+                {"AttributeName": "CreateDate", "AttributeType": "S"},
+                {"AttributeName": "DueDate", "AttributeType": "S"},
+                {"AttributeName": "Requester", "AttributeType": "S"},
+                {"AttributeName": "Assignee", "AttributeType": "S"},
+            ],
             "TableName": "Issues",
-            "KeySchema": [{
-                    "AttributeName": "IssueId",
-                    "KeyType": "HASH"
-                }, {
-                    "AttributeName": "Title",
-                    "KeyType": "RANGE"
-            }],
-            "LocalSecondaryIndexes": [{
+            "KeySchema": [
+                {"AttributeName": "IssueId", "KeyType": "HASH"},
+                {"AttributeName": "Title", "KeyType": "RANGE"},
+            ],
+            "LocalSecondaryIndexes": [
+                {
                     "IndexName": "RequesterIndex",
-                    "KeySchema": [{
-                            "AttributeName": "Requester",
-                            "KeyType": "HASH"
-                        }, {
-                            "AttributeName": "Title",
-                            "KeyType": "RANGE"
-                    }],
-                    "Projection": {
-                        "ProjectionType": "KEYS_ONLY"
-                    }
-                }, {
+                    "KeySchema": [
+                        {"AttributeName": "Requester", "KeyType": "HASH"},
+                        {"AttributeName": "Title", "KeyType": "RANGE"},
+                    ],
+                    "Projection": {"ProjectionType": "KEYS_ONLY"},
+                },
+                {
                     "IndexName": "AssigneeIndex",
-                    "KeySchema": [{
-                            "AttributeName": "Assignee",
-                            "KeyType": "HASH"
-                    }],
+                    "KeySchema": [{"AttributeName": "Assignee", "KeyType": "HASH"}],
                     "Projection": {
                         "ProjectionType": "ALL",
-                    }
-            }],
-            "GlobalSecondaryIndexes": [{
+                    },
+                },
+            ],
+            "GlobalSecondaryIndexes": [
+                {
                     "IndexName": "CreateDateIndex",
-                    "KeySchema": [{
-                            "AttributeName": "CreateDate",
-                            "KeyType": "HASH"
-                        }, {
-                            "AttributeName": "IssueId",
-                            "KeyType": "RANGE"
-                    }],
+                    "KeySchema": [
+                        {"AttributeName": "CreateDate", "KeyType": "HASH"},
+                        {"AttributeName": "IssueId", "KeyType": "RANGE"},
+                    ],
                     "Projection": {
                         "ProjectionType": "INCLUDE",
-                        "NonKeyAttributes": [
-                            "Description", "Status"
-                        ]
+                        "NonKeyAttributes": ["Description", "Status"],
                     },
                     "ProvisionedThroughput": {
                         "ReadCapacityUnits": 1,
-                        "WriteCapacityUnits": 1
-                    }
-                }, {
+                        "WriteCapacityUnits": 1,
+                    },
+                },
+                {
                     "IndexName": "DueDateIndex",
-                    "KeySchema": [{
-                            "AttributeName": "DueDate",
-                            "KeyType": "HASH"
-                    }],
+                    "KeySchema": [{"AttributeName": "DueDate", "KeyType": "HASH"}],
                     "Projection": {
                         "ProjectionType": "ALL",
                     },
                     "ProvisionedThroughput": {
                         "ReadCapacityUnits": 1,
-                        "WriteCapacityUnits": 1
-                    }
-            }],
+                        "WriteCapacityUnits": 1,
+                    },
+                },
+            ],
             "BillingMode": "PROVISIONED",
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 1,
-                "WriteCapacityUnits": 1
-            },
+            "ProvisionedThroughput": {"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
             "StreamSpecification": {
                 "StreamEnabled": True,
-                "StreamViewType": "NEW_IMAGE"
+                "StreamViewType": "NEW_IMAGE",
             },
             "SSESpecification": {
                 "Enabled": True,
                 "SSEType": "AES256",
-                "KMSMasterKeyId": "XXXXXXXX"
+                "KMSMasterKeyId": "XXXXXXXX",
             },
             "TableClass": "STANDARD",
-            "Tags": [{
-                    "Key": "name",
-                    "Value": "Issue"
-                }, {
-                    "Key": "usage",
-                    "Value": "test"
-            }]
+            "Tags": [
+                {"Key": "name", "Value": "Issue"},
+                {"Key": "usage", "Value": "test"},
+            ],
         }
-        assert(ret == expected_ret)
+        assert ret == expected_ret

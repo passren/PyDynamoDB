@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast, TypeVar, Tuple
 
-from .sql.parser import SQLParser
 from .converter import Converter
-from .common import BaseCursor, CursorIterator
+from .common import BaseCursor, CursorIterator, Statement, Statements
 from .result_set import DynamoDBResultSet, DynamoDBDictResultSet
 from .error import NotSupportedError, ProgrammingError
 from .util import RetryConfig, synchronized
@@ -32,7 +32,9 @@ class Cursor(BaseCursor, CursorIterator):
         )
         self._result_set: Optional[DynamoDBResultSet] = None
         self._result_set_class = DynamoDBResultSet
-        self._transaction_statements = list()
+        self._statements: Statements = Statements()
+        self._transaction_statements: Statements = Statements()
+        self._is_pooling: bool = False
 
     @property
     def result_set(self) -> Optional[DynamoDBResultSet]:
@@ -62,42 +64,44 @@ class Cursor(BaseCursor, CursorIterator):
 
     @synchronized
     def execute(
-        self: _T,
-        operation: str,
-        parameters: Optional[List[Dict[str, Any]]] = None,
-        limit: int = None,
-        consistent_read: bool = False,
+        self: _T, operation: str, parameters: Optional[List[Dict[str, Any]]] = None
     ) -> _T:
-        sp = SQLParser(operation)
-        statement_ = sp.transform()
+        try:
+            statement_ = Statement(operation)
 
-        if sp.operation_type == "DML":
-            limit = sp.parser.limit
+            if parameters:
+                statement_.api_request.update(
+                    {
+                        "Parameters": [
+                            self._converter.serialize(parameter)
+                            for parameter in parameters
+                        ],
+                    }
+                )
+            if self.connection.in_transaction:
+                self._transaction_statements.append(statement_)
+            else:
+                self._statements.append(statement_)
 
-        if parameters:
-            statement_.update(
-                {
-                    "Parameters": [
-                        self._converter.serialize(parameter) for parameter in parameters
-                    ],
-                }
-            )
-
-        statements = [statement_]
-
-        if not self.connection.autocommit:
-            self._transaction_statements.extend(statements)
-        else:
-            self._reset_state()
-            self._result_set = self._result_set_class(
-                self._connection,
-                self._converter,
-                statements,
-                limit,
-                self.arraysize,
-                self._retry_config,
-                is_transaction=False,
-            )
+            if not self._is_pooling and self.connection.autocommit:
+                if len(self._statements) > 0:
+                    self._reset_state()
+                    try:
+                        self._result_set = self._result_set_class(
+                            self._connection,
+                            self._converter,
+                            deepcopy(self._statements),
+                            self.arraysize,
+                            self._retry_config,
+                            is_transaction=False,
+                        )
+                    finally:
+                        self._post_execute()
+        except Exception as e:
+            if self.connection.in_transaction:
+                self.connection.in_transaction = False
+                self.connection.autocommit = True
+            raise e
 
         return self
 
@@ -106,52 +110,28 @@ class Cursor(BaseCursor, CursorIterator):
         self,
         operation: str,
         seq_of_parameters: List[Optional[Dict[str, Any]]],
-        consistent_read: bool = False,
     ) -> None:
-        statements = [
-            {
-                "Statement": operation,
-                "Parameters": [
-                    self._converter.serialize(parameter) for parameter in parameters
-                ],
-                "ConsistentRead": consistent_read,
-            }
-            for parameters in seq_of_parameters
-        ]
-
-        if not self.connection.autocommit:
-            self._transaction_statements.extend(statements)
-        else:
-            self._reset_state()
-            self._result_set = self._result_set_class(
-                self._connection,
-                self._converter,
-                statements,
-                None,
-                self.arraysize,
-                self._retry_config,
-                is_transaction=False,
-            )
+        self._is_pooling = True
+        for i, parameters in enumerate(seq_of_parameters):
+            if i == len(seq_of_parameters) - 1:
+                self._is_pooling = False
+            self.execute(operation, parameters)
 
     @synchronized
     def execute_transaction(self) -> None:
-        if self._transaction_statements and len(self._transaction_statements) > 0:
-            statements = self._transaction_statements
-            self._reset_state()
-            self._result_set = self._result_set_class(
-                self._connection,
-                self._converter,
-                statements,
-                None,
-                self.arraysize,
-                self._retry_config,
-                is_transaction=True,
-            )
-
-            self._post_transaction()
-
-    def _post_transaction(self) -> None:
-        self._transaction_statements.clear()
+        if len(self._transaction_statements) > 0:
+            try:
+                self._reset_state()
+                self._result_set = self._result_set_class(
+                    self._connection,
+                    self._converter,
+                    self._transaction_statements,
+                    self.arraysize,
+                    self._retry_config,
+                    is_transaction=True,
+                )
+            finally:
+                self._post_execute_transaction()
 
     def fetchone(
         self,
@@ -179,8 +159,15 @@ class Cursor(BaseCursor, CursorIterator):
         raise NotSupportedError
 
     def close(self) -> None:
-        if self.result_set and not self.result_set.is_closed:
-            self.result_set.close()
+        self._reset_state()
+        self._statements = None
+        self._transaction_statements = None
+
+    def _post_execute(self) -> None:
+        self._statements.clear()
+        self._is_pooling = False
+
+    def _post_execute_transaction(self) -> None:
         self._transaction_statements.clear()
 
     def _reset_state(self) -> None:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-
+from boto3.session import Session
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
 from .converter import Converter
@@ -8,7 +8,6 @@ from .cursor import BaseCursor, Cursor
 from .error import NotSupportedError
 from .util import RetryConfig
 
-from boto3.session import Session
 
 if TYPE_CHECKING:
     from botocore.client import BaseClient
@@ -74,6 +73,7 @@ class Connection:
         self.cursor_kwargs = cursor_kwargs if cursor_kwargs else dict()
         self._cursor_pool = list()
         self._autocommit = True
+        self._in_transaction = False
 
     @property
     def _session_kwargs(self) -> Dict[str, Any]:
@@ -96,6 +96,18 @@ class Connection:
     @property
     def autocommit(self) -> bool:
         return self._autocommit
+
+    @autocommit.setter
+    def autocommit(self, value: bool) -> None:
+        self._autocommit = value
+
+    @property
+    def in_transaction(self) -> bool:
+        return self._in_transaction
+
+    @in_transaction.setter
+    def in_transaction(self, value: bool) -> bool:
+        self._in_transaction = False
 
     @property
     def cursor_pool(self) -> List[Optional[BaseCursor]]:
@@ -128,15 +140,21 @@ class Connection:
         self._session = None
         self._client = None
         self._autocommit = True
+        self._in_transaction = False
         self.cursor_pool.clear()
 
     def begin(self) -> None:
         self._autocommit = False
+        self._in_transaction = True
 
     def commit(self) -> None:
-        self._autocommit = True
-        for cursor_ in self.cursor_pool:
-            cursor_.execute_transaction()
+        try:
+            if self._in_transaction:
+                for cursor_ in self.cursor_pool:
+                    cursor_.execute_transaction()
+        finally:
+            self._autocommit = True
+            self._in_transaction = False
 
     def rollback(self) -> None:
         raise NotSupportedError
