@@ -56,7 +56,7 @@ class DmlSelect(DmlBase):
     _DML_SELECT_EXPR <<= _SELECT_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(DmlSelect, self).__init__(statement)
 
     @property
     def syntex_def(self) -> Forward:

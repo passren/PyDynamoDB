@@ -15,20 +15,19 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 
 class SQLParser(metaclass=ABCMeta):
-    _statement = None
-    _query_type = None
-    _operation_type = None
-    _parser = None
-
     def __init__(self, statement: str = "") -> None:
         self._statement = statement
+        self._query_type = None
+        self._query_category = None
+        self._operation_type = None
+        self._parser = None
 
     @property
     def statement(self) -> str:
         return self._statement
 
     @property
-    def query_type(self) -> Tuple[str, str]:
+    def query_type(self) -> Tuple[str, str, str]:
         if self._statement is None:
             raise ValueError("Statement is not specified")
 
@@ -39,12 +38,23 @@ class SQLParser(metaclass=ABCMeta):
         return self._query_type
 
     @property
+    def query_category(self) -> str:
+        if self._query_category is not None:
+            return self._query_category
+
+        self._query_category = (
+            self.query_type[0] if self.query_type is not None else None
+        )
+        return self._query_category
+
+    @property
     def operation_type(self) -> str:
         if self._operation_type is not None:
             return self._operation_type
 
-        if self.query_type is not None:
-            self._operation_type = self.query_type[0]
+        self._operation_type = (
+            self.query_type[1] if self.query_type is not None else None
+        )
         return self._operation_type
 
     @property

@@ -198,7 +198,7 @@ class DdlAlter(DdlBase):
     _DDL_ALTER_EXPR <<= _ALTER_TABLE_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(DdlAlter, self).__init__(statement)
 
     @property
     def syntex_def(self) -> Forward:

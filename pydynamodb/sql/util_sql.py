@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class UtilBase(Base):
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(UtilBase, self).__init__(statement)
 
 
 """
@@ -22,6 +22,8 @@ Sample SQL of Listing Tables:
 LIST TABLES
 SHOW TABLES
 """
+
+
 class UtilListTables(UtilBase):
     _LIST_TABLES_STATEMENT = ((KeyWords.LIST | KeyWords.SHOW) + KeyWords.TABLES)(
         "list_tables_statement"
@@ -31,7 +33,7 @@ class UtilListTables(UtilBase):
     _UTIL_LIST_TABLES_EXPR <<= _LIST_TABLES_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(UtilListTables, self).__init__(statement)
 
     @property
     def syntex_def(self) -> Forward:
@@ -50,6 +52,8 @@ Sample SQL of Describing Table:
 DESC Issues
 DESCRIBE Issues
 """
+
+
 class UtilDescTable(UtilBase):
     _DESC_TABLE_STATEMENT = ((KeyWords.DESC | KeyWords.DESCRIBE) + Tokens.TABLE_NAME)(
         "desc_table_statement"
@@ -59,7 +63,7 @@ class UtilDescTable(UtilBase):
     _DESC_TABLE_EXPR <<= _DESC_TABLE_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(UtilDescTable, self).__init__(statement)
 
     @property
     def syntex_def(self) -> Forward:

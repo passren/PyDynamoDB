@@ -25,7 +25,7 @@ class DdlDrop(DdlBase):
     _DDL_DROP_EXPR <<= _DROP_TABLE_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(DdlDrop, self).__init__(statement)
 
     @property
     def syntex_def(self) -> Forward:

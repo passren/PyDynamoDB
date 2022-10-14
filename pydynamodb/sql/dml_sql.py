@@ -86,12 +86,11 @@ class DmlBase(Base):
         )("option").set_name("option")
     )("options").set_name("options")
 
-    _limit = 1000
-    _consistent_read = False
-    _return_consumed_capacity = "NONE"
-
     def __init__(self, statement: str) -> None:
-        self._statement = statement
+        super(DmlBase, self).__init__(statement)
+        self._limit = None
+        self._consistent_read = False
+        self._return_consumed_capacity = "NONE"
 
     @property
     def limit(self) -> int:

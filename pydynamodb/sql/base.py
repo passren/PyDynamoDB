@@ -8,11 +8,9 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 
 class Base(metaclass=ABCMeta):
-    _statement = None
-    _root_parse_results = None
-
     def __init__(self, statement: str) -> None:
         self._statement = statement
+        self._root_parse_results = None
 
     @property
     def statement(self):

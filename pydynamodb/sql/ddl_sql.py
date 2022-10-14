@@ -137,6 +137,9 @@ class DdlBase(Base):
         + _INDEX_OPTIONS
     )("index").set_name("index")
 
+    def __init__(self, statement: str) -> None:
+        super(DdlBase, self).__init__(statement)
+
     def _construct_attr_def(self, attr_name: str, data_type: str) -> Dict[str, str]:
         converted_data_type = None
 
