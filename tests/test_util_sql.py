@@ -9,13 +9,24 @@ class TestUtilSQL:
         LIST TABLES
         """
         parser = SQLParser(sql)
+        ret = SQLParser(sql).transform()
         assert parser.query_type == QueryType.LIST
+        assert ret == {}
 
         sql = """
         SHOW TABLES
         """
         parser = SQLParser(sql)
         assert parser.query_type == QueryType.LIST
+
+        sql = """
+        LIST TABLES
+        LIMIT 10
+        """
+        parser = SQLParser(sql)
+        ret = SQLParser(sql).transform()
+        assert parser.query_type == QueryType.LIST
+        assert ret == {"Limit": 10}
 
     def test_desc_table(self):
         sql = """

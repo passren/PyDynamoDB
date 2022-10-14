@@ -52,9 +52,7 @@ class TestDdlAlter:
         ALTER TABLE Issues (
             IssueId numeric,
             DueDate string,
-            UPDATE INDEX DueDateIndex GLOBAL (
-                DueDate PARTITION KEY
-            )
+            UPDATE INDEX DueDateIndex GLOBAL
                 ProvisionedThroughput.ReadCapacityUnits 10,
             CREATE REPLICA cn-north-1
                 KMSMasterKeyId XXXXXXXX
@@ -79,7 +77,6 @@ class TestDdlAlter:
                 {
                     "Update": {
                         "IndexName": "DueDateIndex",
-                        "KeySchema": [{"AttributeName": "DueDate", "KeyType": "HASH"}],
                         "ProvisionedThroughput": {
                             "ReadCapacityUnits": 10,
                         },
@@ -128,9 +125,7 @@ class TestDdlAlter:
                 Projection.NonKeyAttributes (Description, Status)
                 ProvisionedThroughput.ReadCapacityUnits 1
                 ProvisionedThroughput.WriteCapacityUnits 1,
-            UPDATE INDEX DueDateIndex GLOBAL (
-                DueDate PARTITION KEY
-            )
+            UPDATE INDEX DueDateIndex GLOBAL
                 ProvisionedThroughput.ReadCapacityUnits 10
                 ProvisionedThroughput.WriteCapacityUnits 10,
             DELETE INDEX IssueIdIndex GLOBAL,
@@ -197,7 +192,6 @@ class TestDdlAlter:
                 {
                     "Update": {
                         "IndexName": "DueDateIndex",
-                        "KeySchema": [{"AttributeName": "DueDate", "KeyType": "HASH"}],
                         "ProvisionedThroughput": {
                             "ReadCapacityUnits": 10,
                             "WriteCapacityUnits": 10,
