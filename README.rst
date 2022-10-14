@@ -26,15 +26,27 @@ SQLAlchemy dialect supported as well.
 Objectives
 ----------
 PyDynamoDB implement the DB API 2.0 interfaces based on  `PartiQL`_ supported by AWS DynamoDB. \
-You have to create DDB tables before using pydynamodb, because `PartiQL`_ can only support SELECT, \
-INSERT, UPDATE, DELETE operations on the tables. PyDynamodb provide parameters and result_set converter \
-to make you easily manipulate `PartiQL`_ operations with Python built-in types. \
+Although PartiQL can only support DML operations (INSERT, UPDATE, DELETE, SELECT), PyDynamoDB \
+extended the capabilities to support DDL as well. Now you are able to use MySQL-like statements \
+to CREATE/ALTER/DROP tables. Besides DDL statements, some of utility statements are allowed to \
+execute (Such as, List and Describe Table). \
+PyDynamodb provide parameters and result_set converter to make you easily manipulate operations \
+with Python built-in types. \
 Transaction is also partially supported with DB standard operations, like begin() and commit(). \
 This project is based on laughingman7743's `PyAthena`_.
 
 .. _`PartiQL`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.html
 .. _`PyAthena`: https://github.com/laughingman7743/PyAthena
 
+
+Features
+---------
+* Compatible with DB API 2.0 Specification
+* PartiQL for DML operations (INSERT, UPDATE, DELETE, SELECT)
+* MySQL-Like statements for DDL operations (CREATE TABLE, ALTER TABLE, DROP TABLE)
+* MySQL-Like statements for Utility operations (LIST/SHOW TABLES, DESC TABLE)
+* Auto data type conversion for parameters and result set
+* Transaction and Batch operations
 
 Requirements
 --------------
@@ -141,115 +153,11 @@ and deserialize the response to Python built-in types.
     print(cursor.fetchall())
 
 
-Description of Result Set
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-DDB is a NoSQL database. That means except key schema, the data in each row may have flexible columns or types. \
-PyDynamoDB cannot get a completed result set description before fetching all result data. So you have to use \
-fetch* method to iterate the whole result set, then call cursor.description to get the full columns description.
+Vist WIKI to get more guidances
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Please see: `Vist PyDynamoDB WIKI`_.
+.. _`Vist PyDynamoDB WIKI`: https://github.com/passren/PyDynamoDB/wiki
 
-.. code:: python
-
-    from pydynamodb import connect
-
-    cursor = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name").cursor()
-    cursor.execute('SELECT * FROM "ddb_table_name"')
-    print(cursor.fetchall())
-    print(cursor.description)
-
-
-Dict Cursor and Result Set
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-Using DictCursor, you can get a dict result set with column name and value pair. This type of cursor \
-has better performance and manipulate result data easily. But cursor.description will return empty with this way.
-
-.. code:: python
-
-    from pydynamodb import connect
-    from pydynamodb.cursor import DictCursor
-
-    cursor = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name").cursor(cursor=DictCursor)
-    cursor.execute('SELECT * FROM "ddb_table_name"')
-    print(cursor.fetchall())
-
-
-Transaction
-~~~~~~~~~~~
-Transaction is partially supported also. connection.rollback() is not implemented. \
-Regarding information and restrictions of DDB transaction, please see the page: `Performing transactions with PartiQL for DynamoDB`_
-
-.. _`Performing transactions with PartiQL for DynamoDB`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.multiplestatements.transactions.html
-
-.. code:: python
-
-    from pydynamodb import connect
-
-    conn = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name")
-    cursor = conn.cursor()
-    
-    conn.begin()
-    cursor.execute("""INSERT INTO "ddb_table_name" VALUE {'key_partition': ?, 'key_sort': ?, 'col1': ?}""", 
-                    ["pk1", "sk1", "test"])
-    cursor.execute("""INSERT INTO "ddb_table_name" VALUE {'key_partition': ?, 'key_sort': ?, 'col1': ?}""", 
-                    ["pk2", "sk2", "test"])
-    conn.commit()
-
-Limit Expression
-~~~~~~~~~~~~~~~~~
-DynamoDB doesn't support LIMIT expression in PartiQL. This is inconvenient in many scenarios. PyDynamoDB \
-is able to support writing LIMIT expression in PartiQL.
-
-.. code:: python
-
-    from pydynamodb import connect
-
-    cursor = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name").cursor()
-    cursor.execute('SELECT * FROM "ddb_table_name" WHERE key_partition = ? LIMIT 10', ["pk1"])
-    print(cursor.fetchall())
-
-SQLAlchemy
-~~~~~~~~~~~
-Install SQLAlchemy with ``pip install "SQLAlchemy>=1.0.0, <2.0.0"``.
-Supported SQLAlchemy is 1.0.0 or higher and less than 2.0.0.
-
-The connection string has the following format:
-
-.. code:: text
-
-    dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.amazonaws.com:443?verify=false&...
-
-.. code:: python
-
-    from pydynamodb import sqlalchemy_dynamodb
-    from sqlalchemy.engine import create_engine
-    from sqlalchemy.sql.schema import Column, MetaData, Table
-
-    conn_str = (
-            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.amazonaws.com:443"
-            + "?verify=false"
-        )
-    conn_str = conn_str.format(
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            region_name=region_name,
-        )
-    engine = create_engine(conn_str)
-    with engine.connect() as connection:
-        many_rows = Table("many_rows", MetaData(), 
-                        Column('key_partition', String, nullable=False),
-                        Column('key_sort', Integer),
-                        Column('col_str', String),
-                        Column('col_num', Numeric)
-                )
-        rows = conn.execute(many_rows.select()).fetchall()
-        print(rows)
 
 Test with local DynamoDB
 ~~~~~~~~~~~~~~~~~~~~~~~~
