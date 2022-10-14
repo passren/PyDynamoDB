@@ -26,7 +26,7 @@ def boto3_connect():
     if ENV.use_local_ddb:
         from boto3 import client
 
-        return client('dynamodb', endpoint_url=ENV.endpoint_url)
+        return client("dynamodb", endpoint_url=ENV.endpoint_url)
     else:
         from boto3.session import Session
 
@@ -72,9 +72,9 @@ def create_engine(**kwargs):
 
 
 TEST_TABLES = [
-    'pydynamodb_test_case01',
-    'pydynamodb_test_case02',
-    'pydynamodb_test_case03',
+    "pydynamodb_test_case01",
+    "pydynamodb_test_case02",
+    "pydynamodb_test_case03",
 ]
 
 
@@ -100,16 +100,16 @@ def _teardown_session():
 def _create_table(client, table_name):
     response = client.create_table(
         AttributeDefinitions=[
-            {'AttributeName': 'key_partition', 'AttributeType': 'S'},
-            {'AttributeName': 'key_sort', 'AttributeType': 'N'},
+            {"AttributeName": "key_partition", "AttributeType": "S"},
+            {"AttributeName": "key_sort", "AttributeType": "N"},
         ],
         TableName=table_name,
         KeySchema=[
-            {'AttributeName': 'key_partition', 'KeyType': 'HASH'},
-            {'AttributeName': 'key_sort', 'KeyType': 'RANGE'},
+            {"AttributeName": "key_partition", "KeyType": "HASH"},
+            {"AttributeName": "key_sort", "KeyType": "RANGE"},
         ],
-        BillingMode='PROVISIONED',
-        ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1},
+        BillingMode="PROVISIONED",
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
     return response["TableDescription"].get("TableName", None)
 

@@ -33,6 +33,7 @@ jobs:
           pip install boto3
           pip install tenacity
           pip install sqlalchemy
+          pip install pyparsing
       - name: black
         run: |
           pip install black
@@ -40,7 +41,7 @@ jobs:
       - name: flake8
         run: |
           pip install flake8
-          flake8 --max-line-length=100 pydynamodb
+          flake8 --max-line-length=120 pydynamodb
       - name: Download DynamoDB local
         run: |
           curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz

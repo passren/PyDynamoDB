@@ -180,10 +180,10 @@ class TestSQLAlchemyDynamoDB:
         table = Table(
             TESTCASE02_TABLE,
             MetaData(),
-            Column('key_partition', String, nullable=False),
-            Column('key_sort', Integer),
-            Column('col_str', String),
-            Column('col_num', Numeric),
+            Column("key_partition", String, nullable=False),
+            Column("key_sort", Integer),
+            Column("col_str", String),
+            Column("col_num", Numeric),
         )
         assert len(table.c) == 4
 
@@ -206,10 +206,10 @@ class TestSQLAlchemyDynamoDB:
         table = Table(
             TESTCASE02_TABLE,
             MetaData(),
-            Column('key_partition', String, nullable=False),
-            Column('key_sort', Integer),
-            Column('col_str', String),
-            Column('col_nested'),
+            Column("key_partition", String, nullable=False),
+            Column("key_sort", Integer),
+            Column("col_str", String),
+            Column("col_nested"),
         )
         rows = conn.execute(
             table.select().where(
@@ -229,7 +229,7 @@ class TestSQLAlchemyDynamoDB:
         table = Table(
             "NOT_EXISTED_TABLE",
             MetaData(),
-            Column('key_partition', String, nullable=False),
+            Column("key_partition", String, nullable=False),
         )
         try:
             rows = conn.execute(table.select()).fetchall()
@@ -242,9 +242,9 @@ class TestSQLAlchemyDynamoDB:
         table = Table(
             TESTCASE02_TABLE,
             MetaData(),
-            Column('key_partition', String, nullable=False),
-            Column('key_sort', Integer),
-            Column('col_str', String),
+            Column("key_partition", String, nullable=False),
+            Column("key_sort", Integer),
+            Column("col_str", String),
         )
         rows = conn.execute(
             table.select().where(
@@ -299,9 +299,9 @@ class TestSQLAlchemyDynamoDB:
         table = Table(
             TESTCASE02_TABLE,
             MetaData(),
-            Column('key_partition', String, nullable=False),
-            Column('key_sort', Integer),
-            Column('col_str', String),
+            Column("key_partition", String, nullable=False),
+            Column("key_sort", Integer),
+            Column("col_str", String),
         )
         rows = conn.execute(table.select().limit(1)).fetchall()
         assert len(rows) == 1

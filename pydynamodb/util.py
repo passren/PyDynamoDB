@@ -1,26 +1,14 @@
 # -*- coding: utf-8 -*-
 import functools
 import logging
-import re
 import threading
-from typing import Any, Callable, Iterable, Tuple
+from collections.abc import MutableMapping, MutableSequence
+from typing import Any, Callable, Iterable, Dict
 
 import tenacity
 from tenacity import after_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 _logger = logging.getLogger(__name__)  # type: ignore
-
-
-def parse_limit_expression(statement: str) -> Tuple[str, int]:
-    pattern_limit_ = re.compile(r"\w*(LIMIT)\s*(\d+)\w*", re.IGNORECASE)
-    match_ = pattern_limit_.search(statement)
-    if match_:
-        limit_exp_ = match_.group()
-        limit_groups_ = match_.groups()
-        if len(limit_groups_) == 2 and limit_groups_[0].upper() == "LIMIT":
-
-            return (statement.replace(limit_exp_, ""), int(limit_groups_[1]))
-    return statement, None
 
 
 def synchronized(wrapped: Callable[..., Any]) -> Any:
@@ -35,6 +23,28 @@ def synchronized(wrapped: Callable[..., Any]) -> Any:
             return wrapped(*args, **kwargs)
 
     return _wrapper
+
+
+def flatten_dict(
+    d: Dict[str, Any], parent_key: str = "", separator: str = "."
+) -> Dict[str, Any]:
+    items = list()
+    for key, val in d.items():
+        new_key = parent_key + separator + key if parent_key else key
+        if isinstance(val, MutableMapping):
+            items.extend(flatten_dict(val, new_key, separator=separator).items())
+        elif isinstance(val, MutableSequence):
+            for i, v in enumerate(val):
+                new_list_key = "%s[%s]" % (new_key, str(i))
+                if isinstance(v, MutableMapping):
+                    items.extend(
+                        flatten_dict(v, new_list_key, separator=separator).items()
+                    )
+                else:
+                    items.append((new_list_key, v))
+        else:
+            items.append((new_key, val))
+    return dict(items)
 
 
 class RetryConfig:

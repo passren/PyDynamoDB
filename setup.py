@@ -13,10 +13,11 @@ install_requires = [
     "boto3>=1.21.0",
     "botocore>=1.24.7",
     "tenacity>=4.1.0",
+    "pyparsing>= 3.0.0",
 ]
 
 extras_require = {
-    'sqlalchemy': ['sqlalchemy>=1.0.0,<2.0.0'],
+    "sqlalchemy": ["sqlalchemy>=1.0.0,<2.0.0"],
 }
 
 setup(

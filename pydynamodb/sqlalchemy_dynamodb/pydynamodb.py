@@ -188,7 +188,7 @@ class DynamoDBDialect(DefaultDialect):
         try:
             cursor = dbapi_connection.cursor()
             try:
-                cursor.execute(self._dialect_specific_select_one)
+                cursor.execute("SELECT 1 FROM TEMP")
             finally:
                 cursor.close()
         except self.dbapi.Error as err:
