@@ -10,6 +10,9 @@
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
+.. image:: https://codecov.io/github/passren/PyDynamoDB/branch/main/graph/badge.svg?token=Y5DG320O76 
+    :target: https://codecov.io/github/passren/PyDynamoDB
+
 PyDynamoDB
 ===========
 
@@ -30,7 +33,7 @@ execute (Such as, List and Describe Table). \
 PyDynamodb provide parameters and result_set converter to make you easily manipulate operations \
 with Python built-in types. \
 Transaction is also partially supported with DB standard operations, like begin() and commit().
-This project is based on laughingman7743's `PyAthena`_.
+
 
 .. _`PartiQL`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.html
 .. _`PyAthena`: https://github.com/laughingman7743/PyAthena
