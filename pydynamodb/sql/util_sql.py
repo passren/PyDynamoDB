@@ -2,7 +2,7 @@
 import logging
 from .base import Base
 from .common import KeyWords, Tokens
-from pyparsing import Opt, Group, Forward
+from pyparsing import Opt, Group, CaselessKeyword, ZeroOrMore, Forward
 from typing import Any, Dict
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -15,20 +15,36 @@ class UtilBase(Base):
 
 """
 Syntax of list DDB tables:
-{LIST | SHOW} TABLES
+{LIST | SHOW} [GLOBAL] TABLES
+    [Limit [=] value]
+    [RegionName [=] 'string']
 
 Sample SQL of Listing Tables:
 -----------------------------
 LIST TABLES
-SHOW TABLES
+SHOW TABLES Limit 10
+
+LIST GLOBAL TABLES
+    Limit 10
+    RegionName us-west-1
 """
 
 
 class UtilListTables(UtilBase):
+    _REGION_NAME = CaselessKeyword("RegionName")
+
     _LIST_TABLES_STATEMENT = (
         (KeyWords.LIST | KeyWords.SHOW)
+        + Opt(KeyWords.GLOBAL)("global").set_name("global")
         + KeyWords.TABLES
-        + Opt(Group(KeyWords.LIMIT + Tokens.INT_VALUE)("limit").set_name("limit"))
+        + ZeroOrMore(
+            Group(
+                KeyWords.LIMIT
+                + Opt(KeyWords.EQUALS)
+                + Tokens.INT_VALUE("limit").set_name("limit")
+                ^ _REGION_NAME + Opt(KeyWords.EQUALS) + Tokens.REGION_NAME
+            )("option").set_name("option")
+        )("options").set_name("options")
     )("list_tables_statement").set_name("list_tables_statement")
 
     _UTIL_LIST_TABLES_EXPR = Forward()
@@ -51,30 +67,44 @@ class UtilListTables(UtilBase):
             raise ValueError("Statement was not parsed yet")
 
         request = dict()
-        limit_option = self.root_parse_results.get("limit", None)
-        if limit_option:
-            option_value = limit_option[1]
-            self._limit = option_value
-            request.update({"Limit": option_value})
+        is_global_table = (
+            True if self.root_parse_results.get("global", None) is not None else False
+        )
+        options = self.root_parse_results["options"]
+
+        for option in options:
+            limit_value = option.get("limit", None)
+            region_name = option.get("region_name", None)
+
+            if limit_value:
+                self._limit = limit_value
+                request.update({"Limit": limit_value})
+
+            if is_global_table and region_name:
+                request.update({"RegionName": region_name})
 
         return request
 
 
 """
 Syntax of describe DDB table:
-{DESC | DESCRIBE} tbl_name
+{DESC | DESCRIBE} [GLOBAL] tbl_name
 
 Sample SQL of Describing Table:
 -----------------------------
 DESC Issues
 DESCRIBE Issues
+
+DESC GLOBAL Issues
 """
 
 
 class UtilDescTable(UtilBase):
-    _DESC_TABLE_STATEMENT = ((KeyWords.DESC | KeyWords.DESCRIBE) + Tokens.TABLE_NAME)(
-        "desc_table_statement"
-    ).set_name("desc_table_statement")
+    _DESC_TABLE_STATEMENT = (
+        (KeyWords.DESC | KeyWords.DESCRIBE)
+        + Opt(KeyWords.GLOBAL)("global").set_name("global")
+        + Tokens.TABLE_NAME
+    )("desc_table_statement").set_name("desc_table_statement")
 
     _DESC_TABLE_EXPR = Forward()
     _DESC_TABLE_EXPR <<= _DESC_TABLE_STATEMENT
@@ -91,6 +121,14 @@ class UtilDescTable(UtilBase):
             raise ValueError("Statement was not parsed yet")
 
         request = dict()
-        request.update({"TableName": self.root_parse_results["table"]})
+        table_name = self.root_parse_results["table"]
+        is_global_table = (
+            True if self.root_parse_results.get("global", None) is not None else False
+        )
+
+        if is_global_table:
+            request.update({"GlobalTableName": table_name})
+        else:
+            request.update({"TableName": table_name})
 
         return request

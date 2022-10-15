@@ -129,6 +129,14 @@ def dispatch_executor(
         executor_class = UtilListTablesExecutor
     elif statements.query_type == QueryType.DESC:
         executor_class = UtilDescTableExecutor
+    elif statements.query_type == QueryType.CREATE_GLOBAL:
+        executor_class = DdlCreateGlobalExecutor
+    elif statements.query_type == QueryType.DROP_GLOBAL:
+        executor_class = DdlDropGlobalExecutor
+    elif statements.query_type == QueryType.LIST_GLOBAL:
+        executor_class = UtilListGlobalTablesExecutor
+    elif statements.query_type == QueryType.DESC_GLOBAL:
+        executor_class = UtilDescGlobalTableExecutor
     else:
         raise LookupError(
             "Not support executor for query type: %s" % str(statements.query_type)
@@ -399,6 +407,56 @@ class DdlDropExecutor(DdlExecutor):
         self.process_rows(response)
 
 
+class DdlCreateGlobalExecutor(DdlExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(DdlCreateGlobalExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        response = self._dispatch_api_call(
+            self.connection.client.create_global_table, request
+        )
+        self.process_rows(response)
+
+
+class DdlDropGlobalExecutor(DdlExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(DdlDropGlobalExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        response = self._dispatch_api_call(
+            self.connection.client.update_global_table, request
+        )
+        self.process_rows(response)
+
+
 class UtilListTablesExecutor(BaseExecutor):
     def __init__(
         self,
@@ -462,5 +520,82 @@ class UtilDescTableExecutor(DdlExecutor):
 
         response = self._dispatch_api_call(
             self.connection.client.describe_table, request
+        )
+        self.process_rows(response)
+
+
+class UtilListGlobalTablesExecutor(BaseExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(UtilListGlobalTablesExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        if self.next_token:
+            request.update({"ExclusiveStartGlobalTableName": self.next_token})
+
+        response = self._dispatch_api_call(
+            self.connection.client.list_global_tables, request
+        )
+        self.process_rows(response)
+
+    def process_rows(self, response: Dict[str, Any]) -> None:
+        tables = response.get("GlobalTables", None)
+        if tables is None:
+            raise DataError("KeyError `GlobalTables`")
+
+        for table in tables:
+            table_name = table["GlobalTableName"]
+            regions = ",".join([r["RegionName"] for r in table["ReplicationGroup"]])
+            self._rows.append((table_name, regions))
+
+        self._next_token = response.get("LastEvaluatedGlobalTableName", None)
+        self.metadata.update(
+            {
+                "table_name": {
+                    "name": "table_name",
+                    "type": ["S"],
+                },
+                "region_names": {
+                    "name": "region_names",
+                    "type": ["S"],
+                },
+            }
+        )
+
+
+class UtilDescGlobalTableExecutor(DdlExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+    ) -> None:
+        super(UtilDescGlobalTableExecutor, self).__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+        )
+
+    def execute(self, **kwargs) -> None:
+        statement_ = self._statements[0]
+        request = statement_.api_request
+
+        response = self._dispatch_api_call(
+            self.connection.client.describe_global_table, request
         )
         self.process_rows(response)

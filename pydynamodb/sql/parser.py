@@ -63,11 +63,17 @@ class SQLParser(metaclass=ABCMeta):
 
     def _get_parse_class(self) -> Base:
         _parse_class = None
-        if self.query_type == QueryType.CREATE:
+        if (
+            self.query_type == QueryType.CREATE
+            or self.query_type == QueryType.CREATE_GLOBAL
+        ):
             _parse_class = DdlCreate
         elif self.query_type == QueryType.ALTER:
             _parse_class = DdlAlter
-        elif self.query_type == QueryType.DROP:
+        elif (
+            self.query_type == QueryType.DROP
+            or self.query_type == QueryType.DROP_GLOBAL
+        ):
             _parse_class = DdlDrop
         elif self.query_type == QueryType.SELECT:
             _parse_class = DmlSelect
@@ -77,9 +83,15 @@ class SQLParser(metaclass=ABCMeta):
             or self.query_type == QueryType.DELETE
         ):
             _parse_class = DmlBase
-        elif self.query_type == QueryType.LIST:
+        elif (
+            self.query_type == QueryType.LIST
+            or self.query_type == QueryType.LIST_GLOBAL
+        ):
             _parse_class = UtilListTables
-        elif self.query_type == QueryType.DESC:
+        elif (
+            self.query_type == QueryType.DESC
+            or self.query_type == QueryType.DESC_GLOBAL
+        ):
             _parse_class = UtilDescTable
 
         return _parse_class

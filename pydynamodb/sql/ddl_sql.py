@@ -41,6 +41,7 @@ class DdlBase(Base):
         _KMSMASTERKEYID,
         _TABLECLASS,
         _TAGS,
+        _REPLICATION_GROUP,
     ) = map(
         CaselessKeyword,
         [
@@ -55,6 +56,7 @@ class DdlBase(Base):
             "KMSMasterKeyId",
             "TableClass",
             "Tags",
+            "ReplicationGroup",
         ],
     )
 
@@ -100,6 +102,12 @@ class DdlBase(Base):
             + Opt(KeyWords.EQUALS)
             + KeyWords.LPAR
             + Group(delimited_list(Tokens.TAG))("tags").set_name("tags")
+            + KeyWords.RPAR
+            ^ _REPLICATION_GROUP
+            + KeyWords.LPAR
+            + Group(delimited_list(Tokens.REGION_NAME))("replication_group").set_name(
+                "replication_group"
+            )
             + KeyWords.RPAR
         )("table_option").set_name("table_option")
     )("table_options").set_name("table_options")
@@ -207,6 +215,11 @@ class DdlBase(Base):
                         {"Key": o["tag_key"], "Value": o["tag_value"]}
                         for o in option_value
                     ]
+                elif (
+                    option.get_name() == "table_option"
+                    and option_value.get_name() == "replication_group"
+                ):
+                    option_value = [{"RegionName": o} for o in option_value]
                 else:
                     pass
 

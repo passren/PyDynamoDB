@@ -49,6 +49,7 @@ table_option: {
     | SSESpecification.KMSMasterKeyId [=] value
     | TableClass [=] {STANDARD | STANDARD_INFREQUENT_ACCESS}
     | Tags [=] (tags)
+    | ReplicationGroup [=] ('string', ...)
 }
 
 tags:
@@ -84,6 +85,9 @@ StreamSpecification.StreamEnabled False
 SSESpecification.Enabled False
 TableClass STANDARD
 Tags (name:Issue, usage:test)
+
+CREATE GLOBAL TABLE Issues
+    ReplicationGroup (us-east-1, us-west-2)
 """
 
 import logging
@@ -136,46 +140,52 @@ class DdlCreate(DdlBase):
             raise ValueError("Statement was not parsed yet")
 
         request = dict()
-        attr_def_ = list()
-        key_schema_ = list()
-
-        for attr in self.root_parse_results["attributes"]:
-            attr_name = attr["attribute_name"]
-            data_type = attr["data_type"]
-            attr_def_.append(self._construct_attr_def(attr_name, data_type))
-
-            key_type = attr["key_type"]
-            if key_type != "":
-                key_schema_.append(self._construct_key_schema(attr_name, key_type))
-        request.update({"AttributeDefinitions": attr_def_})
-
+        is_global_table = (
+            True if self.root_parse_results.get("global", None) is not None else False
+        )
         table_name_ = self.root_parse_results["table"]
-        request.update({"TableName": table_name_})
 
-        request.update({"KeySchema": key_schema_})
+        if is_global_table:
+            request.update({"GlobalTableName": table_name_})
+        else:
+            attr_def_ = list()
+            key_schema_ = list()
 
-        lsis_ = None
-        gsis_ = None
-        indices = self.root_parse_results["indices"]
-        if indices is not None:
-            for index in indices:
-                index_type = index["index_type"]
+            for attr in self.root_parse_results["attributes"]:
+                attr_name = attr["attribute_name"]
+                data_type = attr["data_type"]
+                attr_def_.append(self._construct_attr_def(attr_name, data_type))
 
-                if index_type == "GLOBAL":
-                    if gsis_ is None:
-                        gsis_ = list()
-                    gsis_.append(self._construct_index(index))
-                elif index_type == "LOCAL":
-                    if lsis_ is None:
-                        lsis_ = list()
-                    lsis_.append(self._construct_index(index))
-                else:
-                    raise LookupError("Index type is invalid")
+                key_type = attr["key_type"]
+                if key_type != "":
+                    key_schema_.append(self._construct_key_schema(attr_name, key_type))
+            request.update({"AttributeDefinitions": attr_def_})
 
-        if lsis_ is not None:
-            request.update({"LocalSecondaryIndexes": lsis_})
-        if gsis_ is not None:
-            request.update({"GlobalSecondaryIndexes": gsis_})
+            request.update({"TableName": table_name_})
+            request.update({"KeySchema": key_schema_})
+
+            lsis_ = None
+            gsis_ = None
+            indices = self.root_parse_results["indices"]
+            if indices is not None:
+                for index in indices:
+                    index_type = index["index_type"]
+
+                    if index_type == "GLOBAL":
+                        if gsis_ is None:
+                            gsis_ = list()
+                        gsis_.append(self._construct_index(index))
+                    elif index_type == "LOCAL":
+                        if lsis_ is None:
+                            lsis_ = list()
+                        lsis_.append(self._construct_index(index))
+                    else:
+                        raise LookupError("Index type is invalid")
+
+            if lsis_ is not None:
+                request.update({"LocalSecondaryIndexes": lsis_})
+            if gsis_ is not None:
+                request.update({"GlobalSecondaryIndexes": gsis_})
 
         table_options_ = self.root_parse_results["table_options"]
         if table_options_ is not None:
