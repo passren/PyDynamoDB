@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Syntext of DDB table altering with SQL:
+Syntax of DDB table altering with SQL:
 -------------------------------------
 ALTER TABLE tbl_name (
     [col_name column_definition, ...]
@@ -73,9 +73,7 @@ ALTER TABLE Issues (
         Projection.NonKeyAttributes (Description, Status)
         ProvisionedThroughput.ReadCapacityUnits 1
         ProvisionedThroughput.WriteCapacityUnits 1,
-    UPDATE INDEX DueDateIndex GLOBAL (
-        DueDate PARTITION KEY
-    )
+    UPDATE INDEX DueDateIndex GLOBAL
         ProvisionedThroughput.ReadCapacityUnits 10
         ProvisionedThroughput.WriteCapacityUnits 10,
     DELETE INDEX IssueIdIndex GLOBAL,
@@ -207,7 +205,7 @@ class DdlAlter(DdlBase):
         super(DdlAlter, self).__init__(statement)
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return DdlAlter._DDL_ALTER_EXPR
 
     def transform(self) -> Dict[str, Any]:

@@ -59,7 +59,7 @@ class DmlSelect(DmlBase):
         super(DmlSelect, self).__init__(statement)
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return DmlSelect._DML_SELECT_EXPR
 
     def transform(self) -> Dict[str, Any]:

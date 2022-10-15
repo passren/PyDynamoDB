@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Syntext of DDB table dropping with SQL:
+Syntax of DDB table dropping with SQL:
 DROP TABLE tbl_name
 
 Sample SQL of Dropping Table:
@@ -28,7 +28,7 @@ class DdlDrop(DdlBase):
         super(DdlDrop, self).__init__(statement)
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return DdlDrop._DDL_DROP_EXPR
 
     def transform(self) -> Dict[str, Any]:

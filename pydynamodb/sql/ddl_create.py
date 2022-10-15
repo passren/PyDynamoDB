@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Syntext of DDB table creation with SQL:
+Syntax of DDB table creation with SQL:
 -------------------------------------
 CREATE [GLOBAL] TABLE tbl_name
     [(create_definition, ...)]
@@ -128,7 +128,7 @@ class DdlCreate(DdlBase):
         super(DdlCreate, self).__init__(statement)
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return DdlCreate._DDL_CREATE_EXPR
 
     def transform(self) -> Dict[str, Any]:

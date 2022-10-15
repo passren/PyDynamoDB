@@ -105,7 +105,7 @@ class DmlBase(Base):
         return self._return_consumed_capacity
 
     @property
-    def syntex_def(self) -> None:
+    def syntax_def(self) -> None:
         return None
 
     def transform(self) -> Dict[str, Any]:

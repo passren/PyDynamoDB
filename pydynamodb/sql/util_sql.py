@@ -14,7 +14,7 @@ class UtilBase(Base):
 
 
 """
-Syntext of list DDB tables:
+Syntax of list DDB tables:
 {LIST | SHOW} TABLES
 
 Sample SQL of Listing Tables:
@@ -43,7 +43,7 @@ class UtilListTables(UtilBase):
         return self._limit
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return UtilListTables._UTIL_LIST_TABLES_EXPR
 
     def transform(self) -> Dict[str, Any]:
@@ -61,7 +61,7 @@ class UtilListTables(UtilBase):
 
 
 """
-Syntext of describe DDB table:
+Syntax of describe DDB table:
 {DESC | DESCRIBE} tbl_name
 
 Sample SQL of Describing Table:
@@ -83,7 +83,7 @@ class UtilDescTable(UtilBase):
         super(UtilDescTable, self).__init__(statement)
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return UtilDescTable._DESC_TABLE_EXPR
 
     def transform(self) -> Dict[str, Any]:
