@@ -49,7 +49,7 @@ setup(
         "Source": "https://github.com/passren/PyDynamoDB",
         "Tracker": "https://github.com/passren/PyDynamoDB/issues",
     },
-    packages=find_packages(include=["pydynamodb", "pydynamodb.sqlalchemy_dynamodb"]),
+    packages=find_packages(include=["pydynamodb", "pydynamodb.sqlalchemy_dynamodb", "pydynamodb.sql"]),
     include_package_data=True,
     install_requires=install_requires,
     extras_require=extras_require,
