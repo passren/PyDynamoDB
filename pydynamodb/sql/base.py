@@ -24,11 +24,11 @@ class Base(metaclass=ABCMeta):
         if self._statement is None:
             raise ValueError("Statement is not specified")
 
-        self._root_parse_results = self.syntex_def.parseString(self._statement)
+        self._root_parse_results = self.syntax_def.parseString(self._statement)
         return self._root_parse_results
 
     @abstractmethod
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         raise NotImplementedError  # pragma: no cover
 
     @abstractmethod

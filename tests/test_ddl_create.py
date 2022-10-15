@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from pydynamodb.sql.common import QueryType
 from pydynamodb.sql.parser import SQLParser
 
 
@@ -9,7 +10,9 @@ class TestDdlCreate:
             IssueId numeric PARTITION KEY
         )
         """
-        ret = SQLParser(sql).transform()
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE
         expected_ret = {
             "AttributeDefinitions": [
                 {"AttributeName": "IssueId", "AttributeType": "N"}
@@ -26,7 +29,9 @@ class TestDdlCreate:
             Title string RANGE,
         )
         """
-        ret = SQLParser(sql).transform()
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE
         expected_ret = {
             "AttributeDefinitions": [
                 {"AttributeName": "IssueId", "AttributeType": "N"},
@@ -59,7 +64,9 @@ class TestDdlCreate:
         StreamSpecification.StreamEnabled=False
         Tags=(name:Issue, usage:test)
         """
-        ret = SQLParser(sql).transform()
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE
         expected_ret = {
             "AttributeDefinitions": [
                 {"AttributeName": "IssueId", "AttributeType": "N"},
@@ -140,8 +147,9 @@ class TestDdlCreate:
         TableClass STANDARD
         Tags (name:Issue, usage:test)
         """
-
-        ret = SQLParser(sql).transform()
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE
         expected_ret = {
             "AttributeDefinitions": [
                 {"AttributeName": "IssueId", "AttributeType": "N"},
@@ -217,5 +225,37 @@ class TestDdlCreate:
                 {"Key": "name", "Value": "Issue"},
                 {"Key": "usage", "Value": "test"},
             ],
+        }
+        assert ret == expected_ret
+
+    def test_parse_global_table(self):
+        sql = """
+        CREATE GLOBAL TABLE Issues
+            ReplicationGroup (us-east-1, us-west-2)
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE_GLOBAL
+        expected_ret = {
+            "GlobalTableName": "Issues",
+            "ReplicationGroup": [
+                {"RegionName": "us-east-1"},
+                {"RegionName": "us-west-2"},
+            ]
+        }
+        assert ret == expected_ret
+
+        sql = """
+        CREATE GLOBAL TABLE Issues
+            ReplicationGroup (us-east-1)
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE_GLOBAL
+        expected_ret = {
+            "GlobalTableName": "Issues",
+            "ReplicationGroup": [
+                {"RegionName": "us-east-1"},
+            ]
         }
         assert ret == expected_ret

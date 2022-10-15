@@ -99,7 +99,13 @@ class Connection:
 
     @autocommit.setter
     def autocommit(self, value: bool) -> None:
-        self._autocommit = value
+        try:
+            if not self._autocommit and value:
+                self._autocommit = True
+                for cursor_ in self.cursor_pool:
+                    cursor_.flush()
+        finally:
+            self._autocommit = value
 
     @property
     def in_transaction(self) -> bool:

@@ -13,10 +13,10 @@ Add Limit, ConsistentRead, ReturnConsumedCapacity options to the tailing
 SELECT expression  [, ...]
 FROM table[.index]
 [ WHERE condition ]
-[ [ORDER BY key [DESC|ASC]] ,
-  [Limit value] ,
-  [ConsistentRead {True|False}] ,
-  [ReturnConsumedCapacity {INDEXES|TOTAL|NONE}] ,
+[ [ORDER BY key [DESC|ASC]]
+  [Limit value]
+  [ConsistentRead {True|False}]
+  [ReturnConsumedCapacity {INDEXES|TOTAL|NONE}]
 ...]
 
 Sample SQL of Selecting:
@@ -59,7 +59,7 @@ class DmlSelect(DmlBase):
         super(DmlSelect, self).__init__(statement)
 
     @property
-    def syntex_def(self) -> Forward:
+    def syntax_def(self) -> Forward:
         return DmlSelect._DML_SELECT_EXPR
 
     def transform(self) -> Dict[str, Any]:

@@ -273,11 +273,7 @@ class TestCursorDML:
 
     def test_list_tables(self, cursor):
         tables_ = cursor.list_tables()
-        assert tables_ == [
-            'pydynamodb_test_case01',
-            'pydynamodb_test_case02',
-            'pydynamodb_test_case03',
-        ]
+        assert len(tables_) > 0
 
     def _get_value_by_column_name(self, description, row, column):
         col_str_index = None

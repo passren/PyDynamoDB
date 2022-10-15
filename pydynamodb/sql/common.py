@@ -194,26 +194,34 @@ class QueryType:
     """
 
     CREATE = ("DDL", "WRITE", "CREATE TABLE")
+    CREATE_GLOBAL = ("DDL", "WRITE", "CREATE GLOBAL TABLE")
     ALTER = ("DDL", "WRITE", "ALTER TABLE")
     DROP = ("DDL", "WRITE", "DROP TABLE")
+    DROP_GLOBAL = ("DDL", "WRITE", "DROP GLOBAL TABLE")
     INSERT = ("DML", "WRITE", "INSERT")
     UPDATE = ("DML", "WRITE", "UPDATE")
     DELETE = ("DML", "WRITE", "DELETE")
     SELECT = ("DML", "READ", "SELECT")
     LIST = ("UTIL", "READ", "LIST TABLES")
+    LIST_GLOBAL = ("UTIL", "READ", "LIST GLOBAL TABLES")
     DESC = ("UTIL", "READ", "DESC")
+    DESC_GLOBAL = ("UTIL", "READ", "DESC GLOBAL")
 
 
 SUPPORTED_QUERY_TYPES = {
-    r"^\s*(CREATE)\s+(TABLE).*": QueryType.CREATE,
-    r"^\s*(ALTER)\s+(TABLE).*": QueryType.ALTER,
-    r"^\s*(DROP)\s+(TABLE).*": QueryType.DROP,
+    r"^\s*(SELECT).*": QueryType.SELECT,
     r"^\s*(INSERT).*": QueryType.INSERT,
     r"^\s*(UPDATE).*": QueryType.UPDATE,
-    r"^\s*(SELECT).*": QueryType.SELECT,
     r"^\s*(DELETE).*": QueryType.DELETE,
+    r"^\s*(CREATE)\s+(TABLE).*": QueryType.CREATE,
+    r"^\s*(CREATE)\s+(GLOBAL)\s+(TABLE).*": QueryType.CREATE_GLOBAL,
+    r"^\s*(ALTER)\s+(TABLE).*": QueryType.ALTER,
+    r"^\s*(DROP)\s+(TABLE).*": QueryType.DROP,
+    r"^\s*(DROP)\s+(GLOBAL)\s+(TABLE).*": QueryType.DROP_GLOBAL,
     r"^\s*(LIST|SHOW)\s+(TABLES).*": QueryType.LIST,
-    r"^\s*(DESC|DESCRIBE).*": QueryType.DESC,
+    r"^\s*(LIST|SHOW)\s+(GLOBAL)\s+(TABLES).*": QueryType.LIST_GLOBAL,
+    r"^\s*(DESC|DESCRIBE)\s+(?!.*GLOBAL)": QueryType.DESC,
+    r"^\s*(DESC|DESCRIBE)\s+(GLOBAL).*": QueryType.DESC_GLOBAL,
 }
 
 

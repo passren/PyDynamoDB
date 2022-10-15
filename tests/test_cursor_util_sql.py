@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
-
+from tests import ENV
 
 class TestCursorUtilSQL:
     def test_list_tables(self, cursor):
@@ -57,3 +57,52 @@ class TestCursorUtilSQL:
         DROP TABLE Issues03
         """
         cursor.execute(sql)
+
+    def test_global_table(self, cursor):
+        if ENV.use_local_ddb:
+            # Ignore global table test cases for local DDB
+            return
+        
+        # This part is not fully tested due to limit resources
+        sql = """
+        CREATE TABLE Issues04 (
+            IssueId numeric HASH,
+            Title string RANGE
+        )
+        ProvisionedThroughput.ReadCapacityUnits 1
+        ProvisionedThroughput.WriteCapacityUnits 1
+        """
+        cursor.execute(sql)
+
+        sql = """
+        CREATE GLOBAL TABLE Issues04
+            ReplicationGroup (cn-north-1, cn-northwest-1)
+        """
+        cursor.execute(sql)
+
+        sql = """
+        LIST GLOBAL TABLES
+            RegionName cn-northwest-1
+        """
+        cursor.execute(sql)
+        ret = cursor.fetchall()
+        assert ret is not None
+
+        sql = """
+        DESC GLOBAL Issues04
+        """
+        cursor.execute(sql)
+        ret = cursor.fetchall()
+        assert ret is not None
+
+        sql = """
+        DROP GLOBAL TABLE Issues04
+            ReplicationGroup (cn-north-1, cn-northwest-1)
+        """
+        cursor.execute(sql)
+
+        sql = """
+        DROP TABLE Issues04
+        """
+        cursor.execute(sql)
+
