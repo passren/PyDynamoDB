@@ -19,6 +19,7 @@ SQLAlchemy dialect supported as well.
 .. _`DB API 2.0 (PEP 249)`: https://www.python.org/dev/peps/pep-0249/
 .. _`Amazon DynamoDB`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html
 
+
 Objectives
 ----------
 PyDynamoDB implement the DB API 2.0 interfaces based on  `PartiQL`_ supported by AWS DynamoDB. \
@@ -28,7 +29,7 @@ to CREATE/ALTER/DROP tables. Besides DDL statements, some of utility statements 
 execute (Such as, List and Describe Table). \
 PyDynamodb provide parameters and result_set converter to make you easily manipulate operations \
 with Python built-in types. \
-Transaction is also partially supported with DB standard operations, like begin() and commit(). \
+Transaction is also partially supported with DB standard operations, like begin() and commit().
 This project is based on laughingman7743's `PyAthena`_.
 
 .. _`PartiQL`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.html
@@ -39,17 +40,18 @@ Features
 ---------
 * Compatible with DB API 2.0 Specification
 * PartiQL for DML operations (INSERT, UPDATE, DELETE, SELECT)
+* Limit supported in SELECT statement
 * MySQL-Like statements for DDL operations (CREATE TABLE, ALTER TABLE, DROP TABLE)
 * MySQL-Like statements for Utility operations (LIST/SHOW TABLES, DESC TABLE)
 * Auto data type conversion for parameters and result set
 * Transaction and Batch operations
+
 
 Requirements
 --------------
 * Python
 
   - CPython 3.7 3.8 3.9 3.10
-
 
 Dependencies
 --------------
@@ -66,7 +68,7 @@ Dependencies
 
   - SQLAlchemy >= 1.0.0, < 2.0.0
 
-* Pyparsing (The approach to creating andexecuting simple grammars)
+* Pyparsing (The approach to creating and executing simple grammars)
 
   - pyparsing >= 3.0.0
 
@@ -77,11 +79,11 @@ Installation
     pip install pydynamodb
 
 
-Getting Started
----------------
+Guidances
+--------------
+To get more documentation, please visit: `PyDynamoDB WIKI`_.
 
-Usage
------
+.. _`PyDynamoDB WIKI`: https://github.com/passren/PyDynamoDB/wiki
 
 
 Basic usage
@@ -127,17 +129,10 @@ and deserialize the response to Python built-in types.
                     aws_secret_access_key="aws_secret_access_key"
                      region_name="region_name").cursor()
     cursor.execute("""INSERT INTO "ddb_table_name" VALUE {
-                        'partition_key' = ?,
-                        'sort_key' = ?,
-                        'col_str' = ?,
-                        'col_num' = ?,
-                        'col_byte' = ?,
-                        'col_ss' = ?,
-                        'col_ns' = ?,
-                        'col_bs' = ?,
-                        'col_list' = ?,
-                        'col_map' = ?,
-                        'col_nested' = ?
+                        'partition_key' = ?, 'sort_key' = ?, 'col_str' = ?,
+                        'col_num' = ?, 'col_byte' = ?, 'col_ss' = ?,
+                        'col_ns' = ?, 'col_bs' = ?, 'col_list' = ?,
+                        'col_map' = ?, 'col_nested' = ?
                     }""", ["pkey_value", "skey_value", "str", 100, b"ABC", # String, Number, Bytes
                             {"str", "str"}, {100, 100}, {b"A", b"B"}, # String/Numnber/Bytes Set
                             ["str", 100, b"ABC"],  # List
@@ -147,26 +142,6 @@ and deserialize the response to Python built-in types.
 
     cursor.execute('SELECT * FROM "ddb_table_name" WHERE partition_key = ?', ["key_value"])
     print(cursor.fetchall())
-
-
-Get more guidances
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Please visit: `PyDynamoDB WIKI`_.
-
-.. _`PyDynamoDB WIKI`: https://github.com/passren/PyDynamoDB/wiki
-
-
-Test with local DynamoDB
-~~~~~~~~~~~~~~~~~~~~~~~~
-Install Local DDB, please see: `Deploying DynamoDB locally on your computer`_. \
-If you want to run tests with local DDB, please make sure environment variables are set properly.
-
-.. code:: shell
-
-    USE_LOCAL_DDB=true
-    LOCAL_DDB_ENDPOINT_URL=http://localhost:8000
-
-.. _`Deploying DynamoDB locally on your computer`: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.DownloadingAndRunning.html
 
 
 License
