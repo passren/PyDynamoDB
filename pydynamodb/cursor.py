@@ -84,19 +84,8 @@ class Cursor(BaseCursor, CursorIterator):
                 self._statements.append(statement_)
 
             if not self._is_pooling and self.connection.autocommit:
-                if len(self._statements) > 0:
-                    self._reset_state()
-                    try:
-                        self._result_set = self._result_set_class(
-                            self._connection,
-                            self._converter,
-                            deepcopy(self._statements),
-                            self.arraysize,
-                            self._retry_config,
-                            is_transaction=False,
-                        )
-                    finally:
-                        self._post_execute()
+                self.flush()
+
         except Exception as e:
             if self.connection.in_transaction:
                 self.connection.in_transaction = False
@@ -125,13 +114,31 @@ class Cursor(BaseCursor, CursorIterator):
                 self._result_set = self._result_set_class(
                     self._connection,
                     self._converter,
-                    self._transaction_statements,
+                    deepcopy(self._transaction_statements),
                     self.arraysize,
                     self._retry_config,
                     is_transaction=True,
                 )
             finally:
-                self._post_execute_transaction()
+                self._transaction_statements.clear()
+
+    @synchronized
+    def flush(self) -> None:
+        if len(self._statements) > 0:
+            self._reset_state()
+            try:
+                self._result_set = self._result_set_class(
+                    self._connection,
+                    self._converter,
+                    deepcopy(self._statements),
+                    self.arraysize,
+                    self._retry_config,
+                    is_transaction=False,
+                )
+            finally:
+                self._statements.clear()
+                self._is_pooling = False
+                self.connection.autocommit = True
 
     def fetchone(
         self,
@@ -162,13 +169,6 @@ class Cursor(BaseCursor, CursorIterator):
         self._reset_state()
         self._statements = None
         self._transaction_statements = None
-
-    def _post_execute(self) -> None:
-        self._statements.clear()
-        self._is_pooling = False
-
-    def _post_execute_transaction(self) -> None:
-        self._transaction_statements.clear()
 
     def _reset_state(self) -> None:
         if self.result_set and not self.result_set.is_closed:

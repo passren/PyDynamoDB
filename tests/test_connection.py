@@ -123,6 +123,34 @@ class TestConnection:
 
         assert len(self._query_data(cursor, "test_trans_4")) == 9
 
+    def test_batch_write_1(self, conn):
+        cursor = conn.cursor()
+        sql_batch_1_ = """
+            INSERT INTO "%s" VALUE {
+                'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?
+            }
+        """ % TESTCASE01_TABLE
+        conn.autocommit = False
+        cursor.execute(sql_batch_1_, ["test_batch_1", 0, "test case 5-0", 0])
+        cursor.execute(sql_batch_1_, ["test_batch_1", 1, "test case 5-1", 1])
+        cursor.execute(sql_batch_1_, ["test_batch_1", 2, "test case 5-2", 2])
+        cursor.executemany(sql_batch_1_, [
+            ["test_batch_1", 3, "test case 5-3", 3],
+            ["test_batch_1", 4, "test case 5-4", 4],
+        ])
+        conn.autocommit = True
+
+        ret = self._query_data(cursor, "test_batch_1")
+        assert len(ret) == 5
+
+        conn.autocommit = False
+        cursor.execute(sql_batch_1_, ["test_batch_1", 5, "test case 5-5", 5])
+        cursor.execute(sql_batch_1_, ["test_batch_1", 6, "test case 5-6", 6])
+        cursor.flush()
+
+        ret = self._query_data(cursor, "test_batch_1")
+        assert len(ret) == 7
+
     def _query_data(self, cursor, test_case):
         cursor.execute(
         """
