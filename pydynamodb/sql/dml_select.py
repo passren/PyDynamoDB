@@ -13,10 +13,10 @@ Add Limit, ConsistentRead, ReturnConsumedCapacity options to the tailing
 SELECT expression  [, ...]
 FROM table[.index]
 [ WHERE condition ]
-[ [ORDER BY key [DESC|ASC]] ,
-  [Limit value] ,
-  [ConsistentRead {True|False}] ,
-  [ReturnConsumedCapacity {INDEXES|TOTAL|NONE}] ,
+[ [ORDER BY key [DESC|ASC]]
+  [Limit value]
+  [ConsistentRead {True|False}]
+  [ReturnConsumedCapacity {INDEXES|TOTAL|NONE}]
 ...]
 
 Sample SQL of Selecting:
