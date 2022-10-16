@@ -52,11 +52,26 @@ class DmlSelect(DmlBase):
         + Opt(DmlBase._OPTIONS)
     )("select_statement").set_name("select_statement")
 
+    _NESTED_SELECT_STATEMENT = (
+        KeyWords.SELECT
+        + DmlBase._ALIASES
+        + KeyWords.FROM
+        + KeyWords.LPAR
+        + _SELECT_STATEMENT
+        + KeyWords.RPAR
+        | _SELECT_STATEMENT
+    )("nested_select_statement").set_name("nested_select_statement")
+
     _DML_SELECT_EXPR = Forward()
-    _DML_SELECT_EXPR <<= _SELECT_STATEMENT
+    _DML_SELECT_EXPR <<= _NESTED_SELECT_STATEMENT
 
     def __init__(self, statement: str) -> None:
         super(DmlSelect, self).__init__(statement)
+        self._columns = list()
+
+    @property
+    def columns(self) -> List[Optional[List[Any]]]:
+        return self._columns
 
     @property
     def syntax_def(self) -> Forward:
@@ -90,6 +105,11 @@ class DmlSelect(DmlBase):
         else:
             raw_supported_options_ = ""
 
+        # outer_select_statement = self.root_parse_results.get("nested_select_statement", None)
+        # if outer_select_statement:
+        #     outer_columns = outer_select_statement["aliases"]
+        #     self._construct_columns_alias(outer_columns)
+
         request = dict()
         statement_ = "SELECT {columns} FROM {table} {where_conditions} {options}"
         statement_ = statement_.format(
@@ -117,9 +137,16 @@ class DmlSelect(DmlBase):
                 column_.append(rcolumn["arithmetic_operators"])
                 column_.append(rcolumn["column"])
 
-            columns_.append("".join(column_))
+            column__ = "".join(column_)
+            columns_.append(column__)
+            self._columns.append([column__, None])
         columns_ = ",".join(columns_)
         return columns_
+
+    def _construct_columns_alias(self, columns_alias: List[Any]) -> List[str]:
+        assert len(columns_alias) <= len(self._columns)
+        for i, alias in enumerate(columns_alias):
+            self._columns[i][1] = alias["column"]
 
     def _construct_where_conditions(
         self, conditions: List[Any], flatted: List[str]

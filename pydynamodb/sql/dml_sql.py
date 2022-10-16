@@ -36,6 +36,16 @@ class DmlBase(Base):
         + Opt(KeyWords.SUPPRESS_QUOTE)
     )
 
+    _ALIAS = (
+        Opt(KeyWords.SUPPRESS_QUOTE)
+        + (Word(alphanums + "_-"))("alias").set_name("alias")
+        + Opt(KeyWords.SUPPRESS_QUOTE)
+    )
+
+    _ALIASES = delimited_list(
+        _ALIAS
+    )("aliases").set_name("aliases")
+
     _COLUMNS = delimited_list(
         Group(
             _COLUMN
