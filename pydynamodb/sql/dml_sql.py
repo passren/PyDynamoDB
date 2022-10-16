@@ -32,11 +32,18 @@ class DmlBase(Base):
 
     _COLUMN = (
         Opt(KeyWords.SUPPRESS_QUOTE)
-        + (KeyWords.STAR ^ Word(alphanums + "_.[]+-"))("column").set_name("column")
+        + (KeyWords.STAR ^ Word(alphanums + "_.-[]"))("column").set_name("column")
         + Opt(KeyWords.SUPPRESS_QUOTE)
     )
 
-    _COLUMNS = delimited_list(_COLUMN)("columns").set_name("columns")
+    _COLUMNS = delimited_list(
+        Group(
+            _COLUMN
+            + ZeroOrMore(Group(KeyWords.ARITHMETIC_OPERATORS + _COLUMN))(
+                "column_ops"
+            ).set_name("column_ops")
+        )
+    )("columns").set_name("columns")
 
     _COLUMN_RVAL = (
         ppc.real() | ppc.signed_integer() | quotedString | _COLUMN | KeyWords.QUESTION
