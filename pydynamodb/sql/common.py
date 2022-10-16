@@ -64,6 +64,9 @@ class KeyWords:
         "NOT",
         "OR",
     )
+    ARITHMETIC_OPERATORS = one_of("+ -")("arithmetic_operators").set_name(
+        "arithmetic_operators"
+    )
     COMPARISON_OPERATORS = one_of("= <> < > >= <=")("comparison_operators").set_name(
         "comparison_operators"
     )
@@ -89,6 +92,7 @@ class KeyWords:
         REPLICA,
         ORDER_BY,
         LIMIT,
+        AS,
     ) = map(
         CaselessKeyword,
         [
@@ -111,6 +115,7 @@ class KeyWords:
             "REPLICA",
             "ORDER BY",
             "Limit",
+            "AS",
         ],
     )
 

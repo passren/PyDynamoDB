@@ -72,11 +72,7 @@ class DmlSelect(DmlBase):
         else:
             table_ = '"%s"."%s"' % (table_name_, index_name_)
 
-        columns = self.root_parse_results["columns"]
-        columns_ = list()
-        for column in columns:
-            columns_.append(column)
-        columns_ = ",".join(columns_)
+        columns_ = self._construct_columns(self.root_parse_results["columns"])
 
         where_conditions_ = self.root_parse_results.get("where_conditions", None)
         if where_conditions_ is not None:
@@ -110,6 +106,20 @@ class DmlSelect(DmlBase):
             request.update(options_)
 
         return request
+
+    def _construct_columns(self, columns: List[Any]) -> List[str]:
+        columns_ = list()
+        for column in columns:
+            column_ = list()
+            column_.append(column["column"])
+
+            for rcolumn in column["column_ops"]:
+                column_.append(rcolumn["arithmetic_operators"])
+                column_.append(rcolumn["column"])
+
+            columns_.append("".join(column_))
+        columns_ = ",".join(columns_)
+        return columns_
 
     def _construct_where_conditions(
         self, conditions: List[Any], flatted: List[str]

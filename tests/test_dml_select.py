@@ -119,6 +119,34 @@ class TestDmlSelect:
             "Limit": 10,
         }
 
+    def test_parse_attributes_with_op(self):
+        sql = """
+        SELECT TotalNum + EachNum
+        FROM Orders
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {
+            "Statement": 'SELECT TotalNum+EachNum FROM "Orders"',
+        }
+
+        sql = """
+        SELECT TotalNum + EachNum, TotalNum - EachNum
+        FROM Orders
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {
+            "Statement": 'SELECT TotalNum+EachNum,TotalNum-EachNum FROM "Orders"',
+        }
+
+        sql = """
+        SELECT TotalNum + EachNum1+EachNum2, TotalNum - EachNum1+EachNum2
+        FROM Orders
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {
+            "Statement": 'SELECT TotalNum+EachNum1+EachNum2,TotalNum-EachNum1+EachNum2 FROM "Orders"',
+        }
+
     def test_parse_completed_case(self):
         sql = """
         SELECT IssueId, Total, Content.DateWatched[0]

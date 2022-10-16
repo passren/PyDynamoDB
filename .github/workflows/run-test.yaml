@@ -41,7 +41,7 @@ jobs:
       - name: flake8
         run: |
           pip install flake8
-          flake8 --max-line-length=120 pydynamodb
+          flake8 pydynamodb
       - name: Download DynamoDB local
         run: |
           curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz
