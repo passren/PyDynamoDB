@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from pytest import skip
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
 from sqlalchemy import Integer, String, Numeric

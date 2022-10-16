@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from collections import Counter
-from unittest import result
 
 
 class TestParameterConverter:
