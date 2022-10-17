@@ -42,9 +42,7 @@ class DmlBase(Base):
         + Opt(KeyWords.SUPPRESS_QUOTE)
     )
 
-    _ALIASES = delimited_list(
-        _ALIAS
-    )("aliases").set_name("aliases")
+    _ALIASES = delimited_list(_ALIAS)("aliases").set_name("aliases")
 
     _COLUMNS = delimited_list(
         Group(

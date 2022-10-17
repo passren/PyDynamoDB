@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from pydynamodb.sql.common import QueryType
 from pydynamodb.sql.parser import SQLParser
 
 
@@ -177,4 +178,18 @@ class TestDmlSelect:
             "Limit": 10,
             "ConsistentRead": False,
             "ReturnConsumedCapacity": "NONE",
+        }
+
+    def test_parse_nested_case(self):
+        sql = """
+            SELECT col1, col2 FROM (
+                SELECT col_list[1], col_map.A FROM Issues WHERE key_partition='row_1'
+            )
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.SELECT
+        assert len(parser.parser.columns) == 2
+        assert ret == {
+            "Statement": 'SELECT col_list[1],col_map.A FROM "Issues" WHERE key_partition = \'row_1\''
         }
