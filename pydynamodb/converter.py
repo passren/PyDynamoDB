@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import ast
 import logging
+import ast
+from datetime import datetime, date
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, Optional, Set, List, Union, Type
 
@@ -70,11 +71,17 @@ class Serializer(metaclass=ABCMeta):
             converted_.append(self._mapping.get(type_, None)(v))
         return {"L": converted_}
 
-    def _to_null(self, value: Optional[Any]) -> Optional[bool]:
+    def _to_null(self, value: Optional[Any]) -> Optional[Dict[str, Any]]:
         return {"NULL": False if value else True}
 
-    def _to_bool(self, value: Optional[bool]) -> Optional[bool]:
+    def _to_bool(self, value: Optional[bool]) -> Optional[Dict[str, Any]]:
         return {"BOOL": value}
+
+    def _to_datetime(self, value: Optional[Union[datetime, date]]) -> Optional[Dict[str, str]]:
+        if value is None:
+            return None
+
+        return {"S": value.isoformat()}
 
     def _to_default(self, value: Optional[Any]) -> Optional[str]:
         return {"S": str(value)}
@@ -95,6 +102,8 @@ class Serializer(metaclass=ABCMeta):
             list: self._to_list,
             type(None): self._to_null,
             bool: self._to_bool,
+            datetime: self._to_datetime,
+            date: self._to_datetime,
         }
 
 
