@@ -52,15 +52,17 @@ class DynamoDBResultSet(CursorIterator):
             return None
         return [
             (
-                info["name"],
-                ",".join(info["type"]),
+                column_info.alias
+                if column_info.alias is not None
+                else column_info.name,
+                column_info.type_code,
                 None,
                 None,
                 None,
                 None,
                 None,
             )
-            for col, info in self._executor.metadata.items()
+            for column_info in self._executor.metadata
         ]
 
     def fetchone(

@@ -135,12 +135,12 @@ class Tokens:
     # Common token definition
     TABLE_NAME = (
         Opt(KeyWords.SUPPRESS_QUOTE)
-        + Word(alphanums + "_<>")("table").set_name("table")
+        + Word(alphanums + "-_<>")("table").set_name("table")
         + Opt(KeyWords.SUPPRESS_QUOTE)
     )
     ATTRIBUTE_NAME = (
         Opt(KeyWords.SUPPRESS_QUOTE)
-        + Word(alphanums + "_")("attribute_name").set_name("attribute_name")
+        + Word(alphanums + "-_")("attribute_name").set_name("attribute_name")
         + Opt(KeyWords.SUPPRESS_QUOTE)
     )
     DATA_TYPE = one_of("NUMERIC STRING BINARY", caseless=True)("data_type").set_name(
