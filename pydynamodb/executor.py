@@ -3,12 +3,13 @@ import logging
 import json
 from datetime import datetime
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict, deque
+from collections import deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, cast
 
 from .sql.common import QueryType
 from .converter import Converter
-from .common import Statements
+from .common import Statements, SQLParser
+from .model import Metadata, ColumnInfo
 from .error import OperationalError, DataError
 from .util import RetryConfig, retry_api_call
 
@@ -35,10 +36,11 @@ class BaseExecutor(metaclass=ABCMeta):
 
         self._retry_config = retry_config
         self._next_token: Optional[str] = None
-        self._metadata: OrderedDict[str, Dict[str, Any]] = OrderedDict()
+        self._metadata: Metadata = Metadata()
+        self._is_predef_metadata: bool = False
         self._rows: Deque[Dict[str, Optional[Any]]] = deque()
         self._errors: List[Dict[str, str]] = list()
-        self._pre_execute()
+        self.pre_execute()
 
     @property
     def connection(self) -> "Connection":
@@ -49,7 +51,7 @@ class BaseExecutor(metaclass=ABCMeta):
         return self._next_token
 
     @property
-    def metadata(self) -> "OrderedDict[str, Dict[str, Any]]":
+    def metadata(self) -> Metadata:
         return self._metadata
 
     @property
@@ -60,7 +62,7 @@ class BaseExecutor(metaclass=ABCMeta):
     def errors(self) -> List[Dict[str, str]]:
         return self._errors
 
-    def _pre_execute(self) -> None:
+    def pre_execute(self) -> None:
         self.execute()
 
     @abstractmethod
@@ -170,6 +172,8 @@ class DmlStatementExecutor(BaseExecutor):
         response = self._dispatch_api_call(
             self.connection.client.execute_statement, request
         )
+
+        self._process_predef_metadata(statement_.sql_parser)
         self.process_rows(response)
 
     def process_rows(self, response: Dict[str, Any]) -> None:
@@ -179,7 +183,10 @@ class DmlStatementExecutor(BaseExecutor):
 
         processed_rows = list()
         for row in rows:
-            row_ = self._process_row_item(row)
+            if self._is_predef_metadata:
+                row_ = self._process_predef_row_item(row)
+            else:
+                row_ = self._process_row_item(row)
             processed_rows.append(row_)
 
         self._rows.extend(processed_rows)
@@ -202,17 +209,37 @@ class DmlStatementExecutor(BaseExecutor):
         return tuple(row__)
 
     def _process_metadata(self, col_name: str, type: str) -> int:
-        if col_name in self._metadata:
-            self._metadata[col_name]["type"].add(type)
-        else:
-            types_ = set()
-            types_.add(type)
-            self._metadata[col_name] = {
-                "name": col_name,
-                "type": types_,
-            }
+        if col_name not in self._metadata:
+            self._metadata.update(ColumnInfo(col_name, col_name, type_code=type))
 
-        return list(self._metadata).index(col_name)
+        return self._metadata.index(col_name)
+
+    def _process_predef_row_item(self, row) -> Optional[Tuple]:
+        row_ = [None for i in range(len(self.metadata))]
+        for col, val in row.items():
+            val_ = self._converter.deserialize(val)
+            index = None
+            try:
+                index = self.metadata.index(col)
+            except ValueError:
+                continue
+            else:
+                row_[index] = val_
+
+        return tuple(row_)
+
+    def _process_predef_metadata(self, sql_parser: SQLParser) -> None:
+        if sql_parser.query_type == QueryType.SELECT:
+            if not sql_parser.parser.is_star_column:
+                for column in sql_parser.parser.columns:
+                    self._metadata.update(
+                        ColumnInfo(
+                            column.response_name, column.request_name, column.alias
+                        )
+                    )
+                self._is_predef_metadata = True
+        else:
+            self._is_predef_metadata = False
 
 
 class DmlBatchExecutor(DmlStatementExecutor):
@@ -318,18 +345,8 @@ class DdlExecutor(BaseExecutor):
             (k, json.dumps(v, default=self._handle_conversion))
             for k, v in response.items()
         )
-        self.metadata.update(
-            {
-                "response_name": {
-                    "name": "response_name",
-                    "type": ["S"],
-                },
-                "response_value": {
-                    "name": "response_value",
-                    "type": ["S"],
-                },
-            }
-        )
+        self._metadata.update(ColumnInfo("response_name", "response_name"))
+        self._metadata.update(ColumnInfo("response_value", "response_value"))
 
     def _handle_conversion(self, val: Any) -> str:
         if isinstance(val, datetime):
@@ -489,14 +506,7 @@ class UtilListTablesExecutor(BaseExecutor):
 
         self._rows.extend((t) for t in tables)
         self._next_token = response.get("LastEvaluatedTableName", None)
-        self.metadata.update(
-            {
-                "table_name": {
-                    "name": "table_name",
-                    "type": ["S"],
-                },
-            }
-        )
+        self._metadata.update(ColumnInfo("table_name", "table_name"))
 
 
 class UtilDescTableExecutor(DdlExecutor):
@@ -562,18 +572,8 @@ class UtilListGlobalTablesExecutor(BaseExecutor):
             self._rows.append((table_name, regions))
 
         self._next_token = response.get("LastEvaluatedGlobalTableName", None)
-        self.metadata.update(
-            {
-                "table_name": {
-                    "name": "table_name",
-                    "type": ["S"],
-                },
-                "region_names": {
-                    "name": "region_names",
-                    "type": ["S"],
-                },
-            }
-        )
+        self._metadata.update(ColumnInfo("table_name", "table_name"))
+        self._metadata.update(ColumnInfo("region_names", "region_names"))
 
 
 class UtilDescGlobalTableExecutor(DdlExecutor):

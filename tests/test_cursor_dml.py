@@ -103,20 +103,8 @@ class TestCursorDML:
             ["test_one_row_1", 0],
         )
         assert len(cursor.description) == 3
-        expected_data_ = []
-        for desc in cursor.description:
-            assert desc[0] in ["col_str", "col_num", "col_byte"]
-            if desc[0] == "col_str":
-                assert desc[1] == "S"
-                expected_data_.append("test case 0")
-            if desc[0] == "col_num":
-                assert desc[1] == "N"
-                expected_data_.append(0)
-            if desc[0] == "col_byte":
-                assert desc[1] == "B"
-                expected_data_.append(b"0")
         assert cursor.rownumber == 0
-        assert cursor.fetchone() == tuple(expected_data_)
+        assert cursor.fetchone() == ("test case 0", 0, b"0")
         assert cursor.rownumber == 1
         assert cursor.fetchone() is None
 

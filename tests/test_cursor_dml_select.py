@@ -57,8 +57,8 @@ class TestCursorDMLSelect:
         """ % TESTCASE03_TABLE)
         ret = cursor.fetchall()
         assert len(ret) == 3
-        assert len(cursor.description) == 2
-        assert ret == [("A-1","B"), ("B-1","D"), ("C-1","F")]
+        assert [d[0] for d in cursor.description] == ["col_list[1]", "A"]
+        assert ret == [("B","A-1"), ("D","B-1"), ("F","C-1")]
 
     def test_nested_select_statement(self, cursor):
         cursor.execute("""
@@ -68,5 +68,5 @@ class TestCursorDMLSelect:
         """ % TESTCASE03_TABLE)
         ret = cursor.fetchall()
         assert len(ret) == 3
-        assert len(cursor.description) == 2
-        assert ret == [("A-1","B"), ("B-1","D"), ("C-1","F")]
+        assert [d[0] for d in cursor.description] == ["col1", "col2"]
+        assert ret == [("B","A-1"), ("D","B-1"), ("F","C-1")]

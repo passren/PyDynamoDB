@@ -109,10 +109,15 @@ class DmlSelect(DmlBase):
     def __init__(self, statement: str) -> None:
         super(DmlSelect, self).__init__(statement)
         self._columns = list()
+        self._is_star_column = False
 
     @property
     def columns(self) -> List[Optional[DmlSelectColumn]]:
         return self._columns
+
+    @property
+    def is_star_column(self) -> bool:
+        return self._is_star_column
 
     @property
     def syntax_def(self) -> Forward:
@@ -170,6 +175,11 @@ class DmlSelect(DmlBase):
     def _construct_columns(self, columns: List[Any]) -> List[str]:
         columns_ = list()
         for column in columns:
+            if column["column"] == "*":
+                self._is_star_column = True
+                self._columns.clear()
+                return "*"
+
             column_ = list()
             column_.append(column["column"])
 

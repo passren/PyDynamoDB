@@ -40,8 +40,8 @@ class TestCursorDDL:
         cursor.execute(sql)
         desc = cursor.description
         assert(desc == [
-            ("response_name", "S", None, None, None, None, None),
-            ("response_value", "S", None, None, None, None, None),
+            ("response_name", None, None, None, None, None, None),
+            ("response_value", None, None, None, None, None, None),
         ])
         ret = cursor.fetchall()
         table_desc = json.loads(ret[0][1])
