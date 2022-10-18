@@ -59,6 +59,8 @@ class SQLParser(metaclass=ABCMeta):
 
     @property
     def parser(self) -> Base:
+        if self._parser is None:
+            self._parser = self._get_parse_class()(self.statement)
         return self._parser
 
     def _get_parse_class(self) -> Base:
@@ -97,5 +99,4 @@ class SQLParser(metaclass=ABCMeta):
         return _parse_class
 
     def transform(self) -> Dict[str, Any]:
-        self._parser = self._get_parse_class()(self.statement)
-        return self._parser.transform()
+        return self.parser.transform()

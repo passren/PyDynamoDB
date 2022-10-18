@@ -217,13 +217,17 @@ class DmlStatementExecutor(BaseExecutor):
     def _process_predef_row_item(self, row) -> Optional[Tuple]:
         row_ = [None for i in range(len(self.metadata))]
         for col, val in row.items():
-            val_ = self._converter.deserialize(val)
-            index = None
-            try:
+            col_info = self.metadata.get(col, None)
+            if col_info:
+                if col_info.function:
+                    val_ = self._converter.deserialize(
+                        val,
+                        function=col_info.function.name,
+                        function_params=col_info.function.params,
+                    )
+                else:
+                    val_ = self._converter.deserialize(val)
                 index = self.metadata.index(col)
-            except ValueError:
-                continue
-            else:
                 row_[index] = val_
 
         return tuple(row_)
@@ -234,7 +238,10 @@ class DmlStatementExecutor(BaseExecutor):
                 for column in sql_parser.parser.columns:
                     self._metadata.update(
                         ColumnInfo(
-                            column.response_name, column.request_name, column.alias
+                            column.response_name,
+                            column.request_name,
+                            column.alias,
+                            function=column.function,
                         )
                     )
                 self._is_predef_metadata = True

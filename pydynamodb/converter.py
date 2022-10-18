@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import ast
+from .sql.common import FUNC_STR_TO_DATE, FUNC_STR_TO_DATETIME
 from datetime import datetime, date
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, Optional, Set, List, Union, Type
@@ -22,24 +23,26 @@ class Serializer(metaclass=ABCMeta):
     def mapping(self) -> Dict[str, Callable[[Optional[str]], Optional[Any]]]:
         return self._mapping
 
-    def _to_string(self, value: Optional[str]) -> Optional[Dict[str, str]]:
+    def _to_string(self, value: Optional[str], **kwargs) -> Optional[Dict[str, str]]:
         if value is None:
             return None
         return {"S": value}
 
     def _to_number(
-        self, value: Optional[Union[int, float]]
+        self, value: Optional[Union[int, float]], **kwargs
     ) -> Optional[Dict[str, str]]:
         if value is None:
             return None
         return {"N": str(value)}
 
-    def _to_binary(self, value: Optional[bytes]) -> Optional[Dict[str, str]]:
+    def _to_binary(self, value: Optional[bytes], **kwargs) -> Optional[Dict[str, str]]:
         if value is None:
             return None
         return {"B": value.decode()}
 
-    def _to_set(self, value: Optional[Set[Any]]) -> Optional[Dict[str, List[str]]]:
+    def _to_set(
+        self, value: Optional[Set[Any]], **kwargs
+    ) -> Optional[Dict[str, List[str]]]:
         if value is None:
             return None
 
@@ -51,7 +54,9 @@ class Serializer(metaclass=ABCMeta):
         else:
             return {"SS": [v for v in value]}
 
-    def _to_map(self, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def _to_map(
+        self, value: Optional[Dict[str, Any]], **kwargs
+    ) -> Optional[Dict[str, Any]]:
         if value is None:
             return None
 
@@ -61,7 +66,9 @@ class Serializer(metaclass=ABCMeta):
             converted_[k] = self._mapping.get(type_, None)(v)
         return {"M": converted_}
 
-    def _to_list(self, value: Optional[List[Any]]) -> Optional[Dict[str, Any]]:
+    def _to_list(
+        self, value: Optional[List[Any]], **kwargs
+    ) -> Optional[Dict[str, Any]]:
         if value is None:
             return None
 
@@ -71,21 +78,21 @@ class Serializer(metaclass=ABCMeta):
             converted_.append(self._mapping.get(type_, None)(v))
         return {"L": converted_}
 
-    def _to_null(self, value: Optional[Any]) -> Optional[Dict[str, Any]]:
+    def _to_null(self, value: Optional[Any], **kwargs) -> Optional[Dict[str, Any]]:
         return {"NULL": False if value else True}
 
-    def _to_bool(self, value: Optional[bool]) -> Optional[Dict[str, Any]]:
+    def _to_bool(self, value: Optional[bool], **kwargs) -> Optional[Dict[str, Any]]:
         return {"BOOL": value}
 
     def _to_datetime(
-        self, value: Optional[Union[datetime, date]]
+        self, value: Optional[Union[datetime, date]], **kwargs
     ) -> Optional[Dict[str, str]]:
         if value is None:
             return None
 
         return {"S": value.isoformat()}
 
-    def _to_default(self, value: Optional[Any]) -> Optional[str]:
+    def _to_default(self, value: Optional[Any], **kwargs) -> Optional[str]:
         return {"S": str(value)}
 
     def get(self, type_: Type) -> Callable[[Optional[str]], Optional[Any]]:
@@ -123,32 +130,64 @@ class Deserializer(metaclass=ABCMeta):
     def mapping(self) -> Dict[str, Callable[[Optional[str]], Optional[Any]]]:
         return self._mapping
 
-    def _to_number(self, value: Optional[str]) -> Optional[Union[int, float]]:
+    def _to_string(self, value: Optional[Any], **kwargs) -> Optional[Any]:
+        function_ = kwargs.get("function", None)
+
+        if function_ == FUNC_STR_TO_DATE:
+            return self._to_date(value, **kwargs)
+        elif function_ == FUNC_STR_TO_DATETIME:
+            return self._to_datetime(value, **kwargs)
+        else:
+            return value
+
+    def _to_date(self, value: Optional[Any], **kwargs) -> Optional[datetime]:
+        function_params_ = kwargs.get("function_params", None)
+        if function_params_ is None or len(function_params_) == 0:
+            return date.fromisoformat(value)
+        else:
+            return datetime.strptime(value, function_params_[0]).date()
+
+    def _to_datetime(self, value: Optional[Any], **kwargs) -> Optional[datetime]:
+        function_params_ = kwargs.get("function_params", None)
+        if function_params_ is None or len(function_params_) == 0:
+            return datetime.fromisoformat(value)
+        else:
+            return datetime.strptime(value, function_params_[0])
+
+    def _to_number(self, value: Optional[str], **kwargs) -> Optional[Union[int, float]]:
         if value is None:
             return None
         return ast.literal_eval(value)
 
-    def _to_binary(self, value: Optional[str]) -> Optional[bytes]:
+    def _to_binary(self, value: Optional[str], **kwargs) -> Optional[bytes]:
         if value is None:
             return None
         return value
 
-    def _to_string_set(self, value: Optional[List[str]]) -> Optional[Set[str]]:
+    def _to_string_set(
+        self, value: Optional[List[str]], **kwargs
+    ) -> Optional[Set[str]]:
         if value is None:
             return None
         return set([v for v in value])
 
-    def _to_number_set(self, value: Optional[List[str]]) -> Optional[Set[float]]:
+    def _to_number_set(
+        self, value: Optional[List[str]], **kwargs
+    ) -> Optional[Set[float]]:
         if value is None:
             return None
         return set([float(v) for v in value])
 
-    def _to_binary_set(self, value: Optional[List[str]]) -> Optional[Set[bytes]]:
+    def _to_binary_set(
+        self, value: Optional[List[str]], **kwargs
+    ) -> Optional[Set[bytes]]:
         if value is None:
             return None
         return set([v for v in value])
 
-    def _to_map(self, value: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    def _to_map(
+        self, value: Optional[Dict[str, Any]], **kwargs
+    ) -> Optional[Dict[str, Any]]:
         if value is None:
             return None
 
@@ -158,7 +197,7 @@ class Deserializer(metaclass=ABCMeta):
             converted_[k] = self._mapping.get(type_, None)(value_)
         return converted_
 
-    def _to_list(self, value: Optional[List[Any]]) -> Optional[List[Any]]:
+    def _to_list(self, value: Optional[List[Any]], **kwargs) -> Optional[List[Any]]:
         if value is None:
             return None
 
@@ -168,13 +207,13 @@ class Deserializer(metaclass=ABCMeta):
             coverted_.append(self._mapping.get(type_, None)(value_))
         return coverted_
 
-    def _to_null(self, value: Optional[bool]) -> Optional[bool]:
+    def _to_null(self, value: Optional[bool], **kwargs) -> Optional[bool]:
         return value
 
-    def _to_bool(self, value: Optional[bool]) -> Optional[bool]:
+    def _to_bool(self, value: Optional[bool], **kwargs) -> Optional[bool]:
         return value
 
-    def _to_default(self, value: Optional[Any]) -> Optional[str]:
+    def _to_default(self, value: Optional[Any], **kwargs) -> Optional[str]:
         return value
 
     def get(self, type_: str) -> Callable[[Optional[str]], Optional[Any]]:
@@ -184,7 +223,7 @@ class Deserializer(metaclass=ABCMeta):
         self,
     ) -> Dict[Any, Callable[[Optional[str]], Optional[Any]]]:
         return {
-            "S": self._to_default,
+            "S": self._to_string,
             "N": self._to_number,
             "B": self._to_binary,
             "SS": self._to_string_set,
@@ -225,11 +264,11 @@ class Converter(metaclass=ABCMeta):
         return self._deserializer.get(type_)
 
     @abstractmethod
-    def serialize(self, value: Optional[Any]) -> Optional[Any]:
+    def serialize(self, value: Optional[Any], **kwargs) -> Optional[Any]:
         raise NotImplementedError  # pragma: no cover
 
     @abstractmethod
-    def deserialize(self, value: Optional[Any]) -> Optional[Any]:
+    def deserialize(self, value: Optional[Any], **kwargs) -> Optional[Any]:
         raise NotImplementedError  # pragma: no cover
 
 
@@ -240,12 +279,12 @@ class DefaultTypeConverter(Converter):
             deserializer=Deserializer(),
         )
 
-    def serialize(self, value: Optional[Any]) -> Optional[Any]:
+    def serialize(self, value: Optional[Any], **kwargs) -> Optional[Any]:
         type_ = type(value)
         converter = self.get_serialize_converter(type_)
-        return converter(value)
+        return converter(value, **kwargs)
 
-    def deserialize(self, value: Optional[Any]) -> Optional[Any]:
+    def deserialize(self, value: Optional[Any], **kwargs) -> Optional[Any]:
         type_, value_ = next(iter(value.items()))
         converter = self.get_deserialize_converter(type_)
-        return converter(value_)
+        return converter(value_, **kwargs)

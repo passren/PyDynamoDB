@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
+from abc import ABCMeta
 from .base import Base
-from typing import Any, Dict
+from typing import Any, Dict, List
 from .common import KeyWords, Tokens
 from pyparsing import (
     Word,
     CaselessKeyword,
     alphanums,
-    quotedString,
+    quoted_string,
     Group,
     ZeroOrMore,
     opAssoc,
@@ -30,10 +31,23 @@ class DmlBase(Base):
         ],
     )
 
-    _COLUMN = (
-        Opt(KeyWords.SUPPRESS_QUOTE)
-        + (KeyWords.STAR ^ Word(alphanums + "_.-[]"))("column").set_name("column")
-        + Opt(KeyWords.SUPPRESS_QUOTE)
+    _COLUMN_NAME = (KeyWords.STAR ^ Word(alphanums + "_.-[]"))("column_name").set_name(
+        "column_name"
+    )
+
+    _COLUMN = KeyWords.FUNCTION_ON_COLUMN + KeyWords.LPAR + Opt(
+        KeyWords.SUPPRESS_QUOTE
+    ) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE) + ZeroOrMore(
+        KeyWords.COMMA
+        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
+    )(
+        "function_params"
+    ).set_name(
+        "function_params"
+    ) + KeyWords.RPAR | Opt(
+        KeyWords.SUPPRESS_QUOTE
+    ) + _COLUMN_NAME + Opt(
+        KeyWords.SUPPRESS_QUOTE
     )
 
     _ALIAS = (
@@ -54,7 +68,7 @@ class DmlBase(Base):
     )("columns").set_name("columns")
 
     _COLUMN_RVAL = (
-        ppc.real() | ppc.signed_integer() | quotedString | _COLUMN | KeyWords.QUESTION
+        ppc.real() | ppc.signed_integer() | quoted_string | _COLUMN | KeyWords.QUESTION
     )("column_rvalue").set_name("column_rvalue")
 
     _WHERE_CONDITION = Group(
@@ -125,3 +139,17 @@ class DmlBase(Base):
 
     def transform(self) -> Dict[str, Any]:
         return {"Statement": self._statement}
+
+
+class DmlFunction(metaclass=ABCMeta):
+    def __init__(self, name: str, params: List[str] = None) -> None:
+        self._name = name
+        self._params = params
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def params(self) -> List[str]:
+        return self._params

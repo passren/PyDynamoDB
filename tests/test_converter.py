@@ -89,6 +89,18 @@ class TestResponseConverter:
     def test_deserializer_str(self, converter):
         assert converter.deserialize({"S": "string"}) == "string"
 
+    def test_deserializer_datetime(self, converter):
+        assert converter.deserialize(
+            {"S": "2022-09-10T00:00:00.000"}, function="STR_TO_DATETIME"
+        ) == datetime(2022, 9, 10)
+        assert converter.deserialize(
+            {"S": "2022-09-10"}, function="STR_TO_DATETIME",
+        ) == datetime(2022, 9, 10)
+        assert converter.deserialize(
+            {"S": "2022/09/10"}, function="STR_TO_DATE",
+            function_params=["%Y/%m/%d"]
+        ) == date(2022, 9, 10)
+
     def test_deserializer_number(self, converter):
         assert converter.deserialize({"N": "2"}) == 2
         assert converter.deserialize({"N": "2.3"}) == 2.3

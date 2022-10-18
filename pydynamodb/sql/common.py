@@ -5,6 +5,8 @@ from pyparsing import (
     Word,
     nums,
     alphanums,
+    Combine,
+    Regex,
     CaselessKeyword,
     Opt,
     one_of,
@@ -12,6 +14,10 @@ from pyparsing import (
     Suppress,
     pyparsing_common as ppc,
 )
+
+
+FUNC_STR_TO_DATE = "STR_TO_DATE"
+FUNC_STR_TO_DATETIME = "STR_TO_DATETIME"
 
 
 class KeyWords:
@@ -130,6 +136,11 @@ class KeyWords:
         ],
     )
 
+    # Functions
+    FUNCTION_ON_COLUMN = one_of(
+        [FUNC_STR_TO_DATE, FUNC_STR_TO_DATETIME], caseless=True, as_keyword=True
+    )("function").set_name("function")
+
 
 class Tokens:
     # Common token definition
@@ -190,6 +201,14 @@ class Tokens:
             "MISSING",
         ],
         caseless=True,
+    )
+    QUOTED_STRING = Combine(
+        Suppress('"')
+        + Regex(r'(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*')
+        + Suppress('"')
+        | Suppress("'")
+        + Regex(r"(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*")
+        + Suppress("'")
     )
 
 

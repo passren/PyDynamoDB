@@ -193,3 +193,21 @@ class TestDmlSelect:
         assert ret == {
             "Statement": 'SELECT col_list[1],col_map.A FROM "Issues" WHERE key_partition = \'row_1\''
         }
+
+    def test_parse_function_case(self):
+        sql = """
+            SELECT STR_TO_DATE(CreatedDate), STR_TO_DATE(IssueDate, '%Y-%m-%d')
+            FROM Issues WHERE key_partition='row_1'
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.columns[0].request_name == "CreatedDate"
+        assert parser.parser.columns[0].function.name == "STR_TO_DATE"
+        assert parser.parser.columns[0].function.params == None
+        assert parser.parser.columns[1].request_name == "IssueDate"
+        assert parser.parser.columns[1].function.name == "STR_TO_DATE"
+        assert parser.parser.columns[1].function.params == ["%Y-%m-%d"]
+
+        assert ret == {
+            "Statement": 'SELECT CreatedDate,IssueDate FROM "Issues" WHERE key_partition = \'row_1\''
+        }

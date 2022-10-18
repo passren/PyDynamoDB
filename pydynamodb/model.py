@@ -2,6 +2,7 @@
 import logging
 from typing import List, Optional, Any
 from collections import OrderedDict
+from .sql.dml_sql import DmlFunction
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
@@ -12,6 +13,7 @@ class ColumnInfo:
         name: str,
         original: str,
         alias: str = None,
+        function: DmlFunction = None,
         type_code: str = None,
         display_size: str = None,
         internal_size: str = None,
@@ -22,6 +24,7 @@ class ColumnInfo:
         self._name = name
         self._original = original
         self._alias = alias
+        self._function = function
         self._type_code = type_code
         self._display_size = display_size
         self._internal_size = internal_size
@@ -44,6 +47,10 @@ class ColumnInfo:
     @alias.setter
     def alias(self, value: str) -> None:
         self._alias = value
+
+    @property
+    def function(self) -> DmlFunction:
+        return self._function
 
     @property
     def type_code(self) -> str:

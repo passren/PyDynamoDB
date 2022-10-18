@@ -39,10 +39,10 @@ class TestCursorDDL:
         """
         cursor.execute(sql)
         desc = cursor.description
-        assert(desc == [
+        assert desc == [
             ("response_name", None, None, None, None, None, None),
             ("response_value", None, None, None, None, None, None),
-        ])
+        ]
         ret = cursor.fetchall()
         table_desc = json.loads(ret[0][1])
         assert table_desc["TableName"] == "Issues02"
