@@ -77,7 +77,9 @@ class Serializer(metaclass=ABCMeta):
     def _to_bool(self, value: Optional[bool]) -> Optional[Dict[str, Any]]:
         return {"BOOL": value}
 
-    def _to_datetime(self, value: Optional[Union[datetime, date]]) -> Optional[Dict[str, str]]:
+    def _to_datetime(
+        self, value: Optional[Union[datetime, date]]
+    ) -> Optional[Dict[str, str]]:
         if value is None:
             return None
 
