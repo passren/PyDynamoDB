@@ -70,3 +70,24 @@ class TestCursorDMLSelect:
         assert len(ret) == 3
         assert [d[0] for d in cursor.description] == ["col1", "col2"]
         assert ret == [("B","A-1"), ("D","B-1"), ("F","C-1")]
+
+    def test_function_in_columns(self, cursor):
+        from datetime import date, datetime
+        sql_date_row_1_0_ = (
+        """
+        INSERT INTO %s VALUE {
+            'key_partition': ?, 'key_sort': ?, 'col_date': ?, 'col_datetime': ?
+        }
+        """ % TESTCASE03_TABLE
+        )
+        params_1_0_ = ["test_date_row_1", 0, date(2022, 10, 18), datetime(2022, 10, 18, 13, 55, 34)]
+        params_1_1_ = ["test_date_row_1", 1, date(2022, 10, 19), datetime(2022, 10, 19, 17, 2, 4)]
+        cursor.executemany(sql_date_row_1_0_, [params_1_0_, params_1_1_])
+        cursor.execute(
+        """
+            SELECT STR_TO_DATE(col_date, '%Y-%m-%d'), STR_TO_DATETIME(col_datetime) FROM {0}
+            WHERE key_partition = ? AND key_sort = ?
+        """.format(TESTCASE03_TABLE),
+            ["test_date_row_1", 0],
+        )
+        assert cursor.fetchone() == (date(2022, 10, 18), datetime(2022, 10, 18, 13, 55, 34))

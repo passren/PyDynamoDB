@@ -33,7 +33,7 @@ ReturnConsumedCapacity NONE
 """
 from abc import ABCMeta
 import logging
-from .dml_sql import DmlBase
+from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
 from pyparsing import Opt, Forward, ParseResults
 from typing import Any, Dict, List, Optional
@@ -43,11 +43,16 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class DmlSelectColumn(metaclass=ABCMeta):
     def __init__(
-        self, request_name: str, alias: str = None, response_name: str = None
+        self,
+        request_name: str,
+        alias: str = None,
+        response_name: str = None,
+        function: DmlFunction = None,
     ) -> None:
         self._request_name = request_name
         self._alias = alias
         self._response_name = response_name
+        self._function = function
 
     @property
     def request_name(self) -> str:
@@ -71,11 +76,16 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
         return self._response_name
 
+    @property
+    def function(self) -> DmlFunction:
+        return self._function
+
     def __str__(self):
-        return "(request_name: %s, alias: %s, response_name: %s)" % (
+        return "(request_name: %s, alias: %s, response_name: %s, function: %s)" % (
             self.request_name,
             self.alias,
             self.response_name,
+            self.function.name if self.function is not None else None,
         )
 
     __repr__ = __str__
@@ -175,26 +185,41 @@ class DmlSelect(DmlBase):
     def _construct_columns(self, columns: List[Any]) -> List[str]:
         columns_ = list()
         for column in columns:
-            if column["column"] == "*":
+            if column["column_name"] == "*":
                 self._is_star_column = True
                 self._columns.clear()
                 return "*"
 
             column_ = list()
-            column_.append(column["column"])
+            column_.append(column["column_name"])
 
             for rcolumn in column["column_ops"]:
                 column_.append(rcolumn["arithmetic_operators"])
-                column_.append(rcolumn["column"])
+                column_.append(rcolumn["column_name"])
 
             column__ = "".join(column_)
             columns_.append(column__)
-            self._columns.append(DmlSelectColumn(column__))
+
+            function_ = column.get("function", None)
+            column_function_ = None
+            if function_:
+                func_params_ = column["function_params"]
+                if len(func_params_) > 0:
+                    column_function_ = DmlFunction(
+                        function_, params=[p for p in func_params_]
+                    )
+                else:
+                    column_function_ = DmlFunction(function_)
+
+            self._columns.append(DmlSelectColumn(column__, function=column_function_))
         columns_ = ",".join(columns_)
         return columns_
 
     def _construct_columns_alias(self, columns_alias: ParseResults) -> None:
-        assert len(columns_alias) <= len(self._columns)
+        assert len(columns_alias) <= len(
+            self._columns
+        ), "Alias count should be larger than requested columns"
+
         for i, alias in enumerate(columns_alias):
             self._columns[i].alias = alias
 

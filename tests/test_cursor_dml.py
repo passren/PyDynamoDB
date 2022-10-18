@@ -259,6 +259,27 @@ class TestCursorDML:
         )
         assert len(cursor.fetchall()) == 2
 
+    def test_insert_datetime(self, cursor):
+        from datetime import date, datetime
+        sql_date_row_1_0_ = (
+        """
+        INSERT INTO %s VALUE {
+            'key_partition': ?, 'key_sort': ?, 'col_date': ?, 'col_datetime': ?
+        }
+        """ % TESTCASE01_TABLE
+        )
+        params_1_0_ = ["test_date_row_1", 0, date(2022, 10, 18), datetime(2022, 10, 18, 13, 55, 34)]
+        cursor.execute(sql_date_row_1_0_, params_1_0_)
+        cursor.execute(
+        """
+            SELECT col_date, col_datetime FROM %s
+            WHERE key_partition = ? AND key_sort = ?
+        """ % TESTCASE01_TABLE,
+            ["test_date_row_1", 0],
+        )
+        assert cursor.fetchone() == ("2022-10-18", "2022-10-18T13:55:34")
+
+
     def test_list_tables(self, cursor):
         tables_ = cursor.list_tables()
         assert len(tables_) > 0
