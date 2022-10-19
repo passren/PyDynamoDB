@@ -37,16 +37,16 @@ class DBAPITypeObject(FrozenSet[str]):
 
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
-STRING: DBAPITypeObject = DBAPITypeObject(("S",))
-BINARY: DBAPITypeObject = DBAPITypeObject(("B",))
+STRING: DBAPITypeObject = DBAPITypeObject(("STRING",))
+BINARY: DBAPITypeObject = DBAPITypeObject(("STRING",))
 BOOLEAN: DBAPITypeObject = DBAPITypeObject(
     (
         "BOOL",
         "NULL",
     )
 )
-NUMBER: DBAPITypeObject = DBAPITypeObject(("N",))
-JSON: DBAPITypeObject = DBAPITypeObject(("M", "L", "SS", "NS", "BS"))
+NUMBER: DBAPITypeObject = DBAPITypeObject(("NUMBER",))
+JSON: DBAPITypeObject = DBAPITypeObject(("STRING",))
 
 
 def connect(*args, **kwargs) -> "Connection":

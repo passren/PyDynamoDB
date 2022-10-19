@@ -4,7 +4,8 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast, TypeVar, Tuple
 
 from .converter import Converter
-from .common import BaseCursor, CursorIterator, Statement, Statements
+from .common import BaseCursor, CursorIterator
+from .model import Statement, Statements
 from .result_set import DynamoDBResultSet, DynamoDBDictResultSet
 from .error import NotSupportedError, ProgrammingError
 from .util import RetryConfig, synchronized
@@ -62,12 +63,15 @@ class Cursor(BaseCursor, CursorIterator):
     def errors(self) -> List[Dict[str, str]]:
         return self._result_set.errors
 
+    def _prepare_statement(self, operation: str) -> Statement:
+        return Statement(operation)
+
     @synchronized
     def execute(
         self: _T, operation: str, parameters: Optional[List[Dict[str, Any]]] = None
     ) -> _T:
         try:
-            statement_ = Statement(operation)
+            statement_ = self._prepare_statement(operation)
 
             if parameters:
                 statement_.api_request.update(

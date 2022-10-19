@@ -60,17 +60,6 @@ class TestCursorDMLSelect:
         assert [d[0] for d in cursor.description] == ["col_list[1]", "A"]
         assert ret == [("B","A-1"), ("D","B-1"), ("F","C-1")]
 
-    def test_nested_select_statement(self, cursor):
-        cursor.execute("""
-            SELECT col1, col2 FROM (
-                SELECT col_list[1], col_map.A FROM %s WHERE key_partition='row_1'
-            )
-        """ % TESTCASE03_TABLE)
-        ret = cursor.fetchall()
-        assert len(ret) == 3
-        assert [d[0] for d in cursor.description] == ["col1", "col2"]
-        assert ret == [("B","A-1"), ("D","B-1"), ("F","C-1")]
-
     def test_function_in_columns(self, cursor):
         from datetime import date, datetime
         sql_date_row_1_0_ = (
@@ -85,7 +74,7 @@ class TestCursorDMLSelect:
         cursor.executemany(sql_date_row_1_0_, [params_1_0_, params_1_1_])
         cursor.execute(
         """
-            SELECT STR_TO_DATE(col_date, '%Y-%m-%d'), STR_TO_DATETIME(col_datetime) FROM {0}
+            SELECT DATE(col_date, '%Y-%m-%d'), DATETIME(col_datetime) FROM {0}
             WHERE key_partition = ? AND key_sort = ?
         """.format(TESTCASE03_TABLE),
             ["test_date_row_1", 0],

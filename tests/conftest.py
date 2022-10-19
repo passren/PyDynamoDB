@@ -75,6 +75,7 @@ TEST_TABLES = [
     "pydynamodb_test_case01",
     "pydynamodb_test_case02",
     "pydynamodb_test_case03",
+    "pydynamodb_test_case04",
 ]
 
 
@@ -168,6 +169,12 @@ def dict_cursor(request):
     from pydynamodb.cursor import DictCursor
 
     yield from _cursor(DictCursor, request)
+
+@pytest.fixture
+def superset_cursor(request):
+    from pydynamodb.superset.pydnamodb import SupersetCursor
+
+    yield from _cursor(SupersetCursor, request)
 
 
 @pytest.fixture

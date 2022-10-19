@@ -16,8 +16,34 @@ from pyparsing import (
 )
 
 
-FUNC_STR_TO_DATE = "STR_TO_DATE"
-FUNC_STR_TO_DATETIME = "STR_TO_DATETIME"
+class DataTypes:
+    STRING = "STRING"
+    DATE = "DATE"
+    DATETIME = "DATETIME"
+    NUMBER = "NUMBER"
+    BOOL = "BOOL"
+    NULL = "NULL"
+
+
+class DdbDataTypes:
+    BOOLEAN = "BOOL"
+    BINARY = "B"
+    LIST = "L"
+    MAP = "M"
+    NUMBER = "N"
+    NUMBER_SET = "NS"
+    STRING_SET = "SS"
+    STRING = "STRING"
+    NULL = "NULL"
+
+
+class Functions:
+    DATE = "DATE"
+    DATETIME = "DATETIME"
+    NUMBER = "NUMBER"
+    BOOL = "BOOL"
+
+    TYPE_CONVERSION = [DATE, DATETIME, NUMBER, BOOL]
 
 
 class KeyWords:
@@ -138,7 +164,7 @@ class KeyWords:
 
     # Functions
     FUNCTION_ON_COLUMN = one_of(
-        [FUNC_STR_TO_DATE, FUNC_STR_TO_DATETIME], caseless=True, as_keyword=True
+        Functions.TYPE_CONVERSION, caseless=True, as_keyword=True
     )("function").set_name("function")
 
 
@@ -189,15 +215,15 @@ class Tokens:
     ORDER_BY_VALUE = one_of("DESC ASC", caseless=True)
     PARTIQL_DATA_TYPE = one_of(
         [
-            "BOOLEAN",
-            "BINARY",
-            "LIST",
-            "MAP",
-            "NUMBER",
-            "NUMBER SET",
-            "STRING SET",
-            "STRING",
-            "NULL",
+            DdbDataTypes.BOOLEAN,
+            DdbDataTypes.BINARY,
+            DdbDataTypes.LIST,
+            DdbDataTypes.MAP,
+            DdbDataTypes.NUMBER,
+            DdbDataTypes.NUMBER_SET,
+            DdbDataTypes.STRING_SET,
+            DdbDataTypes.STRING,
+            DdbDataTypes.NULL,
             "MISSING",
         ],
         caseless=True,

@@ -91,13 +91,13 @@ class TestResponseConverter:
 
     def test_deserializer_datetime(self, converter):
         assert converter.deserialize(
-            {"S": "2022-09-10T00:00:00.000"}, function="STR_TO_DATETIME"
+            {"S": "2022-09-10T00:00:00.000"}, function="DATETIME"
         ) == datetime(2022, 9, 10)
         assert converter.deserialize(
-            {"S": "2022-09-10"}, function="STR_TO_DATETIME",
+            {"S": "2022-09-10"}, function="DATETIME",
         ) == datetime(2022, 9, 10)
         assert converter.deserialize(
-            {"S": "2022/09/10"}, function="STR_TO_DATE",
+            {"S": "2022/09/10"}, function="DATE",
             function_params=["%Y/%m/%d"]
         ) == date(2022, 9, 10)
 

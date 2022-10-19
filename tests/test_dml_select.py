@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from pydynamodb.sql.common import QueryType
 from pydynamodb.sql.parser import SQLParser
 
 
@@ -180,32 +179,18 @@ class TestDmlSelect:
             "ReturnConsumedCapacity": "NONE",
         }
 
-    def test_parse_nested_case(self):
-        sql = """
-            SELECT col1, col2 FROM (
-                SELECT col_list[1], col_map.A FROM Issues WHERE key_partition='row_1'
-            )
-        """
-        parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.query_type == QueryType.SELECT
-        assert len(parser.parser.columns) == 2
-        assert ret == {
-            "Statement": 'SELECT col_list[1],col_map.A FROM "Issues" WHERE key_partition = \'row_1\''
-        }
-
     def test_parse_function_case(self):
         sql = """
-            SELECT STR_TO_DATE(CreatedDate), STR_TO_DATE(IssueDate, '%Y-%m-%d')
+            SELECT DATE(CreatedDate), DATE(IssueDate, '%Y-%m-%d')
             FROM Issues WHERE key_partition='row_1'
         """
         parser = SQLParser(sql)
         ret = parser.transform()
         assert parser.parser.columns[0].request_name == "CreatedDate"
-        assert parser.parser.columns[0].function.name == "STR_TO_DATE"
+        assert parser.parser.columns[0].function.name == "DATE"
         assert parser.parser.columns[0].function.params == None
         assert parser.parser.columns[1].request_name == "IssueDate"
-        assert parser.parser.columns[1].function.name == "STR_TO_DATE"
+        assert parser.parser.columns[1].function.name == "DATE"
         assert parser.parser.columns[1].function.params == ["%Y-%m-%d"]
 
         assert ret == {
