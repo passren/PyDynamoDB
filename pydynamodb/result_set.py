@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, cast
 
 from .converter import Converter
 from .common import CursorIterator
-from .model import Statements
+from .model import Statements, Metadata
 from .executor import BaseExecutor, dispatch_executor
 from .error import ProgrammingError
 from .util import RetryConfig
@@ -50,6 +50,10 @@ class DynamoDBResultSet(CursorIterator):
     @property
     def errors(self) -> List[Dict[str, str]]:
         return self._executor.errors
+
+    @property
+    def metadata(self) -> Optional[Metadata]:
+        return self._executor.metadata
 
     @property
     def description(

@@ -153,8 +153,6 @@ class Metadata:
     def __contains__(self, key: str):
         return key in self._column_infos
 
-    __iterator_index = 0
-
     def __next__(self):
         keys = list(self._column_infos)
         if self.__iterator_index < len(keys):
@@ -164,6 +162,7 @@ class Metadata:
         raise StopIteration
 
     def __iter__(self):
+        self.__iterator_index = 0
         return self
 
 
@@ -257,8 +256,6 @@ class Statements:
     def __getitem__(self, key):
         return self._statments[key]
 
-    __iterator_index = 0
-
     def __next__(self):
         if self.__iterator_index < len(self._statments):
             ret = self._statments[self.__iterator_index]
@@ -267,4 +264,5 @@ class Statements:
         raise StopIteration
 
     def __iter__(self):
+        self.__iterator_index = 0
         return self

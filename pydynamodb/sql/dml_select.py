@@ -35,7 +35,7 @@ from abc import ABCMeta
 import logging
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
-from pyparsing import Opt, Forward
+from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list
 from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -92,9 +92,33 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
 
 class DmlSelect(DmlBase):
+    _REQUEST_COLUMN = KeyWords.FUNCTION_ON_COLUMN + KeyWords.LPAR + Opt(
+        KeyWords.SUPPRESS_QUOTE
+    ) + DmlBase._COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE) + ZeroOrMore(
+        KeyWords.COMMA
+        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
+    )(
+        "function_params"
+    ).set_name(
+        "function_params"
+    ) + KeyWords.RPAR | Opt(
+        KeyWords.SUPPRESS_QUOTE
+    ) + DmlBase._COLUMN_NAME + Opt(
+        KeyWords.SUPPRESS_QUOTE
+    )
+
+    _REQUEST_COLUMNS = delimited_list(
+        Group(
+            _REQUEST_COLUMN
+            + ZeroOrMore(Group(KeyWords.ARITHMETIC_OPERATORS + _REQUEST_COLUMN))(
+                "column_ops"
+            ).set_name("column_ops")
+        )
+    )("columns").set_name("columns")
+
     _SELECT_STATEMENT = (
         KeyWords.SELECT
-        + DmlBase._REQUEST_COLUMNS
+        + _REQUEST_COLUMNS
         + KeyWords.FROM
         + Tokens.TABLE_NAME
         + Opt(KeyWords.DOT + Tokens.INDEX_NAME)

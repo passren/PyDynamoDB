@@ -38,7 +38,7 @@ class BaseExecutor(metaclass=ABCMeta):
         self._next_token: Optional[str] = None
         self._metadata: Metadata = Metadata()
         self._is_predef_metadata: bool = False
-        self._rows: Deque[Dict[str, Optional[Any]]] = deque()
+        self._rows: Deque[Tuple[Any]] = deque()
         self._errors: List[Dict[str, str]] = list()
         self.pre_execute()
 
@@ -93,9 +93,9 @@ class BaseExecutor(metaclass=ABCMeta):
             return cast(Dict[str, Any], response)
 
     def close(self) -> None:
-        self._metadata.clear()
-        self._rows.clear()
-        self._errors.clear()
+        self._metadata = None
+        self._rows = None
+        self._errors = None
         self._next_token = None
 
     def __enter__(self):
@@ -177,8 +177,10 @@ class DmlStatementExecutor(BaseExecutor):
             self.connection.client.execute_statement, request
         )
 
-        self.process_rows(response)
-        self.post_execute()
+        try:
+            self.process_rows(response)
+        finally:
+            self.post_execute()
 
     def process_rows(self, response: Dict[str, Any]) -> None:
         self._process_predef_metadata(self._statement.sql_parser)

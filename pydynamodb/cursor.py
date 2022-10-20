@@ -38,7 +38,7 @@ class Cursor(BaseCursor, CursorIterator):
         self._is_pooling: bool = False
 
     @property
-    def result_set(self) -> Optional[DynamoDBResultSet]:
+    def result_set(self) -> Optional[CursorIterator]:
         return self._result_set
 
     @result_set.setter
@@ -48,6 +48,14 @@ class Cursor(BaseCursor, CursorIterator):
     @property
     def has_result_set(self) -> bool:
         return self._result_set is not None
+
+    @property
+    def result_set_class(self) -> Optional[CursorIterator]:
+        return self._result_set_class
+
+    @result_set_class.setter
+    def result_set_class(self, val) -> None:
+        self._result_set_class = val
 
     @property
     def rownumber(self) -> Optional[int]:
@@ -63,18 +71,20 @@ class Cursor(BaseCursor, CursorIterator):
     def errors(self) -> List[Dict[str, str]]:
         return self._result_set.errors
 
-    def _prepare_statement(self, operation: str) -> Statement:
-        return Statement(operation)
-
     @synchronized
     def execute(
         self: _T, operation: str, parameters: Optional[List[Dict[str, Any]]] = None
     ) -> _T:
-        try:
-            statement_ = self._prepare_statement(operation)
+        statement = Statement(operation)
+        return self.execute_statement(statement, parameters)
 
+    @synchronized
+    def execute_statement(
+        self: _T, statement: Statement, parameters: Optional[List[Dict[str, Any]]] = None
+    ) -> _T:
+        try:
             if parameters:
-                statement_.api_request.update(
+                statement.api_request.update(
                     {
                         "Parameters": [
                             self._converter.serialize(parameter)
@@ -83,9 +93,9 @@ class Cursor(BaseCursor, CursorIterator):
                     }
                 )
             if self.connection.in_transaction:
-                self._transaction_statements.append(statement_)
+                self._transaction_statements.append(statement)
             else:
-                self._statements.append(statement_)
+                self._statements.append(statement)
 
             if not self._is_pooling and self.connection.autocommit:
                 self.flush()

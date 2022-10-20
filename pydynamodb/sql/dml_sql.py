@@ -35,31 +35,16 @@ class DmlBase(Base):
         "column_name"
     )
 
-    _REQUEST_COLUMN = KeyWords.FUNCTION_ON_COLUMN + KeyWords.LPAR + Opt(
-        KeyWords.SUPPRESS_QUOTE
-    ) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE) + ZeroOrMore(
-        KeyWords.COMMA
-        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
-    )(
-        "function_params"
-    ).set_name(
-        "function_params"
-    ) + KeyWords.RPAR | Opt(
-        KeyWords.SUPPRESS_QUOTE
-    ) + _COLUMN_NAME + Opt(
-        KeyWords.SUPPRESS_QUOTE
-    )
+    _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
 
-    _REQUEST_COLUMNS = delimited_list(
+    _COLUMNS = delimited_list(
         Group(
-            _REQUEST_COLUMN
-            + ZeroOrMore(Group(KeyWords.ARITHMETIC_OPERATORS + _REQUEST_COLUMN))(
+            _COLUMN
+            + ZeroOrMore(Group(KeyWords.ARITHMETIC_OPERATORS + _COLUMN))(
                 "column_ops"
             ).set_name("column_ops")
         )
     )("columns").set_name("columns")
-
-    _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
 
     _COLUMN_RVAL = (
         ppc.real() | ppc.signed_integer() | quoted_string | _COLUMN | KeyWords.QUESTION

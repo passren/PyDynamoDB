@@ -37,27 +37,26 @@ class TestSupersetDynamoDB:
         params_1 = ["row_1", 1, [
                         "A", "B", {"A": 1, "B": 2}
                     ], {
-                        "A": "A-1", "B": ["B-1", "B-2"]
+                        "A": 1, "B": ["B-1", "B-2"]
                     }]
         params_2 = ["row_1", 2, [
                         "C", "D", {"C": 3, "D": 4}
                     ], {
-                        "A": "B-1", "B": ["D-1", "D-2"]
+                        "A": 2, "B": ["D-1", "D-2"]
                     }]
         params_3 = ["row_1", 3, [
                         "E", "F", {"E": 1, "F": 2}
                     ], {
-                        "A": "C-1", "B": ["F-1", "F-2"]
+                        "A": 3, "B": ["F-1", "F-2"]
                     }]
         cursor.executemany(sql, [params_1, params_2, params_3])
 
     def test_execute_nested_select(self, superset_cursor):
         superset_cursor.execute("""
-            SELECT min("col_list[1]"), "A" FROM (
-                SELECT col_list[1], col_map.A FROM %s WHERE key_partition='row_1'
+            SELECT "col_list[1]", SUM("A") FROM (
+                SELECT col_list[1], NUMBER(col_map.A) FROM %s WHERE key_partition='row_1'
             )
         """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 1
-        assert ret == [("B","A-1")]
-        assert [d[0] for d in superset_cursor.description] == ['min("col_list', "A"]
+        assert ret == [("B", 6.0)]
