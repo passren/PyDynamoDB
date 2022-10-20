@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 
+
 class TestCursorDDL:
     def test_create_table(self, cursor):
         sql = """

@@ -35,6 +35,7 @@ from abc import ABCMeta
 import logging
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
+from .util import flatten_list
 from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list
 from typing import Any, Dict, List, Optional
 
@@ -162,9 +163,8 @@ class DmlSelect(DmlBase):
         where_conditions_ = self.root_parse_results.get("where_conditions", None)
         if where_conditions_ is not None:
             where_conditions_ = where_conditions_.as_list()
-            flatted_list = list()
-            self._construct_where_conditions(where_conditions_, flatted_list)
-            where_conditions_ = "WHERE %s" % " ".join(flatted_list)
+            flatted_where = " ".join(str(c) for c in flatten_list(where_conditions_))
+            where_conditions_ = "WHERE %s" % flatted_where
         else:
             where_conditions_ = ""
 
@@ -224,25 +224,6 @@ class DmlSelect(DmlBase):
             self._columns.append(DmlSelectColumn(column__, function=column_function_))
         columns_ = ",".join(columns_)
         return columns_
-
-    def _construct_where_conditions(
-        self, conditions: List[Any], flatted: List[str]
-    ) -> List[str]:
-        if flatted is None:
-            flatted = list()
-
-        for c in conditions:
-            if isinstance(c, list):
-                if len(c) > 2 and c[0] == "[" and c[-1] == "]":
-                    flatted.append(
-                        "[%s]" % (",".join(str(c[i]) for i in range(1, len(c) - 1)))
-                    )
-                    return flatted
-
-                self._construct_where_conditions(c, flatted)
-            else:
-                flatted.append(str(c))
-        return flatted
 
     def _construct_raw_options(self, options: List[Any]) -> Optional[List[Any]]:
         converted_ = None

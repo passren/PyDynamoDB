@@ -184,20 +184,7 @@ class DynamoDBDialect(DefaultDialect):
         return opts
 
     def do_ping(self, dbapi_connection):
-        cursor = None
-        try:
-            cursor = dbapi_connection.cursor()
-            try:
-                cursor.execute("SELECT 1 FROM TEMP")
-            finally:
-                cursor.close()
-        except self.dbapi.Error as err:
-            if isinstance(err, OperationalError):
-                return True
-            else:
-                raise
-        else:
-            return True
+        return dbapi_connection.test_connection()
 
     def get_schema_names(self, connection, **kw):
         # DynamoDB does not have the concept of a schema

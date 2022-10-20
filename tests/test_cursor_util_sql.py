@@ -2,6 +2,7 @@
 import json
 from tests import ENV
 
+
 class TestCursorUtilSQL:
     def test_list_tables(self, cursor):
         sql = """
@@ -35,12 +36,8 @@ class TestCursorUtilSQL:
                 CreateDate RANGE
             )
             Projection.ProjectionType=ALL
-            ProvisionedThroughput.ReadCapacityUnits 20
-            ProvisionedThroughput.WriteCapacityUnits 20
         )
         BillingMode PAY_PER_REQUEST
-        ProvisionedThroughput.ReadCapacityUnits 20
-        ProvisionedThroughput.WriteCapacityUnits 20
         Tags (name:Issue03, usage:test_case)
         """
         cursor.execute(sql)
@@ -62,7 +59,7 @@ class TestCursorUtilSQL:
         if ENV.use_local_ddb:
             # Ignore global table test cases for local DDB
             return
-        
+
         # This part is not fully tested due to limit resources
         sql = """
         CREATE TABLE Issues04 (
@@ -105,4 +102,3 @@ class TestCursorUtilSQL:
         DROP TABLE Issues04
         """
         cursor.execute(sql)
-

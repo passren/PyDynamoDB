@@ -85,27 +85,30 @@ class SupersetStatementExecutor(DmlStatementExecutor):
 
     def execute(self, **kwargs) -> None:
         try:
-            with self.connection.cursor() as cursor:
-                cursor.result_set_class = DynamoDBResultSet
-                cursor.execute_statement(self._statement)
-                ddb_result_set = cursor.result_set
-                raw_data = ddb_result_set.fetchall()
-
-                if len(raw_data) > 0:
-                    self._create_query_table(ddb_result_set.metadata)
-                    self._write_raw_data(ddb_result_set.metadata, raw_data)
-
-            self.post_execute()
+            parser = self._statement.sql_parser.parser
+            if parser.is_nested:
+                with self.connection.cursor() as cursor:
+                    cursor.result_set_class = DynamoDBResultSet
+                    cursor.execute_statement(self._statement)
+                    self._load_into_memory_db(cursor.result_set)
+            else:
+                super(SupersetStatementExecutor, self).execute(**kwargs)
         except Exception as e:
             _logger.exception("Failed to execute statement.")
             raise OperationalError(*e.args) from e
         finally:
             self.sqlite_conn.close()
 
-    def post_execute(self) -> None:
+    def _load_into_memory_db(self, ddb_result_set: DynamoDBResultSet) -> None:
+        raw_data = ddb_result_set.fetchall()
+
+        if len(raw_data) > 0:
+            self._create_query_table(ddb_result_set.metadata)
+        self._write_raw_data(ddb_result_set.metadata, raw_data)
+
         parser = self._statement.sql_parser.parser
         superset_sql = "SELECT %s FROM %s %s" % (
-            ",".join(c for c in parser.outer_columns),
+            parser.outer_columns,
             self._superset_table,
             parser.outer_exprs,
         )

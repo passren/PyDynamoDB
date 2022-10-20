@@ -62,7 +62,8 @@ class KeyWords:
         SPACE,
     ) = map(Suppress, "(),;:.'\"`= ")
     STAR, QUESTION = "*", "?"
-    SUPPRESS_QUOTE = (BACKQUOTE | DOUBLEQUOTE).set_name("quote")
+    SUPPRESS_QUOTE = (SINGLEQUOTE | BACKQUOTE | DOUBLEQUOTE).set_name("suppress_quote")
+    QUOTE = one_of("' \" `").set_name("quote")
 
     # Operators
     (

@@ -80,8 +80,12 @@ class TestParameterConverter:
         assert converter.serialize(False) == {"BOOL": False}
 
     def test_serializer_datetime(self, converter):
-        assert converter.serialize(datetime(2022, 9, 10)) == {"S": "2022-09-10T00:00:00"}
-        assert converter.serialize(datetime(2022, 9, 10, 14, 23, 8)) == {"S": "2022-09-10T14:23:08"}
+        assert converter.serialize(datetime(2022, 9, 10)) == {
+            "S": "2022-09-10T00:00:00"
+        }
+        assert converter.serialize(datetime(2022, 9, 10, 14, 23, 8)) == {
+            "S": "2022-09-10T14:23:08"
+        }
         assert converter.serialize(date(2022, 9, 10)) == {"S": "2022-09-10"}
 
 
@@ -94,11 +98,11 @@ class TestResponseConverter:
             {"S": "2022-09-10T00:00:00.000"}, function="DATETIME"
         ) == datetime(2022, 9, 10)
         assert converter.deserialize(
-            {"S": "2022-09-10"}, function="DATETIME",
+            {"S": "2022-09-10"},
+            function="DATETIME",
         ) == datetime(2022, 9, 10)
         assert converter.deserialize(
-            {"S": "2022/09/10"}, function="DATE",
-            function_params=["%Y/%m/%d"]
+            {"S": "2022/09/10"}, function="DATE", function_params=["%Y/%m/%d"]
         ) == date(2022, 9, 10)
 
     def test_deserializer_number(self, converter):
@@ -169,8 +173,8 @@ class TestResponseConverter:
         }
 
     def test_deserializer_null(self, converter):
-        assert converter.deserialize({"NULL": True}) == True
+        assert converter.deserialize({"NULL": True})
 
     def test_deserializer_bool(self, converter):
-        assert converter.deserialize({"BOOL": True}) == True
-        assert converter.deserialize({"BOOL": False}) == False
+        assert converter.deserialize({"BOOL": True})
+        assert not converter.deserialize({"BOOL": False})

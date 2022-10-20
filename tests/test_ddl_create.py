@@ -241,7 +241,7 @@ class TestDdlCreate:
             "ReplicationGroup": [
                 {"RegionName": "us-east-1"},
                 {"RegionName": "us-west-2"},
-            ]
+            ],
         }
         assert ret == expected_ret
 
@@ -256,6 +256,6 @@ class TestDdlCreate:
             "GlobalTableName": "Issues",
             "ReplicationGroup": [
                 {"RegionName": "us-east-1"},
-            ]
+            ],
         }
         assert ret == expected_ret

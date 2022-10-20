@@ -40,13 +40,22 @@ def boto3_connect():
 
 
 def create_engine(**kwargs):
-    from pydynamodb import sqlalchemy_dynamodb
+    from pydynamodb import sqlalchemy_dynamodb  # noqa
 
     if ENV.use_local_ddb:
-        conn_str = (
-            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.amazonaws.com:443"
-            + "?endpoint_url={endpoint_url}"
-        )
+        connector = kwargs.get("connector", None)
+        if connector == "superset":
+            conn_str = (
+                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+                + "@dynamodb.{region_name}.amazonaws.com:443"
+                + "?endpoint_url={endpoint_url}&connector=superset"
+            )
+        else:
+            conn_str = (
+                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+                + "@dynamodb.{region_name}.amazonaws.com:443"
+                + "?endpoint_url={endpoint_url}"
+            )
 
         conn_str = conn_str.format(
             aws_access_key_id="NA",
@@ -56,10 +65,19 @@ def create_engine(**kwargs):
             **kwargs,
         )
     else:
-        conn_str = (
-            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region_name}.amazonaws.com:443"
-            + "?verify=false"
-        )
+        connector = kwargs.get("connector", None)
+        if connector == "superset":
+            conn_str = (
+                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+                + "@dynamodb.{region_name}.amazonaws.com:443"
+                + "?verify=false&connector=superset"
+            )
+        else:
+            conn_str = (
+                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+                + "@dynamodb.{region_name}.amazonaws.com:443"
+                + "?verify=false"
+            )
 
         conn_str = conn_str.format(
             aws_access_key_id=ENV.aws_access_key_id,
@@ -170,6 +188,7 @@ def dict_cursor(request):
 
     yield from _cursor(DictCursor, request)
 
+
 @pytest.fixture
 def superset_cursor(request):
     from pydynamodb.superset_dynamodb.pydnamodb import SupersetCursor
@@ -182,6 +201,16 @@ def engine(request):
     if not hasattr(request, "param"):
         setattr(request, "param", {})
     engine_ = create_engine(**request.param)
+    try:
+        with contextlib.closing(engine_.connect()) as conn:
+            yield engine_, conn
+    finally:
+        engine_.dispose()
+
+
+@pytest.fixture
+def superset_engine(request):
+    engine_ = create_engine(connector="superset")
     try:
         with contextlib.closing(engine_.connect()) as conn:
             yield engine_, conn
