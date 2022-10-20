@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from .converter import Converter
 from .cursor import BaseCursor, Cursor
 from .error import NotSupportedError
-from .util import RetryConfig
+from .util import RetryConfig, retry_api_call
 
 
 if TYPE_CHECKING:
@@ -164,3 +164,19 @@ class Connection:
 
     def rollback(self) -> None:
         raise NotSupportedError
+
+    def test_connection(self) -> bool:
+        request: Dict[str, Any] = {"Limit": 1}
+
+        try:
+            retry_api_call(
+                self._client.list_tables,
+                config=self._retry_config,
+                logger=_logger,
+                **request,
+            )
+        except Exception as e:
+            _logger.exception("Failed to connect database: %s" % repr(e))
+            return False
+        else:
+            return True

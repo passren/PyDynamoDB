@@ -44,10 +44,14 @@ Features
 * Compatible with DB API 2.0 Specification
 * PartiQL for DML operations (INSERT, UPDATE, DELETE, SELECT)
 * Limit supported in SELECT statement
+* Extra functions (DATE, DATETIME, NUMBER, BOOL) supported in SELECT statement
+* Nested SELECT statement for alias supported
 * MySQL-Like statements for DDL operations (CREATE TABLE, ALTER TABLE, DROP TABLE)
 * MySQL-Like statements for Utility operations (LIST/SHOW TABLES, DESC TABLE)
-* Auto data type conversion for parameters and result set
+* Auto data type conversion for parameters and result set (Including date and datetime)
 * Transaction and Batch operations
+* SQLAlchemy dialect provided
+* Compatible for Superset SQL Lab and graphing
 
 
 Requirements
@@ -128,6 +132,7 @@ and deserialize the response to Python built-in types.
 .. code:: python
 
     from pydynamodb import connect
+    from datetime import date, datetime
     cursor = connect(aws_access_key_id="aws_access_key_id",
                     aws_secret_access_key="aws_secret_access_key"
                      region_name="region_name").cursor()
@@ -135,12 +140,14 @@ and deserialize the response to Python built-in types.
                         'partition_key' = ?, 'sort_key' = ?, 'col_str' = ?,
                         'col_num' = ?, 'col_byte' = ?, 'col_ss' = ?,
                         'col_ns' = ?, 'col_bs' = ?, 'col_list' = ?,
-                        'col_map' = ?, 'col_nested' = ?
+                        'col_map' = ?, 'col_nested' = ?,
+                        'col_date' = ?, 'col_datetime' = ?
                     }""", ["pkey_value", "skey_value", "str", 100, b"ABC", # String, Number, Bytes
                             {"str", "str"}, {100, 100}, {b"A", b"B"}, # String/Numnber/Bytes Set
                             ["str", 100, b"ABC"],  # List
                             {"key1": "val", "key2": "val"}, # Map
-                            ["str", 100, {"key1": "val"}] # Nested Structure
+                            ["str", 100, {"key1": "val"}], # Nested Structure
+                            date(2022, 10, 18), datetime(2022, 10, 18, 13, 55, 34), # Date and Datetime Type
                         ])
 
     cursor.execute('SELECT * FROM "ddb_table_name" WHERE partition_key = ?', ["key_value"])

@@ -15,11 +15,12 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 
 class SQLParser(metaclass=ABCMeta):
-    def __init__(self, statement: str = "") -> None:
+    def __init__(self, statement: str = "", parser_class: Base = None) -> None:
         self._statement = statement
         self._query_type = None
         self._query_category = None
         self._operation_type = None
+        self._parser_class = parser_class
         self._parser = None
 
     @property
@@ -60,7 +61,11 @@ class SQLParser(metaclass=ABCMeta):
     @property
     def parser(self) -> Base:
         if self._parser is None:
-            self._parser = self._get_parse_class()(self.statement)
+            if self._parser_class is None:
+                self._parser = self._get_parse_class()(self.statement)
+            else:
+                self._parser = self._parser_class(self.statement)
+
         return self._parser
 
     def _get_parse_class(self) -> Base:
@@ -99,4 +104,5 @@ class SQLParser(metaclass=ABCMeta):
         return _parse_class
 
     def transform(self) -> Dict[str, Any]:
+        assert self.parser is not None, "Parser not found."
         return self.parser.transform()

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import ast
-from .sql.common import FUNC_STR_TO_DATE, FUNC_STR_TO_DATETIME
+from .sql.common import Functions
 from datetime import datetime, date
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, Optional, Set, List, Union, Type
@@ -133,9 +133,9 @@ class Deserializer(metaclass=ABCMeta):
     def _to_string(self, value: Optional[Any], **kwargs) -> Optional[Any]:
         function_ = kwargs.get("function", None)
 
-        if function_ == FUNC_STR_TO_DATE:
+        if function_ == Functions.DATE:
             return self._to_date(value, **kwargs)
-        elif function_ == FUNC_STR_TO_DATETIME:
+        elif function_ == Functions.DATETIME:
             return self._to_datetime(value, **kwargs)
         else:
             return value

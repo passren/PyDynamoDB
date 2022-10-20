@@ -35,28 +35,7 @@ class DmlBase(Base):
         "column_name"
     )
 
-    _COLUMN = KeyWords.FUNCTION_ON_COLUMN + KeyWords.LPAR + Opt(
-        KeyWords.SUPPRESS_QUOTE
-    ) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE) + ZeroOrMore(
-        KeyWords.COMMA
-        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
-    )(
-        "function_params"
-    ).set_name(
-        "function_params"
-    ) + KeyWords.RPAR | Opt(
-        KeyWords.SUPPRESS_QUOTE
-    ) + _COLUMN_NAME + Opt(
-        KeyWords.SUPPRESS_QUOTE
-    )
-
-    _ALIAS = (
-        Opt(KeyWords.SUPPRESS_QUOTE)
-        + (Word(alphanums + "_-"))("alias").set_name("alias")
-        + Opt(KeyWords.SUPPRESS_QUOTE)
-    )
-
-    _ALIASES = delimited_list(_ALIAS)("aliases").set_name("aliases")
+    _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
 
     _COLUMNS = delimited_list(
         Group(

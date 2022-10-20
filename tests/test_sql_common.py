@@ -43,7 +43,7 @@ class TestSQLCommon:
         assert (
             get_query_type(
                 """
-            alter 
+            alter
             table issues (
                 issueid numeric partition key,
             )****
@@ -68,7 +68,7 @@ class TestSQLCommon:
         assert (
             get_query_type(
                 """
-            drop 
+            drop
             table issues
             """
             )

@@ -40,11 +40,9 @@ class TestDdlDrop:
         assert ret == {
             "GlobalTableName": "Issues",
             "ReplicaUpdates": [
-                {
-                    "Delete": {"RegionName": "us-east-1"}
-                }, {
-                    "Delete": {"RegionName": "us-west-2"}
-                }]
+                {"Delete": {"RegionName": "us-east-1"}},
+                {"Delete": {"RegionName": "us-west-2"}},
+            ],
         }
 
         sql = """
@@ -56,8 +54,5 @@ class TestDdlDrop:
         assert parser.query_type == QueryType.DROP_GLOBAL
         assert ret == {
             "GlobalTableName": "Issues",
-            "ReplicaUpdates": [
-                {
-                    "Delete": {"RegionName": "us-east-1"}
-                }]
+            "ReplicaUpdates": [{"Delete": {"RegionName": "us-east-1"}}],
         }

@@ -3,8 +3,9 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, cast
 
 from .converter import Converter
-from .common import CursorIterator, Statements
-from .executor import dispatch_executor
+from .common import CursorIterator
+from .model import Statements, Metadata
+from .executor import BaseExecutor, dispatch_executor
 from .error import ProgrammingError
 from .util import RetryConfig
 
@@ -23,6 +24,7 @@ class DynamoDBResultSet(CursorIterator):
         arraysize: int,
         retry_config: RetryConfig,
         is_transaction: bool = False,
+        executor_class: BaseExecutor = None,
     ) -> None:
         super(DynamoDBResultSet, self).__init__(arraysize=arraysize)
         assert statements and len(statements) > 0, "Required statements not found."
@@ -30,7 +32,12 @@ class DynamoDBResultSet(CursorIterator):
         self._arraysize = arraysize
         self._statements = statements
         self._executor = dispatch_executor(
-            connection, converter, statements, retry_config, is_transaction
+            connection,
+            converter,
+            statements,
+            retry_config,
+            is_transaction,
+            executor_class=executor_class,
         )
         assert self._executor is not None, "Executor is not specified"
 
@@ -43,6 +50,10 @@ class DynamoDBResultSet(CursorIterator):
     @property
     def errors(self) -> List[Dict[str, str]]:
         return self._executor.errors
+
+    @property
+    def metadata(self) -> Optional[Metadata]:
+        return self._executor.metadata
 
     @property
     def description(

@@ -6,10 +6,10 @@ from abc import ABCMeta, abstractmethod
 from collections import deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, cast
 
-from .sql.common import QueryType
+from .sql.common import DdbDataTypes, DataTypes, Functions, QueryType
+from .sql.parser import SQLParser
 from .converter import Converter
-from .common import Statements, SQLParser
-from .model import Metadata, ColumnInfo
+from .model import Metadata, ColumnInfo, Statements
 from .error import OperationalError, DataError
 from .util import RetryConfig, retry_api_call
 
@@ -38,7 +38,7 @@ class BaseExecutor(metaclass=ABCMeta):
         self._next_token: Optional[str] = None
         self._metadata: Metadata = Metadata()
         self._is_predef_metadata: bool = False
-        self._rows: Deque[Dict[str, Optional[Any]]] = deque()
+        self._rows: Deque[Tuple[Any]] = deque()
         self._errors: List[Dict[str, str]] = list()
         self.pre_execute()
 
@@ -73,6 +73,9 @@ class BaseExecutor(metaclass=ABCMeta):
     def process_rows(self, response: Dict[str, Any]) -> None:
         raise NotImplementedError  # pragma: no cover
 
+    def post_execute(self):
+        pass  # pragma: no cover
+
     def _dispatch_api_call(
         self, api_call_func, request: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -90,9 +93,9 @@ class BaseExecutor(metaclass=ABCMeta):
             return cast(Dict[str, Any], response)
 
     def close(self) -> None:
-        self._metadata.clear()
-        self._rows.clear()
-        self._errors.clear()
+        self._metadata = None
+        self._rows = None
+        self._errors = None
         self._next_token = None
 
     def __enter__(self):
@@ -108,41 +111,42 @@ def dispatch_executor(
     statements: Statements,
     retry_config: RetryConfig,
     is_transaction: bool = False,
+    executor_class: BaseExecutor = None,
 ) -> BaseExecutor:
     if statements is None or len(statements) == 0:
         return None
 
-    executor_class = None
-    if statements.query_type[0] == "DML":
-        if len(statements) > 1:
-            if is_transaction:
-                executor_class = DmlTransactionExecutor
+    if executor_class is None:
+        if statements.query_type[0] == "DML":
+            if len(statements) > 1:
+                if is_transaction:
+                    executor_class = DmlTransactionExecutor
+                else:
+                    executor_class = DmlBatchExecutor
             else:
-                executor_class = DmlBatchExecutor
+                executor_class = DmlStatementExecutor
+        elif statements.query_type == QueryType.CREATE:
+            executor_class = DdlCreateExecutor
+        elif statements.query_type == QueryType.ALTER:
+            executor_class = DdlAlterExecutor
+        elif statements.query_type == QueryType.DROP:
+            executor_class = DdlDropExecutor
+        elif statements.query_type == QueryType.LIST:
+            executor_class = UtilListTablesExecutor
+        elif statements.query_type == QueryType.DESC:
+            executor_class = UtilDescTableExecutor
+        elif statements.query_type == QueryType.CREATE_GLOBAL:
+            executor_class = DdlCreateGlobalExecutor
+        elif statements.query_type == QueryType.DROP_GLOBAL:
+            executor_class = DdlDropGlobalExecutor
+        elif statements.query_type == QueryType.LIST_GLOBAL:
+            executor_class = UtilListGlobalTablesExecutor
+        elif statements.query_type == QueryType.DESC_GLOBAL:
+            executor_class = UtilDescGlobalTableExecutor
         else:
-            executor_class = DmlStatementExecutor
-    elif statements.query_type == QueryType.CREATE:
-        executor_class = DdlCreateExecutor
-    elif statements.query_type == QueryType.ALTER:
-        executor_class = DdlAlterExecutor
-    elif statements.query_type == QueryType.DROP:
-        executor_class = DdlDropExecutor
-    elif statements.query_type == QueryType.LIST:
-        executor_class = UtilListTablesExecutor
-    elif statements.query_type == QueryType.DESC:
-        executor_class = UtilDescTableExecutor
-    elif statements.query_type == QueryType.CREATE_GLOBAL:
-        executor_class = DdlCreateGlobalExecutor
-    elif statements.query_type == QueryType.DROP_GLOBAL:
-        executor_class = DdlDropGlobalExecutor
-    elif statements.query_type == QueryType.LIST_GLOBAL:
-        executor_class = UtilListGlobalTablesExecutor
-    elif statements.query_type == QueryType.DESC_GLOBAL:
-        executor_class = UtilDescGlobalTableExecutor
-    else:
-        raise LookupError(
-            "Not support executor for query type: %s" % str(statements.query_type)
-        )
+            raise LookupError(
+                "Not support executor for query type: %s" % str(statements.query_type)
+            )
 
     return executor_class(connection, converter, statements, retry_config)
 
@@ -155,6 +159,7 @@ class DmlStatementExecutor(BaseExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
+        self._statement = statements[0]
         super(DmlStatementExecutor, self).__init__(
             connection=connection,
             converter=converter,
@@ -163,8 +168,7 @@ class DmlStatementExecutor(BaseExecutor):
         )
 
     def execute(self, **kwargs) -> None:
-        statement_ = self._statements[0]
-        request = statement_.api_request
+        request = self._statement.api_request
 
         if self.next_token:
             request.update({"NextToken": self.next_token})
@@ -173,10 +177,14 @@ class DmlStatementExecutor(BaseExecutor):
             self.connection.client.execute_statement, request
         )
 
-        self._process_predef_metadata(statement_.sql_parser)
-        self.process_rows(response)
+        try:
+            self.process_rows(response)
+        finally:
+            self.post_execute()
 
     def process_rows(self, response: Dict[str, Any]) -> None:
+        self._process_predef_metadata(self._statement.sql_parser)
+
         rows = response.get("Items", None)
         if rows is None:
             raise DataError("KeyError `Items`")
@@ -186,13 +194,13 @@ class DmlStatementExecutor(BaseExecutor):
             if self._is_predef_metadata:
                 row_ = self._process_predef_row_item(row)
             else:
-                row_ = self._process_row_item(row)
+                row_ = self._process_undef_row_item(row)
             processed_rows.append(row_)
 
         self._rows.extend(processed_rows)
         self._next_token = response.get("NextToken", None)
 
-    def _process_row_item(self, row) -> Optional[Tuple]:
+    def _process_undef_row_item(self, row) -> Optional[Tuple]:
         row_ = dict()
         for col, val in row.items():
             type_ = next(iter(val.keys()))
@@ -209,8 +217,14 @@ class DmlStatementExecutor(BaseExecutor):
         return tuple(row__)
 
     def _process_metadata(self, col_name: str, type: str) -> int:
+        type_ = DataTypes.STRING
+        if type == DdbDataTypes.NULL or type == DdbDataTypes.BOOLEAN:
+            type_ = DataTypes.BOOL
+        elif type == DdbDataTypes.NUMBER:
+            type_ = DataTypes.NUMBER
+
         if col_name not in self._metadata:
-            self._metadata.update(ColumnInfo(col_name, col_name, type_code=type))
+            self._metadata.update(ColumnInfo(col_name, col_name, type_code=type_))
 
         return self._metadata.index(col_name)
 
@@ -236,12 +250,19 @@ class DmlStatementExecutor(BaseExecutor):
         if sql_parser.query_type == QueryType.SELECT:
             if not sql_parser.parser.is_star_column:
                 for column in sql_parser.parser.columns:
+                    type_ = DataTypes.STRING
+                    if column.function is not None:
+                        function_name = column.function.name
+                        if function_name in Functions.TYPE_CONVERSION:
+                            type_ = function_name
+
                     self._metadata.update(
                         ColumnInfo(
-                            column.response_name,
+                            column.result_name,
                             column.request_name,
                             column.alias,
                             function=column.function,
+                            type_code=type_,
                         )
                     )
                 self._is_predef_metadata = True
@@ -273,6 +294,7 @@ class DmlBatchExecutor(DmlStatementExecutor):
             self.connection.client.batch_execute_statement, request
         )
         self.process_rows(response)
+        self.post_execute()
 
     def process_rows(self, response: Dict[str, Any]) -> None:
         rows = response.get("Responses", None)
@@ -330,6 +352,7 @@ class DmlTransactionExecutor(DmlBatchExecutor):
             self.connection.client.execute_transaction, request
         )
         self.process_rows(response)
+        self.post_execute()
 
 
 class DdlExecutor(BaseExecutor):
@@ -383,6 +406,7 @@ class DdlCreateExecutor(DdlExecutor):
 
         response = self._dispatch_api_call(self.connection.client.create_table, request)
         self.process_rows(response)
+        self.post_execute()
 
 
 class DdlAlterExecutor(DdlExecutor):
@@ -406,6 +430,7 @@ class DdlAlterExecutor(DdlExecutor):
 
         response = self._dispatch_api_call(self.connection.client.update_table, request)
         self.process_rows(response)
+        self.post_execute()
 
 
 class DdlDropExecutor(DdlExecutor):
@@ -429,6 +454,7 @@ class DdlDropExecutor(DdlExecutor):
 
         response = self._dispatch_api_call(self.connection.client.delete_table, request)
         self.process_rows(response)
+        self.post_execute()
 
 
 class DdlCreateGlobalExecutor(DdlExecutor):
@@ -454,6 +480,7 @@ class DdlCreateGlobalExecutor(DdlExecutor):
             self.connection.client.create_global_table, request
         )
         self.process_rows(response)
+        self.post_execute()
 
 
 class DdlDropGlobalExecutor(DdlExecutor):
@@ -479,6 +506,7 @@ class DdlDropGlobalExecutor(DdlExecutor):
             self.connection.client.update_global_table, request
         )
         self.process_rows(response)
+        self.post_execute()
 
 
 class UtilListTablesExecutor(BaseExecutor):
@@ -505,6 +533,7 @@ class UtilListTablesExecutor(BaseExecutor):
 
         response = self._dispatch_api_call(self.connection.client.list_tables, request)
         self.process_rows(response)
+        self.post_execute()
 
     def process_rows(self, response: Dict[str, Any]) -> None:
         tables = response.get("TableNames", None)
@@ -539,6 +568,7 @@ class UtilDescTableExecutor(DdlExecutor):
             self.connection.client.describe_table, request
         )
         self.process_rows(response)
+        self.post_execute()
 
 
 class UtilListGlobalTablesExecutor(BaseExecutor):
@@ -567,6 +597,7 @@ class UtilListGlobalTablesExecutor(BaseExecutor):
             self.connection.client.list_global_tables, request
         )
         self.process_rows(response)
+        self.post_execute()
 
     def process_rows(self, response: Dict[str, Any]) -> None:
         tables = response.get("GlobalTables", None)

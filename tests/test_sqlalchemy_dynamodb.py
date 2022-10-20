@@ -8,6 +8,7 @@ Base = declarative_base()
 
 TESTCASE02_TABLE = "pydynamodb_test_case02"
 
+
 # Declarative Mapping
 class _TestCase02(Base):
     __tablename__ = TESTCASE02_TABLE
@@ -23,7 +24,7 @@ class _TestCase02(Base):
 class TestSQLAlchemyDynamoDB:
     def test_ping(self, engine):
         engine, conn = engine
-        conn = engine.raw_connection()
+        conn = engine.raw_connection().dbapi_connection
         assert engine.dialect.do_ping(conn)
 
     def test_basic_insert(self, engine):
@@ -32,7 +33,7 @@ class TestSQLAlchemyDynamoDB:
         sql_one_row_1_0_ = (
             """
         INSERT INTO %s VALUE {
-            'key_partition': :pk, 'key_sort': :sk, 
+            'key_partition': :pk, 'key_sort': :sk,
             'col_str': :col1, 'col_num': :col2, 'col_byte': :col3
         }
         """
@@ -53,7 +54,7 @@ class TestSQLAlchemyDynamoDB:
         sql_many_rows_ = (
             """
         INSERT INTO %s VALUE {
-            'key_partition': :pk, 'key_sort': :sk, 
+            'key_partition': :pk, 'key_sort': :sk,
             'col_str': :col1, 'col_num': :col2, 'col_byte': :col3
         }
         """
@@ -97,7 +98,7 @@ class TestSQLAlchemyDynamoDB:
         sql_one_row_2_0_ = (
             """
         INSERT INTO "%s" VALUE {
-            'key_partition': :pk, 'key_sort': :sk, 
+            'key_partition': :pk, 'key_sort': :sk,
             'col_str': :col1, 'col_nested': :col2
         }
         """
@@ -146,7 +147,7 @@ class TestSQLAlchemyDynamoDB:
         engine, conn = engine
         sql_one_row_1_0_ = (
             """
-        UPDATE "%s" 
+        UPDATE "%s"
         SET col_str=:col1
         SET col_num=:col2
         WHERE key_partition=:pk AND key_sort=:sk
@@ -223,7 +224,7 @@ class TestSQLAlchemyDynamoDB:
             "Key3": "Val3",
         }
 
-    def test_has_table(self, engine):
+    def test_has_table_1(self, engine):
         engine, conn = engine
         table = Table(
             "NOT_EXISTED_TABLE",
@@ -231,7 +232,7 @@ class TestSQLAlchemyDynamoDB:
             Column("key_partition", String, nullable=False),
         )
         try:
-            rows = conn.execute(table.select()).fetchall()
+            conn.execute(table.select()).fetchall()
             assert False
         except Exception as e:
             assert e is not None
@@ -277,11 +278,11 @@ class TestSQLAlchemyDynamoDB:
             ).all()
             assert len(rows3) == 0
 
-    def test_has_table(self, engine):
+    def test_has_table_2(self, engine):
         engine, conn = engine
 
-        assert engine.dialect.has_table(conn, TESTCASE02_TABLE) == True
-        assert engine.dialect.has_table(conn, "NOT_EXISTED_TABLE") == False
+        assert engine.dialect.has_table(conn, TESTCASE02_TABLE)
+        assert not engine.dialect.has_table(conn, "NOT_EXISTED_TABLE")
 
     def test_get_columns(self, engine):
         engine, conn = engine

@@ -6,7 +6,7 @@ from .error import *  # noqa
 if TYPE_CHECKING:
     from .connection import Connection
 
-__version__: str = "0.4.1"
+__version__: str = "0.4.2"
 
 # Globals https://www.python.org/dev/peps/pep-0249/#globals
 apilevel: str = "2.0"
@@ -37,19 +37,24 @@ class DBAPITypeObject(FrozenSet[str]):
 
 
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.NamingRulesDataTypes.html
-STRING: DBAPITypeObject = DBAPITypeObject(("S",))
-BINARY: DBAPITypeObject = DBAPITypeObject(("B",))
+STRING: DBAPITypeObject = DBAPITypeObject(("STRING",))
+BINARY: DBAPITypeObject = DBAPITypeObject(("STRING",))
 BOOLEAN: DBAPITypeObject = DBAPITypeObject(
     (
         "BOOL",
         "NULL",
     )
 )
-NUMBER: DBAPITypeObject = DBAPITypeObject(("N",))
-JSON: DBAPITypeObject = DBAPITypeObject(("M", "L", "SS", "NS", "BS"))
+NUMBER: DBAPITypeObject = DBAPITypeObject(("NUMBER",))
+JSON: DBAPITypeObject = DBAPITypeObject(("STRING",))
 
 
 def connect(*args, **kwargs) -> "Connection":
     from .connection import Connection
+    from .superset_dynamodb.pydnamodb import SupersetCursor
+
+    connector = kwargs.get("connector", None)
+    if connector is not None and connector.lower() == "superset":
+        kwargs.update({"cursor_class": SupersetCursor})
 
     return Connection(*args, **kwargs)

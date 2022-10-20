@@ -35,7 +35,8 @@ from abc import ABCMeta
 import logging
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
-from pyparsing import Opt, Forward, ParseResults
+from .util import flatten_list
+from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list
 from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -46,12 +47,12 @@ class DmlSelectColumn(metaclass=ABCMeta):
         self,
         request_name: str,
         alias: str = None,
-        response_name: str = None,
+        result_name: str = None,
         function: DmlFunction = None,
     ) -> None:
         self._request_name = request_name
         self._alias = alias
-        self._response_name = response_name
+        self._result_name = result_name
         self._function = function
 
     @property
@@ -67,24 +68,24 @@ class DmlSelectColumn(metaclass=ABCMeta):
         self._alias = value
 
     @property
-    def response_name(self) -> str:
-        if self._response_name is not None:
-            return self._response_name
+    def result_name(self) -> str:
+        if self._result_name is not None:
+            return self._result_name
 
         if self.request_name is not None:
-            self._response_name = self.request_name.split(".")[-1]
+            self._result_name = self.request_name.split(".")[-1]
 
-        return self._response_name
+        return self._result_name
 
     @property
     def function(self) -> DmlFunction:
         return self._function
 
     def __str__(self):
-        return "(request_name: %s, alias: %s, response_name: %s, function: %s)" % (
+        return "(request_name: %s, alias: %s, result_name: %s, function: %s)" % (
             self.request_name,
             self.alias,
-            self.response_name,
+            self.result_name,
             self.function.name if self.function is not None else None,
         )
 
@@ -92,9 +93,33 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
 
 class DmlSelect(DmlBase):
+    _REQUEST_COLUMN = KeyWords.FUNCTION_ON_COLUMN + KeyWords.LPAR + Opt(
+        KeyWords.SUPPRESS_QUOTE
+    ) + DmlBase._COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE) + ZeroOrMore(
+        KeyWords.COMMA
+        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
+    )(
+        "function_params"
+    ).set_name(
+        "function_params"
+    ) + KeyWords.RPAR | Opt(
+        KeyWords.SUPPRESS_QUOTE
+    ) + DmlBase._COLUMN_NAME + Opt(
+        KeyWords.SUPPRESS_QUOTE
+    )
+
+    _REQUEST_COLUMNS = delimited_list(
+        Group(
+            _REQUEST_COLUMN
+            + ZeroOrMore(Group(KeyWords.ARITHMETIC_OPERATORS + _REQUEST_COLUMN))(
+                "column_ops"
+            ).set_name("column_ops")
+        )
+    )("columns").set_name("columns")
+
     _SELECT_STATEMENT = (
         KeyWords.SELECT
-        + DmlBase._COLUMNS
+        + _REQUEST_COLUMNS
         + KeyWords.FROM
         + Tokens.TABLE_NAME
         + Opt(KeyWords.DOT + Tokens.INDEX_NAME)
@@ -103,18 +128,8 @@ class DmlSelect(DmlBase):
         + Opt(DmlBase._OPTIONS)
     )("select_statement").set_name("select_statement")
 
-    _NESTED_SELECT_STATEMENT = (
-        KeyWords.SELECT
-        + DmlBase._ALIASES
-        + KeyWords.FROM
-        + KeyWords.LPAR
-        + _SELECT_STATEMENT
-        + KeyWords.RPAR
-        | _SELECT_STATEMENT
-    )("nested_select_statement").set_name("nested_select_statement")
-
     _DML_SELECT_EXPR = Forward()
-    _DML_SELECT_EXPR <<= _NESTED_SELECT_STATEMENT
+    _DML_SELECT_EXPR <<= _SELECT_STATEMENT
 
     def __init__(self, statement: str) -> None:
         super(DmlSelect, self).__init__(statement)
@@ -148,9 +163,8 @@ class DmlSelect(DmlBase):
         where_conditions_ = self.root_parse_results.get("where_conditions", None)
         if where_conditions_ is not None:
             where_conditions_ = where_conditions_.as_list()
-            flatted_list = list()
-            self._construct_where_conditions(where_conditions_, flatted_list)
-            where_conditions_ = "WHERE %s" % " ".join(flatted_list)
+            flatted_where = " ".join(str(c) for c in flatten_list(where_conditions_))
+            where_conditions_ = "WHERE %s" % flatted_where
         else:
             where_conditions_ = ""
 
@@ -160,10 +174,6 @@ class DmlSelect(DmlBase):
             raw_supported_options_ = " ".join(raw_supported_options_)
         else:
             raw_supported_options_ = ""
-
-        outer_aliases = self.root_parse_results.get("aliases", None)
-        if outer_aliases is not None:
-            self._construct_columns_alias(outer_aliases)
 
         request = dict()
         statement_ = "SELECT {columns} FROM {table} {where_conditions} {options}"
@@ -214,33 +224,6 @@ class DmlSelect(DmlBase):
             self._columns.append(DmlSelectColumn(column__, function=column_function_))
         columns_ = ",".join(columns_)
         return columns_
-
-    def _construct_columns_alias(self, columns_alias: ParseResults) -> None:
-        assert len(columns_alias) <= len(
-            self._columns
-        ), "Alias count should be larger than requested columns"
-
-        for i, alias in enumerate(columns_alias):
-            self._columns[i].alias = alias
-
-    def _construct_where_conditions(
-        self, conditions: List[Any], flatted: List[str]
-    ) -> List[str]:
-        if flatted is None:
-            flatted = list()
-
-        for c in conditions:
-            if isinstance(c, list):
-                if len(c) > 2 and c[0] == "[" and c[-1] == "]":
-                    flatted.append(
-                        "[%s]" % (",".join(str(c[i]) for i in range(1, len(c) - 1)))
-                    )
-                    return flatted
-
-                self._construct_where_conditions(c, flatted)
-            else:
-                flatted.append(str(c))
-        return flatted
 
     def _construct_raw_options(self, options: List[Any]) -> Optional[List[Any]]:
         converted_ = None
