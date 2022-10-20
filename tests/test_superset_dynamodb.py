@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
-from pydynamodb.superset.dml_select import SupersetSelect
+from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
 
 TESTCASE04_TABLE = "pydynamodb_test_case04"
 
