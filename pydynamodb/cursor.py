@@ -80,7 +80,9 @@ class Cursor(BaseCursor, CursorIterator):
 
     @synchronized
     def execute_statement(
-        self: _T, statement: Statement, parameters: Optional[List[Dict[str, Any]]] = None
+        self: _T,
+        statement: Statement,
+        parameters: Optional[List[Dict[str, Any]]] = None,
     ) -> _T:
         try:
             if parameters:

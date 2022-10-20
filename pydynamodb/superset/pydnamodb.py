@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import sqlite3
-import contextlib
 from typing import TYPE_CHECKING, Dict, Any, List, Tuple, Optional
 
 from .dml_select import SupersetSelect
@@ -30,9 +29,7 @@ class SupersetCursor(Cursor):
         self: Cursor, operation: str, parameters: Optional[List[Dict[str, Any]]] = None
     ) -> Cursor:
         statement = Statement(operation, SupersetSelect)
-        return self.execute_statement(
-            statement, parameters
-        )
+        return self.execute_statement(statement, parameters)
 
 
 class SupersetResultSet(DynamoDBResultSet):
@@ -138,9 +135,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
         )
 
     def _write_raw_data(
-        self,
-        metadata: Metadata,
-        raw_data: Optional[List[Tuple[Any]]]
+        self, metadata: Metadata, raw_data: Optional[List[Tuple[Any]]]
     ) -> None:
         columns = ",".join('"' + c + '"' for c in metadata.keys())
         values = ",".join("?" for c in metadata.keys())
