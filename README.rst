@@ -50,6 +50,8 @@ Features
 * MySQL-Like statements for Utility operations (LIST/SHOW TABLES, DESC TABLE)
 * Auto data type conversion for parameters and result set (Including date and datetime)
 * Transaction and Batch operations
+* SQLAlchemy dialect provided
+* Compatible for Superset SQL Lab and graphing
 
 
 Requirements
