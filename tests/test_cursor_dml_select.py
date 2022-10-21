@@ -117,3 +117,26 @@ class TestCursorDMLSelect:
             date(2022, 10, 18),
             datetime(2022, 10, 18, 13, 55, 34),
         )
+
+    def test_alias_in_columns(self, cursor):
+        cursor.execute(
+            """
+            SELECT col_list[1] list, col_map.A map-a FROM %s WHERE key_partition='row_1'
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 3
+        assert [d[0] for d in cursor.description] == ["list", "map-a"]
+
+        cursor.execute(
+            """
+            SELECT DATE(col_date, '%Y-%m-%d') col1,
+                    DATETIME(col_datetime) col2 FROM {0}
+            WHERE key_partition = ? AND key_sort = ?
+        """.format(
+                TESTCASE03_TABLE
+            ),
+            ["test_date_row_1", 0],
+        )
+        assert [d[0] for d in cursor.description] == ["col1", "col2"]

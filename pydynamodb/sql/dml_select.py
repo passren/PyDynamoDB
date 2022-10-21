@@ -31,12 +31,13 @@ LIMIT 10
 ConsistentRead False
 ReturnConsumedCapacity NONE
 """
-from abc import ABCMeta
 import logging
+import re
+from abc import ABCMeta
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
 from .util import flatten_list
-from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list
+from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list, Regex
 from typing import Any, Dict, List, Optional
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -108,12 +109,21 @@ class DmlSelect(DmlBase):
         KeyWords.SUPPRESS_QUOTE
     )
 
+    _ALIAS = (
+        Opt(KeyWords.SUPPRESS_QUOTE)
+        + DmlBase._ALIAS_NAME
+        + Opt(KeyWords.SUPPRESS_QUOTE)
+    )
+
     _REQUEST_COLUMNS = delimited_list(
         Group(
-            _REQUEST_COLUMN
+            Opt(KeyWords.LPAR)
+            + _REQUEST_COLUMN
             + ZeroOrMore(Group(KeyWords.ARITHMETIC_OPERATORS + _REQUEST_COLUMN))(
                 "column_ops"
             ).set_name("column_ops")
+            + Opt(KeyWords.RPAR)
+            + Opt(~Regex("FROM", flags=re.IGNORECASE) + _ALIAS)
         )
     )("columns").set_name("columns")
 
@@ -221,7 +231,11 @@ class DmlSelect(DmlBase):
                 else:
                     column_function_ = DmlFunction(function_)
 
-            self._columns.append(DmlSelectColumn(column__, function=column_function_))
+            alias_ = column.get("alias_name", None)
+
+            self._columns.append(
+                DmlSelectColumn(column__, function=column_function_, alias=alias_)
+            )
         columns_ = ",".join(columns_)
         return columns_
 

@@ -35,6 +35,8 @@ class DmlBase(Base):
         "column_name"
     )
 
+    _ALIAS_NAME = Word(alphanums + "_-")("alias_name").set_name("alias_name")
+
     _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
 
     _COLUMNS = delimited_list(

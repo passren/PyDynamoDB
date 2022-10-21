@@ -310,3 +310,21 @@ class TestSupersetDynamoDB:
             ("RP1", "2022-09-25", "2022-10-20 14:23:40", 11.0, 6.6, 2),
             ("RP", "2022-09-23", "2022-10-20 10:23:40", 10.0, 4.4, 4),
         ]
+
+    def test_sqlalchemy_execute_alias_select(self, superset_engine):
+        engine, conn = superset_engine
+        rows = conn.execute(
+            text(
+                """
+            SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
+                SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
+                FROM %s WHERE key_partition=:pk
+            ) AS virtual_table
+            GROUP BY "LST"
+            ORDER BY "LST" DESC
+            """
+                % TESTCASE04_TABLE
+            ),
+            {"pk": "row_1"},
+        ).fetchall()
+        assert len(rows) == 3

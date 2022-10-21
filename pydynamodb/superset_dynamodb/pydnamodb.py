@@ -140,11 +140,16 @@ class SupersetStatementExecutor(DmlStatementExecutor):
     def _write_raw_data(
         self, metadata: Metadata, raw_data: Optional[List[Tuple[Any]]]
     ) -> None:
-        columns = ",".join('"' + c + '"' for c in metadata.keys())
-        values = ",".join("?" for c in metadata.keys())
+        columns = list()
+        values = list()
+        for col_info in metadata:
+            col_name = col_info.alias if col_info.alias is not None else col_info.name
+            columns.append('"' + col_name + '"')
+            values.append("?")
 
         self.sqlite_conn.executemany(
-            "INSERT INTO %s (%s) VALUES (%s)" % (self._superset_table, columns, values),
+            "INSERT INTO %s (%s) VALUES (%s)"
+            % (self._superset_table, ",".join(columns), ",".join(values)),
             [r for r in raw_data],
         )
         self.sqlite_conn.commit()
