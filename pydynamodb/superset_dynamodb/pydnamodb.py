@@ -42,6 +42,7 @@ class SupersetResultSet(DynamoDBResultSet):
         retry_config: RetryConfig,
         is_transaction: bool = False,
         executor_class: BaseExecutor = None,
+        **kwargs
     ) -> None:
         super().__init__(
             connection=connection,
@@ -51,6 +52,7 @@ class SupersetResultSet(DynamoDBResultSet):
             retry_config=retry_config,
             is_transaction=is_transaction,
             executor_class=SupersetStatementExecutor,
+            **kwargs
         )
 
 
@@ -61,6 +63,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs
     ) -> None:
         self._superset_table = "SUPERSET_QUERY"
         self._sqlite_conn = None
@@ -69,6 +72,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs
         )
 
     @property

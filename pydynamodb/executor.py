@@ -26,6 +26,7 @@ class BaseExecutor(metaclass=ABCMeta):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         self._connection: Optional["Connection"] = connection
         self._converter = converter
@@ -40,6 +41,7 @@ class BaseExecutor(metaclass=ABCMeta):
         self._is_predef_metadata: bool = False
         self._rows: Deque[Tuple[Any]] = deque()
         self._errors: List[Dict[str, str]] = list()
+        self._kwargs = kwargs
         self.pre_execute()
 
     @property
@@ -66,7 +68,7 @@ class BaseExecutor(metaclass=ABCMeta):
         self.execute()
 
     @abstractmethod
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         raise NotImplementedError  # pragma: no cover
 
     @abstractmethod
@@ -112,6 +114,7 @@ def dispatch_executor(
     retry_config: RetryConfig,
     is_transaction: bool = False,
     executor_class: BaseExecutor = None,
+    **kwargs,
 ) -> BaseExecutor:
     if statements is None or len(statements) == 0:
         return None
@@ -148,7 +151,7 @@ def dispatch_executor(
                 "Not support executor for query type: %s" % str(statements.query_type)
             )
 
-    return executor_class(connection, converter, statements, retry_config)
+    return executor_class(connection, converter, statements, retry_config, **kwargs)
 
 
 class DmlStatementExecutor(BaseExecutor):
@@ -158,6 +161,7 @@ class DmlStatementExecutor(BaseExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         self._statement = statements[0]
         super().__init__(
@@ -165,9 +169,10 @@ class DmlStatementExecutor(BaseExecutor):
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         request = self._statement.api_request
 
         if self.next_token:
@@ -277,15 +282,17 @@ class DmlBatchExecutor(DmlStatementExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         request = {
             "Statements": [statement_.api_request for statement_ in self._statements]
         }
@@ -315,11 +322,12 @@ class DmlBatchExecutor(DmlStatementExecutor):
 
             item = row.get("Item", None)
             if item:
-                row_ = self._process_row_item(item)
+                row_ = self._process_undef_row_item(item)
                 processed_rows.append(row_)
 
         self._errors.extend(processed_error_rows)
         self._rows.extend(processed_rows)
+        self._next_token = response.get("NextToken", None)
 
 
 class DmlTransactionExecutor(DmlBatchExecutor):
@@ -329,24 +337,25 @@ class DmlTransactionExecutor(DmlBatchExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         request = {
             "TransactStatements": [
                 statement_.api_request for statement_ in self._statements
             ]
         }
 
-        next_token = kwargs.get("NextToken", None)
-        if next_token:
-            request.update({"ClientRequestToken": next_token})
+        if self.next_token:
+            request.update({"ClientRequestToken": self.next_token})
 
         response = self._dispatch_api_call(
             self.connection.client.execute_transaction, request
@@ -362,12 +371,14 @@ class DdlExecutor(BaseExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
     def process_rows(self, response: Dict[str, Any]) -> None:
@@ -392,15 +403,17 @@ class DdlCreateExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -416,15 +429,17 @@ class DdlAlterExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -440,15 +455,17 @@ class DdlDropExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -464,15 +481,17 @@ class DdlCreateGlobalExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -490,15 +509,17 @@ class DdlDropGlobalExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -516,15 +537,17 @@ class UtilListTablesExecutor(BaseExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -552,15 +575,17 @@ class UtilDescTableExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -578,15 +603,17 @@ class UtilListGlobalTablesExecutor(BaseExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
@@ -621,15 +648,17 @@ class UtilDescGlobalTableExecutor(DdlExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs,
     ) -> None:
         super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs,
         )
 
-    def execute(self, **kwargs) -> None:
+    def execute(self) -> None:
         statement_ = self._statements[0]
         request = statement_.api_request
 
