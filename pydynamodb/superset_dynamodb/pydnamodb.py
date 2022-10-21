@@ -100,11 +100,18 @@ class SupersetStatementExecutor(DmlStatementExecutor):
             self.sqlite_conn.close()
 
     def _load_into_memory_db(self, ddb_result_set: DynamoDBResultSet) -> None:
-        raw_data = ddb_result_set.fetchall()
+        self._create_query_table(ddb_result_set.metadata)
 
-        if len(raw_data) > 0:
-            self._create_query_table(ddb_result_set.metadata)
-        self._write_raw_data(ddb_result_set.metadata, raw_data)
+        FETCH_SIZE = 200
+        raw_data = ddb_result_set.fetchmany(FETCH_SIZE)
+
+        while True:
+            if len(raw_data) > 0:
+                self._write_raw_data(ddb_result_set.metadata, raw_data)
+
+                raw_data = ddb_result_set.fetchmany(FETCH_SIZE)
+            else:
+                break
 
         parser = self._statement.sql_parser.parser
         superset_sql = "SELECT %s FROM %s %s" % (
