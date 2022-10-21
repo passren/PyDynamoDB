@@ -10,7 +10,7 @@ FROM table[.index]
 Extension of PartiQL:
 ---------------------
 Add Limit, ConsistentRead, ReturnConsumedCapacity options to the tailing
-SELECT expression  [, ...]
+SELECT [expression | function(expression)] [alias]  [, ...]
 FROM table[.index]
 [ WHERE condition ]
 [ [ORDER BY key [DESC|ASC]]
