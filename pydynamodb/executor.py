@@ -160,7 +160,7 @@ class DmlStatementExecutor(BaseExecutor):
         retry_config: RetryConfig,
     ) -> None:
         self._statement = statements[0]
-        super(DmlStatementExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -278,7 +278,7 @@ class DmlBatchExecutor(DmlStatementExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DmlBatchExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -330,7 +330,7 @@ class DmlTransactionExecutor(DmlBatchExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DmlTransactionExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -363,7 +363,7 @@ class DdlExecutor(BaseExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DdlExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -393,7 +393,7 @@ class DdlCreateExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DdlCreateExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -417,7 +417,7 @@ class DdlAlterExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DdlAlterExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -441,7 +441,7 @@ class DdlDropExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DdlDropExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -465,7 +465,7 @@ class DdlCreateGlobalExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DdlCreateGlobalExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -491,7 +491,7 @@ class DdlDropGlobalExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(DdlDropGlobalExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -517,7 +517,7 @@ class UtilListTablesExecutor(BaseExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(UtilListTablesExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -553,7 +553,7 @@ class UtilDescTableExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(UtilDescTableExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -579,7 +579,7 @@ class UtilListGlobalTablesExecutor(BaseExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(UtilListGlobalTablesExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -622,7 +622,7 @@ class UtilDescGlobalTableExecutor(DdlExecutor):
         statements: Statements,
         retry_config: RetryConfig,
     ) -> None:
-        super(UtilDescGlobalTableExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,

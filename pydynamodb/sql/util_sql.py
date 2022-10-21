@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class UtilBase(Base):
     def __init__(self, statement: str) -> None:
-        super(UtilBase, self).__init__(statement)
+        super().__init__(statement)
 
 
 """
@@ -51,7 +51,7 @@ class UtilListTables(UtilBase):
     _UTIL_LIST_TABLES_EXPR <<= _LIST_TABLES_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        super(UtilListTables, self).__init__(statement)
+        super().__init__(statement)
         self._limit = None
 
     @property
@@ -110,7 +110,7 @@ class UtilDescTable(UtilBase):
     _DESC_TABLE_EXPR <<= _DESC_TABLE_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        super(UtilDescTable, self).__init__(statement)
+        super().__init__(statement)
 
     @property
     def syntax_def(self) -> Forward:

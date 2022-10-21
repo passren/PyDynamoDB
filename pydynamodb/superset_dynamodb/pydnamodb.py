@@ -21,7 +21,7 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class SupersetCursor(Cursor):
     def __init__(self, **kwargs) -> None:
-        super(SupersetCursor, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._result_set_class = SupersetResultSet
 
     @synchronized
@@ -43,7 +43,7 @@ class SupersetResultSet(DynamoDBResultSet):
         is_transaction: bool = False,
         executor_class: BaseExecutor = None,
     ) -> None:
-        super(SupersetResultSet, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -64,7 +64,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
     ) -> None:
         self._superset_table = "SUPERSET_QUERY"
         self._sqlite_conn = None
-        super(DmlStatementExecutor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -92,7 +92,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
                     cursor.execute_statement(self._statement)
                     self._load_into_memory_db(cursor.result_set)
             else:
-                super(SupersetStatementExecutor, self).execute(**kwargs)
+                super().execute(**kwargs)
         except Exception as e:
             _logger.exception("Failed to execute statement.")
             raise OperationalError(*e.args) from e

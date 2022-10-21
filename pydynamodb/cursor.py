@@ -25,7 +25,7 @@ class Cursor(BaseCursor, CursorIterator):
         retry_config: RetryConfig,
         **kwargs,
     ) -> None:
-        super(Cursor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             retry_config=retry_config,
@@ -194,7 +194,7 @@ class Cursor(BaseCursor, CursorIterator):
 
 class DictCursor(Cursor):
     def __init__(self, **kwargs) -> None:
-        super(DictCursor, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._result_set_class = DynamoDBDictResultSet
         if "dict_type" in kwargs:
             DynamoDBDictResultSet.dict_type = kwargs["dict_type"]

@@ -129,7 +129,7 @@ class DdlCreate(DdlBase):
     _DDL_CREATE_EXPR <<= _CREATE_TABLE_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        super(DdlCreate, self).__init__(statement)
+        super().__init__(statement)
 
     @property
     def syntax_def(self) -> Forward:

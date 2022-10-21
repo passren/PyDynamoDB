@@ -26,7 +26,7 @@ class DynamoDBResultSet(CursorIterator):
         is_transaction: bool = False,
         executor_class: BaseExecutor = None,
     ) -> None:
-        super(DynamoDBResultSet, self).__init__(arraysize=arraysize)
+        super().__init__(arraysize=arraysize)
         assert statements and len(statements) > 0, "Required statements not found."
         self._connection: Optional["Connection"] = connection
         self._arraysize = arraysize

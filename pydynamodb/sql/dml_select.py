@@ -132,7 +132,7 @@ class DmlSelect(DmlBase):
     _DML_SELECT_EXPR <<= _SELECT_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        super(DmlSelect, self).__init__(statement)
+        super().__init__(statement)
         self._columns = list()
         self._is_star_column = False
 

@@ -95,7 +95,7 @@ class DmlBase(Base):
     )("options").set_name("options")
 
     def __init__(self, statement: str) -> None:
-        super(DmlBase, self).__init__(statement)
+        super().__init__(statement)
         self._limit = None
         self._consistent_read = False
         self._return_consumed_capacity = "NONE"
