@@ -135,7 +135,7 @@ class Cursor(BaseCursor, CursorIterator):
                     self.arraysize,
                     self._retry_config,
                     is_transaction=True,
-                    **self._kwargs
+                    **self._kwargs,
                 )
             finally:
                 self._transaction_statements.clear()
@@ -152,7 +152,7 @@ class Cursor(BaseCursor, CursorIterator):
                     self.arraysize,
                     self._retry_config,
                     is_transaction=False,
-                    **self._kwargs
+                    **self._kwargs,
                 )
             finally:
                 self._statements.clear()
