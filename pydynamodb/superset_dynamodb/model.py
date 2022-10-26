@@ -1,0 +1,271 @@
+# -*- coding: utf-8 -*-
+import hashlib
+import logging
+from datetime import datetime
+from contextlib import closing
+from abc import ABCMeta, abstractmethod
+from typing import Tuple, Optional, Type, Any, List
+
+from ..sql.common import DataTypes, QueryType
+from ..model import Statement, Metadata
+from ..util import synchronized
+from ..error import NotSupportedError
+
+_logger = logging.getLogger(__name__)  # type: ignore
+
+
+DEFAULT_QUERYDB_TYPE = "sqlite"
+DEFAULT_QUERYDB_URL = ":memory:"
+DEFAULT_QUERYDB_LOAD_BATCH_SIZE = 200
+DEFAULT_QUERYDB_EXPIRE_TIME = 300
+
+
+SUPPORTED_QUERYDB_CONFIG = {
+    "querydb_type": ("PYDYNAMODB_QUERYDB_TYPE", DEFAULT_QUERYDB_TYPE),
+    "querydb_url": ("PYDYNAMODB_QUERYDB_URL", DEFAULT_QUERYDB_URL),
+    "querydb_load_batch_size": (
+        "PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE",
+        DEFAULT_QUERYDB_LOAD_BATCH_SIZE,
+    ),
+    "querydb_expire_time": (
+        "PYDYNAMODB_QUERYDB_EXPIRE_TIME",
+        DEFAULT_QUERYDB_EXPIRE_TIME,
+    ),
+}
+
+
+class QueryDBConfig:
+    def __init__(
+        self,
+        db_type: str,
+        db_url: str,
+        load_batch_size: int = DEFAULT_QUERYDB_LOAD_BATCH_SIZE,
+        expire_time: int = DEFAULT_QUERYDB_EXPIRE_TIME,
+    ):
+        self._db_type = db_type
+        self._db_url = db_url
+        self._load_batch_size = load_batch_size
+        self._expire_time = expire_time
+
+    @property
+    def db_type(self) -> str:
+        return self._db_type
+
+    @property
+    def db_url(self) -> str:
+        return self._db_url
+
+    @property
+    def load_batch_size(self) -> int:
+        return self._load_batch_size
+
+    @property
+    def expire_time(self) -> int:
+        return self._expire_time
+
+
+class QueryDB(metaclass=ABCMeta):
+
+    CACHE_TABLE = "QUERYDB_CACHES"
+
+    def __init__(
+        self,
+        statement: Statement,
+        config: QueryDBConfig,
+        **kwargs,
+    ) -> None:
+        self._config = config
+        self._statement = statement
+        self._kwargs = kwargs
+        self._query_id = None
+
+    @property
+    def statement(self) -> Statement:
+        return self._statement
+
+    @property
+    def config(self) -> QueryDBConfig:
+        return self._config
+
+    @property
+    def query_id(self) -> str:
+        if self._query_id is None:
+            sql_parser = self._statement.sql_parser
+            if sql_parser.query_type == QueryType.SELECT:
+                columns = ",".join([str(c) for c in sql_parser.parser.columns])
+                hash_key = str(self._statement.api_request) + columns
+                self._query_id = (
+                    "_T" + hashlib.md5(hash_key.encode("utf-8")).hexdigest()
+                )
+            else:
+                raise NotSupportedError
+
+        return self._query_id
+
+    @abstractmethod
+    def connection(self):
+        raise NotImplementedError  # pragma: no cover
+
+    @abstractmethod
+    def type_conversion(self, type: Type[Any]) -> str:
+        raise NotImplementedError  # pragma: no cover
+
+    @abstractmethod
+    def has_table(self, table: str) -> bool:
+        raise NotImplementedError  # pragma: no cover
+
+    def rollback(self):
+        if self.connection is not None:
+            self.connection.rollback()
+
+    def close(self):
+        if self.connection is not None:
+            self.connection.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    @synchronized
+    def init_cache_table(self) -> None:
+        if not self.has_table(QueryDB.CACHE_TABLE):
+            columns = list()
+            columns.append(
+                "%s %s PRIMARY KEY" % ("query_id", self.type_conversion(str))
+            )
+            columns.append("%s %s" % ("statement", self.type_conversion(str)))
+            columns.append("%s %s" % ("created", self.type_conversion(datetime)))
+            columns.append("%s %s" % ("last_updated", self.type_conversion(datetime)))
+            columns.append("%s %s" % ("queried_times", self.type_conversion(int)))
+            self.connection.execute(
+                "CREATE TABLE %s (%s)" % (QueryDB.CACHE_TABLE, ",".join(columns))
+            )
+
+    def get_cache(self) -> Optional[Tuple[Any]]:
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(
+                "SELECT statement, created, last_updated FROM %s WHERE query_id=?"
+                % QueryDB.CACHE_TABLE,
+                (self.query_id,),
+            )
+            return cursor.fetchone()
+
+    def has_cache(self) -> bool:
+        if not self.has_table(QueryDB.CACHE_TABLE):
+            return False
+
+        cache_ = self.get_cache()
+        if cache_ is None:
+            return False
+
+        if (datetime.now() - cache_[2]).seconds <= self.config.expire_time:
+            return True
+
+        return False
+
+    @synchronized
+    def add_cache(self) -> None:
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(
+                "SELECT COUNT(query_id) FROM %s WHERE query_id=?" % QueryDB.CACHE_TABLE,
+                (self.query_id,),
+            )
+            result = cursor.fetchone()
+            if result is None or result == (0,):
+                cursor.execute(
+                    """INSERT INTO %s (query_id, statement,
+                                    created, last_updated, queried_times
+                        ) VALUES (?, ?, ?, ?, ?)
+                    """
+                    % QueryDB.CACHE_TABLE,
+                    (
+                        self.query_id,
+                        str(self.statement.api_request),
+                        datetime.now(),
+                        datetime.now(),
+                        0,
+                    ),
+                )
+                self.connection.commit()
+
+    @synchronized
+    def set_cache_last_updated(self) -> None:
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(
+                "UPDATE %s SET last_updated=? WHERE query_id=?" % QueryDB.CACHE_TABLE,
+                (datetime.now(), self.query_id),
+            )
+            self.connection.commit()
+
+    @synchronized
+    def set_cache_queried_times(self) -> None:
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(
+                "UPDATE %s SET queried_times=queried_times+1 WHERE query_id=?"
+                % QueryDB.CACHE_TABLE,
+                (self.query_id,),
+            )
+            self.connection.commit()
+
+    @synchronized
+    def create_query_table(self, metadata: Metadata) -> None:
+        columns = list()
+        for col_info in metadata:
+            col_name = col_info.alias if col_info.alias is not None else col_info.name
+            col_type = self.type_conversion(str)
+            if (
+                col_info.type_code == DataTypes.BOOL
+                or col_info.type_code == DataTypes.NULL
+            ):
+                col_type = self.type_conversion(int)
+            elif col_info.type_code == DataTypes.NUMBER:
+                col_type = self.type_conversion(float)
+
+            columns.append('"%s" %s' % (col_name, col_type))
+
+        self.connection.execute(
+            "CREATE TABLE %s (%s)" % (self.query_id, ",".join(columns))
+        )
+
+        self.add_cache()
+
+    @synchronized
+    def drop_query_table(self) -> None:
+        if self.has_table(self.query_id):
+            self.connection.execute("DROP TABLE %s" % (self.query_id))
+
+    @synchronized
+    def write_raw_data(
+        self, metadata: Metadata, raw_data: Optional[List[Tuple[Any]]]
+    ) -> None:
+        columns = list()
+        values = list()
+        for col_info in metadata:
+            col_name = col_info.alias if col_info.alias is not None else col_info.name
+            columns.append('"' + col_name + '"')
+            values.append("?")
+
+        self.connection.executemany(
+            "INSERT INTO %s (%s) VALUES (%s)"
+            % (self.query_id, ",".join(columns), ",".join(values)),
+            [r for r in raw_data],
+        )
+
+        self.connection.commit()
+        self.set_cache_last_updated()
+
+    def query(self):
+        parser = self.statement.sql_parser.parser
+        query_sql = "SELECT %s FROM %s %s" % (
+            parser.outer_columns,
+            self.query_id,
+            parser.outer_exprs,
+        )
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(query_sql)
+            self.set_cache_queried_times()
+            results = cursor.fetchall()
+            desc = cursor.description
+            return (desc, results)
