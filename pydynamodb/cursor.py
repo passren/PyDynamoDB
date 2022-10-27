@@ -23,9 +23,9 @@ class Cursor(BaseCursor, CursorIterator):
         connection: "Connection",
         converter: Converter,
         retry_config: RetryConfig,
-        **kwargs,
+        **kwargs
     ) -> None:
-        super(Cursor, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             retry_config=retry_config,
@@ -36,6 +36,7 @@ class Cursor(BaseCursor, CursorIterator):
         self._statements: Statements = Statements()
         self._transaction_statements: Statements = Statements()
         self._is_pooling: bool = False
+        self._kwargs = kwargs
 
     @property
     def result_set(self) -> Optional[CursorIterator]:
@@ -134,6 +135,7 @@ class Cursor(BaseCursor, CursorIterator):
                     self.arraysize,
                     self._retry_config,
                     is_transaction=True,
+                    **self._kwargs,
                 )
             finally:
                 self._transaction_statements.clear()
@@ -150,6 +152,7 @@ class Cursor(BaseCursor, CursorIterator):
                     self.arraysize,
                     self._retry_config,
                     is_transaction=False,
+                    **self._kwargs,
                 )
             finally:
                 self._statements.clear()
@@ -194,7 +197,7 @@ class Cursor(BaseCursor, CursorIterator):
 
 class DictCursor(Cursor):
     def __init__(self, **kwargs) -> None:
-        super(DictCursor, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._result_set_class = DynamoDBDictResultSet
         if "dict_type" in kwargs:
             DynamoDBDictResultSet.dict_type = kwargs["dict_type"]

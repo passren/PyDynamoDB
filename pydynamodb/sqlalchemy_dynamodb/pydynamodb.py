@@ -49,7 +49,7 @@ class DynamoDBStatementCompiler(SQLCompiler):
         ambiguous_table_name_map=None,
         **kwargs,
     ) -> str:
-        return super(DynamoDBStatementCompiler, self).visit_column(
+        return super().visit_column(
             column=column,
             add_to_result_map=add_to_result_map,
             include_table=False,
@@ -68,7 +68,7 @@ class DynamoDBStatementCompiler(SQLCompiler):
         result_map_targets=(),
         **kw,
     ):
-        return super(DynamoDBStatementCompiler, self).visit_label(
+        return super().visit_label(
             label=label,
             add_to_result_map=add_to_result_map,
             within_label_clause=within_label_clause,

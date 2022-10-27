@@ -25,8 +25,9 @@ class DynamoDBResultSet(CursorIterator):
         retry_config: RetryConfig,
         is_transaction: bool = False,
         executor_class: BaseExecutor = None,
+        **kwargs
     ) -> None:
-        super(DynamoDBResultSet, self).__init__(arraysize=arraysize)
+        super().__init__(arraysize=arraysize)
         assert statements and len(statements) > 0, "Required statements not found."
         self._connection: Optional["Connection"] = connection
         self._arraysize = arraysize
@@ -38,6 +39,7 @@ class DynamoDBResultSet(CursorIterator):
             retry_config,
             is_transaction,
             executor_class=executor_class,
+            **kwargs
         )
         assert self._executor is not None, "Executor is not specified"
 

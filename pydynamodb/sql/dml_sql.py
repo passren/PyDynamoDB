@@ -35,6 +35,8 @@ class DmlBase(Base):
         "column_name"
     )
 
+    _ALIAS_NAME = Word(alphanums + "_-")("alias_name").set_name("alias_name")
+
     _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
 
     _COLUMNS = delimited_list(
@@ -95,7 +97,7 @@ class DmlBase(Base):
     )("options").set_name("options")
 
     def __init__(self, statement: str) -> None:
-        super(DmlBase, self).__init__(statement)
+        super().__init__(statement)
         self._limit = None
         self._consistent_read = False
         self._return_consumed_capacity = "NONE"

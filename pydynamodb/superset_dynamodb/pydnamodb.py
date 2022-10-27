@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
-import sqlite3
-from typing import TYPE_CHECKING, Dict, Any, List, Tuple, Optional
+from typing import TYPE_CHECKING, Dict, Any, List, Optional
 
+from .helper import QueryDBHelper
+from .model import QueryDB
 from .dml_select import SupersetSelect
-from ..sql.common import DataTypes
 from ..converter import Converter
-from ..model import Statements, Statement, ColumnInfo, Metadata
-from ..util import RetryConfig
-from ..cursor import Cursor, synchronized
+from ..model import Statements, Statement, ColumnInfo
+from ..util import RetryConfig, synchronized
+from ..cursor import Cursor
 from ..result_set import DynamoDBResultSet
 from ..executor import BaseExecutor, DmlStatementExecutor
 from ..error import OperationalError
@@ -21,7 +21,7 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class SupersetCursor(Cursor):
     def __init__(self, **kwargs) -> None:
-        super(SupersetCursor, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self._result_set_class = SupersetResultSet
 
     @synchronized
@@ -42,8 +42,9 @@ class SupersetResultSet(DynamoDBResultSet):
         retry_config: RetryConfig,
         is_transaction: bool = False,
         executor_class: BaseExecutor = None,
+        **kwargs
     ) -> None:
-        super(SupersetResultSet, self).__init__(
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
@@ -51,6 +52,7 @@ class SupersetResultSet(DynamoDBResultSet):
             retry_config=retry_config,
             is_transaction=is_transaction,
             executor_class=SupersetStatementExecutor,
+            **kwargs
         )
 
 
@@ -61,90 +63,56 @@ class SupersetStatementExecutor(DmlStatementExecutor):
         converter: Converter,
         statements: Statements,
         retry_config: RetryConfig,
+        **kwargs
     ) -> None:
-        self._superset_table = "SUPERSET_QUERY"
-        self._sqlite_conn = None
-        super(DmlStatementExecutor, self).__init__(
+        self._superset_table: str = "SUPERSET_QUERY"
+        self._statement: Statement = statements[0]
+        self._query_db: QueryDB = QueryDBHelper.create(self._statement, **kwargs)
+        self._querydb_load_batch_size: int = self._query_db.config.load_batch_size
+        super().__init__(
             connection=connection,
             converter=converter,
             statements=statements,
             retry_config=retry_config,
+            **kwargs
         )
 
-    @property
-    def sqlite_conn(self):
-        if self._sqlite_conn is not None:
-            return self._sqlite_conn
-
-        self._sqlite_conn = sqlite3.connect(":memory:")
-        return self._sqlite_conn
-
     def pre_execute(self) -> None:
-        self._statement = self._statements[0]
         self.execute()
 
     def execute(self, **kwargs) -> None:
         try:
             parser = self._statement.sql_parser.parser
             if parser.is_nested:
-                with self.connection.cursor() as cursor:
-                    cursor.result_set_class = DynamoDBResultSet
-                    cursor.execute_statement(self._statement)
-                    self._load_into_memory_db(cursor.result_set)
+                if not self._query_db.has_cache():
+                    self._query_db.init_cache_table()
+                    self._query_db.drop_query_table()
+                    with self.connection.cursor() as cursor:
+                        cursor.result_set_class = DynamoDBResultSet
+                        cursor.execute_statement(self._statement)
+                        self._load_into_query_db(cursor.result_set)
+
+                (desc_, results_) = self._query_db.query()
+                self._rows.extend(results_)
+                for d in desc_:
+                    self._metadata.update(ColumnInfo(d[0], d[0]))
+
             else:
-                super(SupersetStatementExecutor, self).execute(**kwargs)
+                super().execute(**kwargs)
         except Exception as e:
+            self._query_db.rollback()
             _logger.exception("Failed to execute statement.")
             raise OperationalError(*e.args) from e
         finally:
-            self.sqlite_conn.close()
+            self._query_db.close()
 
-    def _load_into_memory_db(self, ddb_result_set: DynamoDBResultSet) -> None:
-        raw_data = ddb_result_set.fetchall()
+    def _load_into_query_db(self, ddb_result_set: DynamoDBResultSet) -> None:
+        self._query_db.create_query_table(ddb_result_set.metadata)
 
-        if len(raw_data) > 0:
-            self._create_query_table(ddb_result_set.metadata)
-        self._write_raw_data(ddb_result_set.metadata, raw_data)
-
-        parser = self._statement.sql_parser.parser
-        superset_sql = "SELECT %s FROM %s %s" % (
-            parser.outer_columns,
-            self._superset_table,
-            parser.outer_exprs,
-        )
-        sqlite_cursor = self.sqlite_conn.cursor()
-        sqlite_cursor.execute(superset_sql)
-        self._rows.extend(sqlite_cursor.fetchall())
-        for desc in sqlite_cursor.description:
-            self._metadata.update(ColumnInfo(desc[0], desc[0]))
-
-    def _create_query_table(self, metadata: Metadata) -> None:
-        columns = list()
-        for col_info in metadata:
-            col_name = col_info.alias if col_info.alias is not None else col_info.name
-            col_type = "TEXT"
-            if (
-                col_info.type_code == DataTypes.BOOL
-                or col_info.type_code == DataTypes.NULL
-            ):
-                col_type = "INTEGER"
-            elif col_info.type_code == DataTypes.NUMBER:
-                col_type = "REAL"
-
-            columns.append('"%s" %s' % (col_name, col_type))
-
-        self.sqlite_conn.execute(
-            "CREATE TABLE %s (%s)" % (self._superset_table, ",".join(columns))
-        )
-
-    def _write_raw_data(
-        self, metadata: Metadata, raw_data: Optional[List[Tuple[Any]]]
-    ) -> None:
-        columns = ",".join('"' + c + '"' for c in metadata.keys())
-        values = ",".join("?" for c in metadata.keys())
-
-        self.sqlite_conn.executemany(
-            "INSERT INTO %s (%s) VALUES (%s)" % (self._superset_table, columns, values),
-            [r for r in raw_data],
-        )
-        self.sqlite_conn.commit()
+        raw_data = ddb_result_set.fetchmany(self._querydb_load_batch_size)
+        while True:
+            if len(raw_data) > 0:
+                self._query_db.write_raw_data(ddb_result_set.metadata, raw_data)
+                raw_data = ddb_result_set.fetchmany(self._querydb_load_batch_size)
+            else:
+                break

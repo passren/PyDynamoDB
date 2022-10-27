@@ -45,7 +45,7 @@ Features
 * PartiQL for DML operations (INSERT, UPDATE, DELETE, SELECT)
 * Limit supported in SELECT statement
 * Extra functions (DATE, DATETIME, NUMBER, BOOL) supported in SELECT statement
-* Nested SELECT statement for alias supported
+* Column alias supported in SELECT statement
 * MySQL-Like statements for DDL operations (CREATE TABLE, ALTER TABLE, DROP TABLE)
 * MySQL-Like statements for Utility operations (LIST/SHOW TABLES, DESC TABLE)
 * Auto data type conversion for parameters and result set (Including date and datetime)

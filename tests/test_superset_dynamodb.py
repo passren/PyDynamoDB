@@ -310,3 +310,84 @@ class TestSupersetDynamoDB:
             ("RP1", "2022-09-25", "2022-10-20 14:23:40", 11.0, 6.6, 2),
             ("RP", "2022-09-23", "2022-10-20 10:23:40", 10.0, 4.4, 4),
         ]
+
+    def test_sqlalchemy_execute_alias_select(self, superset_engine):
+        engine, conn = superset_engine
+        rows = conn.execute(
+            text(
+                """
+            SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
+                SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
+                FROM %s WHERE key_partition=:pk
+            ) AS virtual_table
+            GROUP BY "LST"
+            ORDER BY "LST" DESC
+            """
+                % TESTCASE04_TABLE
+            ),
+            {"pk": "row_1"},
+        ).fetchall()
+        assert len(rows) == 3
+
+    def test_cached_querydb_step1(self, superset_engine):
+        import os
+
+        os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "sqlite"
+        os.environ["PYDYNAMODB_QUERYDB_URL"] = "query.db"
+        os.environ["PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE"] = "20"
+        os.environ["PYDYNAMODB_QUERYDB_EXPIRE_TIME"] = "10"
+
+        self.test_sqlalchemy_execute_nested_select(superset_engine)
+        self.test_sqlalchemy_execute_flat_data(superset_engine)
+        self.test_sqlalchemy_execute_alias_select(superset_engine)
+
+    def test_cached_querydb_step2(self, cursor):
+        # Insert more raw data
+        sql = (
+            """
+        INSERT INTO %s VALUE {
+                'key_partition': ?, 'key_sort': ?, 'col_list': ?, 'col_map': ?
+            }
+        """
+            % TESTCASE04_TABLE
+        )
+        params_1 = [
+            "row_1",
+            7,
+            ["A", "G", {"A": 1, "B": 2}],
+            {"A": 7, "B": ["B-1", "B-2"]},
+        ]
+        params_2 = [
+            "row_1",
+            8,
+            ["C", "G", {"C": 3, "D": 4}],
+            {"A": 8, "B": ["D-1", "D-2"]},
+        ]
+        cursor.executemany(sql, [params_1, params_2])
+
+    def test_cached_querydb_step3(self, superset_engine):
+        # Cache used
+        self.test_sqlalchemy_execute_nested_select(superset_engine)
+        self.test_sqlalchemy_execute_alias_select(superset_engine)
+
+    def test_cached_querydb_step4(self, superset_engine):
+        import time
+
+        time.sleep(11)
+        # Cache expired
+        engine, conn = superset_engine
+        rows = conn.execute(
+            text(
+                """
+            SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
+                SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
+                FROM %s WHERE key_partition=:pk
+            ) AS virtual_table
+            GROUP BY "LST"
+            ORDER BY "LST" DESC
+            """
+                % TESTCASE04_TABLE
+            ),
+            {"pk": "row_1"},
+        ).fetchall()
+        assert len(rows) == 4

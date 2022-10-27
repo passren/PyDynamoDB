@@ -198,3 +198,30 @@ class TestDmlSelect:
         assert ret == {
             "Statement": "SELECT CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
+
+    def test_parse_alias_case(self):
+        sql = """
+            SELECT IssueID, DATE(CreatedDate) create_data, Title
+            FROM Issues WHERE key_partition='row_1'
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.columns[0].alias is None
+        assert parser.parser.columns[1].alias == "create_data"
+        assert parser.parser.columns[2].alias is None
+        assert ret == {
+            "Statement": "SELECT IssueID,CreatedDate,Title FROM \"Issues\" WHERE key_partition = 'row_1'"
+        }
+
+        sql = """
+            SELECT IssueID, DATE(CreatedDate) create_data, DATE(IssueDate, '%Y-%m-%d') issue_date
+            FROM Issues WHERE key_partition='row_1'
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.columns[0].alias is None
+        assert parser.parser.columns[1].alias == "create_data"
+        assert parser.parser.columns[2].alias == "issue_date"
+        assert ret == {
+            "Statement": "SELECT IssueID,CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
+        }

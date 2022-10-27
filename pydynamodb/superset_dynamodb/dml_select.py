@@ -30,7 +30,7 @@ class SupersetSelect(DmlSelect):
     _SUPERSET_SELECT_EXPR <<= _NESTED_SELECT_STATEMENT
 
     def __init__(self, statement: str) -> None:
-        super(SupersetSelect, self).__init__(statement)
+        super().__init__(statement)
         self._outer_columns = None
         self._outer_exprs = None
         self._is_nested = False
@@ -52,7 +52,7 @@ class SupersetSelect(DmlSelect):
         return SupersetSelect._SUPERSET_SELECT_EXPR
 
     def transform(self) -> Dict[str, Any]:
-        converted_ = super(SupersetSelect, self).transform()
+        converted_ = super().transform()
 
         outer_columns = self.root_parse_results.get("outer_columns", None)
         if outer_columns is not None:

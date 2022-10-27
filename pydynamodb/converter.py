@@ -274,7 +274,7 @@ class Converter(metaclass=ABCMeta):
 
 class DefaultTypeConverter(Converter):
     def __init__(self) -> None:
-        super(DefaultTypeConverter, self).__init__(
+        super().__init__(
             serializer=Serializer(),
             deserializer=Deserializer(),
         )
