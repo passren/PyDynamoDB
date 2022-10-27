@@ -328,3 +328,28 @@ class TestSupersetDynamoDB:
             {"pk": "row_1"},
         ).fetchall()
         assert len(rows) == 3
+
+    def test_file_querydb_lifecycle(self, superset_engine):
+        import os
+
+        os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "sqlite"
+        os.environ["PYDYNAMODB_QUERYDB_URL"] = "query.db"
+        os.environ["PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE"] = "20"
+        os.environ["PYDYNAMODB_QUERYDB_EXPIRE_TIME"] = "10"
+
+        engine, conn = superset_engine
+        rows = conn.execute(
+            text(
+                """
+            SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
+                SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
+                FROM %s WHERE key_partition=:pk
+            ) AS virtual_table
+            GROUP BY "LST"
+            ORDER BY "LST" DESC
+            """
+                % TESTCASE04_TABLE
+            ),
+            {"pk": "row_1"},
+        ).fetchall()
+        assert len(rows) == 3

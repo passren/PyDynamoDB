@@ -206,9 +206,9 @@ class TestDmlSelect:
         """
         parser = SQLParser(sql)
         ret = parser.transform()
-        assert parser.parser.columns[0].alias == None
+        assert parser.parser.columns[0].alias is None
         assert parser.parser.columns[1].alias == "create_data"
-        assert parser.parser.columns[2].alias == None
+        assert parser.parser.columns[2].alias is None
         assert ret == {
             "Statement": "SELECT IssueID,CreatedDate,Title FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
@@ -219,7 +219,7 @@ class TestDmlSelect:
         """
         parser = SQLParser(sql)
         ret = parser.transform()
-        assert parser.parser.columns[0].alias == None
+        assert parser.parser.columns[0].alias is None
         assert parser.parser.columns[1].alias == "create_data"
         assert parser.parser.columns[2].alias == "issue_date"
         assert ret == {

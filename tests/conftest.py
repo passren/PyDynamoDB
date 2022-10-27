@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import contextlib
 import time
+import os
 import pytest
 from tests import ENV
 import sqlalchemy
+
+SQLITE_DB_FILE = "query.db"
 
 
 def connect(**kwargs):
@@ -114,6 +117,7 @@ def _setup_session(request):
 def _teardown_session():
     client = boto3_connect()
     _drop_tables(client, TEST_TABLES)
+    _remove_querydb()
 
 
 def _create_table(client, table_name):
@@ -228,3 +232,8 @@ def converter(request):
 def _drop_tables(client, tables):
     for table in tables:
         client.delete_table(TableName=table)
+
+
+def _remove_querydb():
+    if os.path.exists(SQLITE_DB_FILE) and os.path.isfile(SQLITE_DB_FILE):
+        os.remove(SQLITE_DB_FILE)
