@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from contextlib import closing
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional, Type, Any, List
@@ -222,6 +222,10 @@ class QueryDB(metaclass=ABCMeta):
                 col_type = self.type_conversion(int)
             elif col_info.type_code == DataTypes.NUMBER:
                 col_type = self.type_conversion(float)
+            elif col_info.type_code == DataTypes.DATE:
+                col_type = self.type_conversion(date)
+            elif col_info.type_code == DataTypes.DATETIME:
+                col_type = self.type_conversion(datetime)
 
             columns.append('"%s" %s' % (col_name, col_type))
 
