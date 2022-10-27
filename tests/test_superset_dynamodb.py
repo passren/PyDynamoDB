@@ -337,19 +337,6 @@ class TestSupersetDynamoDB:
         os.environ["PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE"] = "20"
         os.environ["PYDYNAMODB_QUERYDB_EXPIRE_TIME"] = "10"
 
-        engine, conn = superset_engine
-        rows = conn.execute(
-            text(
-                """
-            SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
-                SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
-                FROM %s WHERE key_partition=:pk
-            ) AS virtual_table
-            GROUP BY "LST"
-            ORDER BY "LST" DESC
-            """
-                % TESTCASE04_TABLE
-            ),
-            {"pk": "row_1"},
-        ).fetchall()
-        assert len(rows) == 3
+        self.test_sqlalchemy_execute_nested_select(superset_engine)
+        self.test_sqlalchemy_execute_flat_data(superset_engine)
+        self.test_sqlalchemy_execute_alias_select(superset_engine)
