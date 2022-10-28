@@ -79,9 +79,7 @@ class TestCursorDDL:
         self.drop_table(cursor, "Issues02")
 
     def drop_table(self, cursor, table_name):
-        sql = """
-        DROP TABLE %s
-        """ % table_name
+        sql = "DROP TABLE %s" % table_name
         cursor.execute(sql)
         ret = cursor.fetchall()
         table_desc = json.loads(ret[0][1])

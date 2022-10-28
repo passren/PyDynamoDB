@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+import sqlite3
+from typing import Any, Type
+
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
-from pydynamodb.error import NotSupportedError, OperationalError
 from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
 from sqlalchemy.sql import text
+from pydynamodb.superset_dynamodb.model import QueryDB, QueryDBConfig
+from pydynamodb.model import Statement
 
 TESTCASE04_TABLE = "pydynamodb_test_case04"
 
@@ -400,27 +404,29 @@ class TestSupersetDynamoDB:
         import os
 
         os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "custom_sqlite"
+        if os.environ.get("PYDYNAMODB_QUERYDB_CLASS"):
+            os.environ.pop("PYDYNAMODB_QUERYDB_CLASS")
         try:
             self.query_final_cached_querydb(superset_engine)
         except Exception as e:
             assert "pydynamodb.error.NotSupportedError" in str(e)
 
-        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = "tests.test_superset_dynamodb.CustomQueryDB"
+        os.environ[
+            "PYDYNAMODB_QUERYDB_CLASS"
+        ] = "tests.test_superset_dynamodb.CustomQueryDB"
         try:
             self.query_final_cached_querydb(superset_engine)
         except Exception as e:
             assert "QueryDB class is invalid." in str(e)
 
-        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = "tests.test_superset_dynamodb:CustomQueryDB"
+        os.environ[
+            "PYDYNAMODB_QUERYDB_CLASS"
+        ] = "tests.test_superset_dynamodb:CustomQueryDB"
         os.environ["PYDYNAMODB_QUERYDB_URL"] = ":memory:"
 
         self.query_final_cached_querydb(superset_engine)
 
-import sqlite3
-from typing import Any, Type
-from pydynamodb.superset_dynamodb.model import QueryDB
-from pydynamodb.superset_dynamodb.model import QueryDB, QueryDBConfig
-from pydynamodb.model import Statement
+
 class CustomQueryDB(QueryDB):
     def __init__(
         self,
@@ -434,9 +440,7 @@ class CustomQueryDB(QueryDB):
     @property
     def connection(self):
         if self._connection is None:
-            self._connection = sqlite3.connect(
-                self.config.db_url
-            )
+            self._connection = sqlite3.connect(self.config.db_url)
 
         return self._connection
 

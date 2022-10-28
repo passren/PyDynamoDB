@@ -70,7 +70,6 @@ class TestDdlCreate:
         }
         assert ret == expected_ret
 
-
     def test_parse_options_with_equal(self):
         sql = """
         CREATE TABLE Issues (
