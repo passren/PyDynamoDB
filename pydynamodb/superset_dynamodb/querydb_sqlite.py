@@ -5,7 +5,7 @@ from datetime import datetime, date
 from contextlib import closing
 from typing import Any, Type
 
-from .model import QueryDB, QueryDBConfig
+from .querydb import QueryDB, QueryDBConfig
 from ..model import Statement
 
 _logger = logging.getLogger(__name__)  # type: ignore

@@ -3,7 +3,7 @@ import logging
 from typing import TYPE_CHECKING, Dict, Any, List, Optional
 
 from .helper import QueryDBHelper
-from .model import QueryDB
+from .querydb import QueryDB
 from .dml_select import SupersetSelect
 from ..converter import Converter
 from ..model import Statements, Statement, ColumnInfo

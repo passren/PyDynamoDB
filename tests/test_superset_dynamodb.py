@@ -7,7 +7,7 @@ from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
 from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
 from sqlalchemy.sql import text
-from pydynamodb.superset_dynamodb.model import QueryDB, QueryDBConfig
+from pydynamodb.superset_dynamodb.querydb import QueryDB, QueryDBConfig
 from pydynamodb.model import Statement
 
 TESTCASE04_TABLE = "pydynamodb_test_case04"
