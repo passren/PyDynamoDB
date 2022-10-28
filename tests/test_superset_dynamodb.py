@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
+import sqlite3
+from typing import Any, Type
+
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
-from pydynamodb.error import NotSupportedError, OperationalError
 from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
 from sqlalchemy.sql import text
+from pydynamodb.superset_dynamodb.model import QueryDB, QueryDBConfig
+from pydynamodb.model import Statement
 
 TESTCASE04_TABLE = "pydynamodb_test_case04"
 
@@ -131,14 +136,15 @@ class TestSupersetDynamoDB:
                 'key_partition': ?, 'key_sort': ?,
                 'col_date': ?, 'col_datetime': ?,
                 'col_int': ?, 'col_float': ?,
-                'col_bytes': ?, 'col_str': ?
+                'col_bytes': ?, 'col_str': ?,
+                'col_bool': ?
             }
         """
             % TESTCASE04_TABLE
         )
         date_ = date(2022, 9, 20)
         datetime_ = datetime(2022, 10, 20, 10, 23, 40)
-        params_1 = ["row_2", 1, date_, datetime_, 1, 1.1, b"RP", "RP"]
+        params_1 = ["row_2", 1, date_, datetime_, 1, 1.1, b"RP", "RP", True]
         params_2 = [
             "row_2",
             2,
@@ -148,6 +154,7 @@ class TestSupersetDynamoDB:
             2.2,
             b"RP",
             "RP",
+            False,
         ]
         params_3 = [
             "row_2",
@@ -158,6 +165,7 @@ class TestSupersetDynamoDB:
             3.3,
             b"RP",
             "RP",
+            True,
         ]
         params_4 = [
             "row_2",
@@ -168,6 +176,7 @@ class TestSupersetDynamoDB:
             4.4,
             b"RP",
             "RP",
+            True,
         ]
         params_5 = [
             "row_2",
@@ -178,6 +187,7 @@ class TestSupersetDynamoDB:
             5.5,
             b"RP1",
             "RP1",
+            False,
         ]
         params_6 = [
             "row_2",
@@ -188,6 +198,7 @@ class TestSupersetDynamoDB:
             6.6,
             b"RP1",
             "RP1",
+            False,
         ]
         params_7 = [
             "row_2",
@@ -198,6 +209,7 @@ class TestSupersetDynamoDB:
             7.7,
             b"RP2",
             "RP2",
+            True,
         ]
         params_8 = [
             "row_2",
@@ -208,6 +220,7 @@ class TestSupersetDynamoDB:
             8.8,
             b"RP2",
             "RP2",
+            False,
         ]
         cursor.executemany(
             sql,
@@ -292,10 +305,12 @@ class TestSupersetDynamoDB:
             text(
                 """
             SELECT "col_str", MAX("col_date"), MIN("col_datetime"),
-                    SUM("col_int"), MAX("col_float"), COUNT("key_sort")
+                    SUM("col_int"), MAX("col_float"),
+                    COUNT("key_sort"), COUNT("col_bool")
             FROM (
                 SELECT key_sort, DATE(col_date), DATETIME(col_datetime),
-                NUMBER(col_int), NUMBER(col_float), col_bytes, col_str
+                NUMBER(col_int), NUMBER(col_float), col_bytes,
+                col_str, BOOL(col_bool)
                 FROM %s WHERE key_partition=:pk
             ) AS virtual_table
             GROUP BY "col_str"
@@ -307,9 +322,9 @@ class TestSupersetDynamoDB:
         ).fetchall()
         assert len(rows) == 3
         assert rows == [
-            ("RP2", "2022-09-27", "2022-10-20 16:23:40", 15.0, 8.8, 2),
-            ("RP1", "2022-09-25", "2022-10-20 14:23:40", 11.0, 6.6, 2),
-            ("RP", "2022-09-23", "2022-10-20 10:23:40", 10.0, 4.4, 4),
+            ("RP2", "2022-09-27", "2022-10-20 16:23:40", 15.0, 8.8, 2, 2),
+            ("RP1", "2022-09-25", "2022-10-20 14:23:40", 11.0, 6.6, 2, 2),
+            ("RP", "2022-09-23", "2022-10-20 10:23:40", 10.0, 4.4, 4, 4),
         ]
 
     def test_sqlalchemy_execute_alias_select(self, superset_engine):
@@ -331,8 +346,6 @@ class TestSupersetDynamoDB:
         assert len(rows) == 3
 
     def test_cached_querydb_step1(self, superset_engine):
-        import os
-
         os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "sqlite"
         os.environ["PYDYNAMODB_QUERYDB_URL"] = "query.db"
         os.environ["PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE"] = "20"
@@ -374,8 +387,12 @@ class TestSupersetDynamoDB:
     def test_cached_querydb_step4(self, superset_engine):
         import time
 
-        time.sleep(11)
+        time.sleep(15)
         # Cache expired
+        self.query_final_cached_querydb(superset_engine)
+
+    def test_purge_querydb_table(self, superset_engine):
+        os.environ["PYDYNAMODB_QUERYDB_PURGE_TIME"] = "14"
         self.query_final_cached_querydb(superset_engine)
 
     def query_final_cached_querydb(self, superset_engine):
@@ -400,27 +417,29 @@ class TestSupersetDynamoDB:
         import os
 
         os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "custom_sqlite"
+        if os.environ.get("PYDYNAMODB_QUERYDB_CLASS"):
+            os.environ.pop("PYDYNAMODB_QUERYDB_CLASS")
         try:
             self.query_final_cached_querydb(superset_engine)
         except Exception as e:
             assert "pydynamodb.error.NotSupportedError" in str(e)
 
-        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = "tests.test_superset_dynamodb.CustomQueryDB"
+        os.environ[
+            "PYDYNAMODB_QUERYDB_CLASS"
+        ] = "tests.test_superset_dynamodb.CustomQueryDB"
         try:
             self.query_final_cached_querydb(superset_engine)
         except Exception as e:
             assert "QueryDB class is invalid." in str(e)
 
-        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = "tests.test_superset_dynamodb:CustomQueryDB"
+        os.environ[
+            "PYDYNAMODB_QUERYDB_CLASS"
+        ] = "tests.test_superset_dynamodb:CustomQueryDB"
         os.environ["PYDYNAMODB_QUERYDB_URL"] = ":memory:"
 
         self.query_final_cached_querydb(superset_engine)
 
-import sqlite3
-from typing import Any, Type
-from pydynamodb.superset_dynamodb.model import QueryDB
-from pydynamodb.superset_dynamodb.model import QueryDB, QueryDBConfig
-from pydynamodb.model import Statement
+
 class CustomQueryDB(QueryDB):
     def __init__(
         self,
@@ -434,9 +453,7 @@ class CustomQueryDB(QueryDB):
     @property
     def connection(self):
         if self._connection is None:
-            self._connection = sqlite3.connect(
-                self.config.db_url
-            )
+            self._connection = sqlite3.connect(self.config.db_url)
 
         return self._connection
 

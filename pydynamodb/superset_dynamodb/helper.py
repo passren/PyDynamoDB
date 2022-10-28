@@ -13,6 +13,7 @@ from .model import (
     DEFAULT_QUERYDB_URL,
     DEFAULT_QUERYDB_LOAD_BATCH_SIZE,
     DEFAULT_QUERYDB_EXPIRE_TIME,
+    DEFAULT_QUERYDB_PURGE_TIME,
 )
 from ..model import Statement
 from ..error import NotSupportedError, OperationalError
@@ -61,6 +62,7 @@ class QueryDBHelper(metaclass=ABCMeta):
             "querydb_load_batch_size", **kwargs
         )
         expire_time = QueryDBHelper.get_config_value("querydb_expire_time", **kwargs)
+        purge_time = QueryDBHelper.get_config_value("querydb_purge_time", **kwargs)
 
         _db_type = db_type if db_type is not None else DEFAULT_QUERYDB_TYPE
         _db_url = db_url if db_url is not None else DEFAULT_QUERYDB_URL
@@ -73,9 +75,12 @@ class QueryDBHelper(metaclass=ABCMeta):
         _expire_time = (
             int(expire_time) if expire_time is not None else DEFAULT_QUERYDB_EXPIRE_TIME
         )
+        _purge_time = (
+            int(purge_time) if purge_time is not None else DEFAULT_QUERYDB_PURGE_TIME
+        )
 
         return QueryDBConfig(
-            _db_type, _db_class, _db_url, _load_batch_size, _expire_time
+            _db_type, _db_class, _db_url, _load_batch_size, _expire_time, _purge_time
         )
 
     @staticmethod

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from contextlib import closing
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional, Type, Any, List
@@ -18,6 +18,7 @@ DEFAULT_QUERYDB_TYPE = "sqlite"
 DEFAULT_QUERYDB_URL = ":memory:"
 DEFAULT_QUERYDB_LOAD_BATCH_SIZE = 200
 DEFAULT_QUERYDB_EXPIRE_TIME = 300
+DEFAULT_QUERYDB_PURGE_TIME = 86400
 
 
 SUPPORTED_QUERYDB_CONFIG = {
@@ -32,6 +33,10 @@ SUPPORTED_QUERYDB_CONFIG = {
         "PYDYNAMODB_QUERYDB_EXPIRE_TIME",
         DEFAULT_QUERYDB_EXPIRE_TIME,
     ),
+    "querydb_purge_time": (
+        "PYDYNAMODB_QUERYDB_PURGE_TIME",
+        DEFAULT_QUERYDB_PURGE_TIME,
+    ),
 }
 
 
@@ -43,12 +48,14 @@ class QueryDBConfig:
         db_url: str,
         load_batch_size: int = DEFAULT_QUERYDB_LOAD_BATCH_SIZE,
         expire_time: int = DEFAULT_QUERYDB_EXPIRE_TIME,
+        purge_time: int = DEFAULT_QUERYDB_PURGE_TIME,
     ):
         self._db_type = db_type
         self._db_url = db_url
         self._db_class = db_class
         self._load_batch_size = load_batch_size
         self._expire_time = expire_time
+        self._purge_time = purge_time
 
     @property
     def db_type(self) -> str:
@@ -70,6 +77,10 @@ class QueryDBConfig:
     def expire_time(self) -> int:
         return self._expire_time
 
+    @property
+    def purge_time(self) -> int:
+        return self._purge_time
+
 
 class QueryDB(metaclass=ABCMeta):
 
@@ -83,6 +94,8 @@ class QueryDB(metaclass=ABCMeta):
     ) -> None:
         self._config = config
         self._statement = statement
+        cache_enabled_ = kwargs.get("cache_enabled", None)
+        self._cache_enabled = cache_enabled_ if cache_enabled_ is not None else True
         self._kwargs = kwargs
         self._query_id = None
 
@@ -93,6 +106,10 @@ class QueryDB(metaclass=ABCMeta):
     @property
     def config(self) -> QueryDBConfig:
         return self._config
+
+    @property
+    def cache_enabled(self) -> bool:
+        return self._cache_enabled
 
     @property
     def query_id(self) -> str:
@@ -127,7 +144,41 @@ class QueryDB(metaclass=ABCMeta):
 
     def close(self):
         if self.connection is not None:
+            self.purge()
             self.connection.close()
+
+    @synchronized
+    def purge(self) -> int:
+        purged_count = 0
+
+        if not self.cache_enabled:
+            return purged_count
+
+        if self.config.purge_time < self.config.expire_time:
+            return purged_count
+
+        _purge_period = datetime.now() - timedelta(seconds=self.config.purge_time)
+
+        with closing(self.connection.cursor()) as cursor:
+            cursor.execute(
+                "SELECT query_id FROM %s WHERE last_updated<=?" % QueryDB.CACHE_TABLE,
+                (_purge_period,),
+            )
+            result = cursor.fetchall()
+            purged_count = len(result)
+            for r in result:
+                try:
+                    cursor.execute("DROP TABLE %s" % (r[0]))
+                except Exception:
+                    _logger.warning("Failed to drop query table.")
+
+            if purged_count > 0:
+                cursor.executemany(
+                    "DELETE FROM %s WHERE query_id=?" % QueryDB.CACHE_TABLE, result
+                )
+        self.connection.commit()
+
+        return purged_count
 
     def __enter__(self):
         return self
@@ -137,6 +188,9 @@ class QueryDB(metaclass=ABCMeta):
 
     @synchronized
     def init_cache_table(self) -> None:
+        if not self.cache_enabled:
+            return
+
         if not self.has_table(QueryDB.CACHE_TABLE):
             columns = list()
             columns.append(
@@ -151,6 +205,9 @@ class QueryDB(metaclass=ABCMeta):
             )
 
     def get_cache(self) -> Optional[Tuple[Any]]:
+        if not self.cache_enabled:
+            return None
+
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(
                 "SELECT statement, created, last_updated FROM %s WHERE query_id=?"
@@ -160,6 +217,9 @@ class QueryDB(metaclass=ABCMeta):
             return cursor.fetchone()
 
     def has_cache(self) -> bool:
+        if not self.cache_enabled:
+            return False
+
         if not self.has_table(QueryDB.CACHE_TABLE):
             return False
 
@@ -174,6 +234,9 @@ class QueryDB(metaclass=ABCMeta):
 
     @synchronized
     def add_cache(self) -> None:
+        if not self.cache_enabled:
+            return
+
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(
                 "SELECT COUNT(query_id) FROM %s WHERE query_id=?" % QueryDB.CACHE_TABLE,
@@ -199,6 +262,9 @@ class QueryDB(metaclass=ABCMeta):
 
     @synchronized
     def set_cache_last_updated(self) -> None:
+        if not self.cache_enabled:
+            return
+
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(
                 "UPDATE %s SET last_updated=? WHERE query_id=?" % QueryDB.CACHE_TABLE,
@@ -208,6 +274,9 @@ class QueryDB(metaclass=ABCMeta):
 
     @synchronized
     def set_cache_queried_times(self) -> None:
+        if not self.cache_enabled:
+            return
+
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(
                 "UPDATE %s SET queried_times=queried_times+1 WHERE query_id=?"
