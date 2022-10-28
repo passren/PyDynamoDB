@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import sqlite3
 from typing import Any, Type
 
@@ -345,8 +346,6 @@ class TestSupersetDynamoDB:
         assert len(rows) == 3
 
     def test_cached_querydb_step1(self, superset_engine):
-        import os
-
         os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "sqlite"
         os.environ["PYDYNAMODB_QUERYDB_URL"] = "query.db"
         os.environ["PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE"] = "20"
@@ -388,8 +387,12 @@ class TestSupersetDynamoDB:
     def test_cached_querydb_step4(self, superset_engine):
         import time
 
-        time.sleep(11)
+        time.sleep(15)
         # Cache expired
+        self.query_final_cached_querydb(superset_engine)
+
+    def test_purge_querydb_table(self, superset_engine):
+        os.environ["PYDYNAMODB_QUERYDB_PURGE_TIME"] = "14"
         self.query_final_cached_querydb(superset_engine)
 
     def query_final_cached_querydb(self, superset_engine):

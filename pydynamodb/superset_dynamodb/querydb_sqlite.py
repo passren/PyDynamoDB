@@ -56,6 +56,14 @@ class SqliteFileQueryDB(QueryDB):
 
         return False
 
+    def purge(self) -> int:
+        purged_count = super().purge()
+
+        if purged_count > 0:
+            self.connection.execute("VACUUM")
+
+        return purged_count
+
 
 class SqliteMemQueryDB(SqliteFileQueryDB):
     def __init__(
@@ -64,23 +72,5 @@ class SqliteMemQueryDB(SqliteFileQueryDB):
         config: QueryDBConfig,
         **kwargs,
     ) -> None:
+        kwargs.update({"cache_enabled": False})
         super().__init__(statement, config, **kwargs)
-
-    def has_cache(self) -> bool:
-        return False
-
-    def init_cache_table(self) -> None:
-        """Does nothing with memory model"""
-        pass
-
-    def add_cache(self) -> None:
-        """Does nothing with memory model"""
-        pass
-
-    def set_cache_last_updated(self) -> None:
-        """Does nothing with memory model"""
-        pass
-
-    def set_cache_queried_times(self) -> None:
-        """Does nothing with memory model"""
-        pass
