@@ -5,7 +5,7 @@ import importlib
 from abc import ABCMeta
 from typing import Union
 
-from .model import (
+from .querydb import (
     QueryDBConfig,
     QueryDB,
     SUPPORTED_QUERYDB_CONFIG,
