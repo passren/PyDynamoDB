@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
+import importlib
 from abc import ABCMeta
 from typing import Union
 
@@ -14,7 +15,7 @@ from .model import (
     DEFAULT_QUERYDB_EXPIRE_TIME,
 )
 from ..model import Statement
-from ..error import NotSupportedError
+from ..error import NotSupportedError, OperationalError
 from .querydb_sqlite import SqliteMemQueryDB, SqliteFileQueryDB
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -28,15 +29,26 @@ class QueryDBHelper(metaclass=ABCMeta):
         else:
             _config = config
 
-        _query_db = None
+        _query_db_class = None
         if _config.db_type.lower() == DEFAULT_QUERYDB_TYPE:
             if _config.db_url.lower() == DEFAULT_QUERYDB_URL:
-                _query_db = SqliteMemQueryDB(statement, _config, **kwargs)
+                _query_db_class = SqliteMemQueryDB
             else:
-                _query_db = SqliteFileQueryDB(statement, _config, **kwargs)
+                _query_db_class = SqliteFileQueryDB
+        else:
+            if _config.db_class:
+                db_apis = _config.db_class.split(":")
+                if len(db_apis) == 2:
+                    _query_db_module = importlib.import_module(db_apis[0])
+                    _query_db_class = getattr(_query_db_module, db_apis[1])
+                else:
+                    raise OperationalError("QueryDB class is invalid.")
+            else:
+                raise NotSupportedError("QueryDB class is not specified.")
 
+        _query_db = _query_db_class(statement, _config, **kwargs)
         if _query_db is None:
-            raise NotSupportedError
+            raise OperationalError("QueryDB is not specified.")
         else:
             return _query_db
 
@@ -44,6 +56,7 @@ class QueryDBHelper(metaclass=ABCMeta):
     def get_default_config(**kwargs):
         db_type = QueryDBHelper.get_config_value("querydb_type", **kwargs)
         db_url = QueryDBHelper.get_config_value("querydb_url", **kwargs)
+        db_class = QueryDBHelper.get_config_value("querydb_class", **kwargs)
         load_batch_size = QueryDBHelper.get_config_value(
             "querydb_load_batch_size", **kwargs
         )
@@ -51,6 +64,7 @@ class QueryDBHelper(metaclass=ABCMeta):
 
         _db_type = db_type if db_type is not None else DEFAULT_QUERYDB_TYPE
         _db_url = db_url if db_url is not None else DEFAULT_QUERYDB_URL
+        _db_class = db_class
         _load_batch_size = (
             int(load_batch_size)
             if load_batch_size is not None
@@ -60,7 +74,9 @@ class QueryDBHelper(metaclass=ABCMeta):
             int(expire_time) if expire_time is not None else DEFAULT_QUERYDB_EXPIRE_TIME
         )
 
-        return QueryDBConfig(_db_type, _db_url, _load_batch_size, _expire_time)
+        return QueryDBConfig(
+            _db_type, _db_class, _db_url, _load_batch_size, _expire_time
+        )
 
     @staticmethod
     def get_config_value(config_name: str, **kwargs) -> Union[str, int]:

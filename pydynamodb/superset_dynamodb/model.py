@@ -22,6 +22,7 @@ DEFAULT_QUERYDB_EXPIRE_TIME = 300
 
 SUPPORTED_QUERYDB_CONFIG = {
     "querydb_type": ("PYDYNAMODB_QUERYDB_TYPE", DEFAULT_QUERYDB_TYPE),
+    "querydb_class": ("PYDYNAMODB_QUERYDB_CLASS", None),
     "querydb_url": ("PYDYNAMODB_QUERYDB_URL", DEFAULT_QUERYDB_URL),
     "querydb_load_batch_size": (
         "PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE",
@@ -38,18 +39,24 @@ class QueryDBConfig:
     def __init__(
         self,
         db_type: str,
+        db_class: str,
         db_url: str,
         load_batch_size: int = DEFAULT_QUERYDB_LOAD_BATCH_SIZE,
         expire_time: int = DEFAULT_QUERYDB_EXPIRE_TIME,
     ):
         self._db_type = db_type
         self._db_url = db_url
+        self._db_class = db_class
         self._load_batch_size = load_batch_size
         self._expire_time = expire_time
 
     @property
     def db_type(self) -> str:
         return self._db_type
+
+    @property
+    def db_class(self) -> str:
+        return self._db_class
 
     @property
     def db_url(self) -> str:

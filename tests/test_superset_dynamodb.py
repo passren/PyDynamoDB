@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
+from pydynamodb.error import NotSupportedError, OperationalError
 from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
 from sqlalchemy.sql import text
 
@@ -375,6 +376,9 @@ class TestSupersetDynamoDB:
 
         time.sleep(11)
         # Cache expired
+        self.query_final_cached_querydb(superset_engine)
+
+    def query_final_cached_querydb(self, superset_engine):
         engine, conn = superset_engine
         rows = conn.execute(
             text(
@@ -391,3 +395,56 @@ class TestSupersetDynamoDB:
             {"pk": "row_1"},
         ).fetchall()
         assert len(rows) == 4
+
+    def test_custom_querydb(self, superset_engine):
+        import os
+
+        os.environ["PYDYNAMODB_QUERYDB_TYPE"] = "custom_sqlite"
+        try:
+            self.query_final_cached_querydb(superset_engine)
+        except Exception as e:
+            assert "pydynamodb.error.NotSupportedError" in str(e)
+
+        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = "tests.test_superset_dynamodb.CustomQueryDB"
+        try:
+            self.query_final_cached_querydb(superset_engine)
+        except Exception as e:
+            assert "QueryDB class is invalid." in str(e)
+
+        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = "tests.test_superset_dynamodb:CustomQueryDB"
+        os.environ["PYDYNAMODB_QUERYDB_URL"] = ":memory:"
+
+        self.query_final_cached_querydb(superset_engine)
+
+import sqlite3
+from typing import Any, Type
+from pydynamodb.superset_dynamodb.model import QueryDB
+from pydynamodb.superset_dynamodb.model import QueryDB, QueryDBConfig
+from pydynamodb.model import Statement
+class CustomQueryDB(QueryDB):
+    def __init__(
+        self,
+        statement: Statement,
+        config: QueryDBConfig,
+        **kwargs,
+    ) -> None:
+        super().__init__(statement, config, **kwargs)
+        self._connection = None
+
+    @property
+    def connection(self):
+        if self._connection is None:
+            self._connection = sqlite3.connect(
+                self.config.db_url
+            )
+
+        return self._connection
+
+    def has_cache(self) -> bool:
+        return False
+
+    def type_conversion(self, type: Type[Any]) -> str:
+        return "TEXT"
+
+    def has_table(self, table: str) -> bool:
+        return False
