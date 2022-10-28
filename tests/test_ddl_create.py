@@ -45,6 +45,32 @@ class TestDdlCreate:
         }
         assert ret == expected_ret
 
+    def test_parse_simple_case_3(self):
+        sql = """
+        CREATE TABLE Issues (
+            IssueId numeric HASH,
+            Title string RANGE,
+            CreateDate string
+        )
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.query_type == QueryType.CREATE
+        expected_ret = {
+            "AttributeDefinitions": [
+                {"AttributeName": "IssueId", "AttributeType": "N"},
+                {"AttributeName": "Title", "AttributeType": "S"},
+                {"AttributeName": "CreateDate", "AttributeType": "S"},
+            ],
+            "TableName": "Issues",
+            "KeySchema": [
+                {"AttributeName": "IssueId", "KeyType": "HASH"},
+                {"AttributeName": "Title", "KeyType": "RANGE"},
+            ],
+        }
+        assert ret == expected_ret
+
+
     def test_parse_options_with_equal(self):
         sql = """
         CREATE TABLE Issues (

@@ -75,18 +75,14 @@ class TestCursorDDL:
         assert table_desc["TableName"] == "Issues02"
 
     def test_drop_table(self, cursor):
-        sql = """
-        DROP TABLE Issues01
-        """
-        cursor.execute(sql)
-        ret = cursor.fetchall()
-        table_desc = json.loads(ret[0][1])
-        assert table_desc["TableName"] == "Issues01"
+        self.drop_table(cursor, "Issues01")
+        self.drop_table(cursor, "Issues02")
 
+    def drop_table(self, cursor, table_name):
         sql = """
-        DROP TABLE Issues02
-        """
+        DROP TABLE %s
+        """ % table_name
         cursor.execute(sql)
         ret = cursor.fetchall()
         table_desc = json.loads(ret[0][1])
-        assert table_desc["TableName"] == "Issues02"
+        assert table_desc["TableName"] == table_name
