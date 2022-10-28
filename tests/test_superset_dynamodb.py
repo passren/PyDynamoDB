@@ -135,14 +135,15 @@ class TestSupersetDynamoDB:
                 'key_partition': ?, 'key_sort': ?,
                 'col_date': ?, 'col_datetime': ?,
                 'col_int': ?, 'col_float': ?,
-                'col_bytes': ?, 'col_str': ?
+                'col_bytes': ?, 'col_str': ?,
+                'col_bool': ?
             }
         """
             % TESTCASE04_TABLE
         )
         date_ = date(2022, 9, 20)
         datetime_ = datetime(2022, 10, 20, 10, 23, 40)
-        params_1 = ["row_2", 1, date_, datetime_, 1, 1.1, b"RP", "RP"]
+        params_1 = ["row_2", 1, date_, datetime_, 1, 1.1, b"RP", "RP", True]
         params_2 = [
             "row_2",
             2,
@@ -152,6 +153,7 @@ class TestSupersetDynamoDB:
             2.2,
             b"RP",
             "RP",
+            False,
         ]
         params_3 = [
             "row_2",
@@ -162,6 +164,7 @@ class TestSupersetDynamoDB:
             3.3,
             b"RP",
             "RP",
+            True,
         ]
         params_4 = [
             "row_2",
@@ -172,6 +175,7 @@ class TestSupersetDynamoDB:
             4.4,
             b"RP",
             "RP",
+            True,
         ]
         params_5 = [
             "row_2",
@@ -182,6 +186,7 @@ class TestSupersetDynamoDB:
             5.5,
             b"RP1",
             "RP1",
+            False,
         ]
         params_6 = [
             "row_2",
@@ -192,6 +197,7 @@ class TestSupersetDynamoDB:
             6.6,
             b"RP1",
             "RP1",
+            False,
         ]
         params_7 = [
             "row_2",
@@ -202,6 +208,7 @@ class TestSupersetDynamoDB:
             7.7,
             b"RP2",
             "RP2",
+            True,
         ]
         params_8 = [
             "row_2",
@@ -212,6 +219,7 @@ class TestSupersetDynamoDB:
             8.8,
             b"RP2",
             "RP2",
+            False,
         ]
         cursor.executemany(
             sql,
@@ -296,10 +304,12 @@ class TestSupersetDynamoDB:
             text(
                 """
             SELECT "col_str", MAX("col_date"), MIN("col_datetime"),
-                    SUM("col_int"), MAX("col_float"), COUNT("key_sort")
+                    SUM("col_int"), MAX("col_float"),
+                    COUNT("key_sort"), COUNT("col_bool")
             FROM (
                 SELECT key_sort, DATE(col_date), DATETIME(col_datetime),
-                NUMBER(col_int), NUMBER(col_float), col_bytes, col_str
+                NUMBER(col_int), NUMBER(col_float), col_bytes,
+                col_str, BOOL(col_bool)
                 FROM %s WHERE key_partition=:pk
             ) AS virtual_table
             GROUP BY "col_str"
@@ -311,9 +321,9 @@ class TestSupersetDynamoDB:
         ).fetchall()
         assert len(rows) == 3
         assert rows == [
-            ("RP2", "2022-09-27", "2022-10-20 16:23:40", 15.0, 8.8, 2),
-            ("RP1", "2022-09-25", "2022-10-20 14:23:40", 11.0, 6.6, 2),
-            ("RP", "2022-09-23", "2022-10-20 10:23:40", 10.0, 4.4, 4),
+            ("RP2", "2022-09-27", "2022-10-20 16:23:40", 15.0, 8.8, 2, 2),
+            ("RP1", "2022-09-25", "2022-10-20 14:23:40", 11.0, 6.6, 2, 2),
+            ("RP", "2022-09-23", "2022-10-20 10:23:40", 10.0, 4.4, 4, 4),
         ]
 
     def test_sqlalchemy_execute_alias_select(self, superset_engine):
