@@ -392,6 +392,10 @@ class TestSupersetDynamoDB:
         self.query_final_cached_querydb(superset_engine)
 
     def test_purge_querydb_table(self, superset_engine):
+        os.environ["PYDYNAMODB_QUERYDB_PURGE_ENABLED"] = "false"
+        self.query_final_cached_querydb(superset_engine)
+
+        os.environ["PYDYNAMODB_QUERYDB_PURGE_ENABLED"] = "true"
         os.environ["PYDYNAMODB_QUERYDB_PURGE_TIME"] = "14"
         self.query_final_cached_querydb(superset_engine)
 
