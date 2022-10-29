@@ -33,6 +33,10 @@ SUPPORTED_QUERYDB_CONFIG = {
         "PYDYNAMODB_QUERYDB_EXPIRE_TIME",
         DEFAULT_QUERYDB_EXPIRE_TIME,
     ),
+    "querydb_purge_enabled": (
+        "PYDYNAMODB_QUERYDB_PURGE_ENABLED",
+        True,
+    ),
     "querydb_purge_time": (
         "PYDYNAMODB_QUERYDB_PURGE_TIME",
         DEFAULT_QUERYDB_PURGE_TIME,
@@ -48,6 +52,7 @@ class QueryDBConfig:
         db_url: str,
         load_batch_size: int = DEFAULT_QUERYDB_LOAD_BATCH_SIZE,
         expire_time: int = DEFAULT_QUERYDB_EXPIRE_TIME,
+        purge_enabled: bool = True,
         purge_time: int = DEFAULT_QUERYDB_PURGE_TIME,
     ):
         self._db_type = db_type
@@ -55,6 +60,7 @@ class QueryDBConfig:
         self._db_class = db_class
         self._load_batch_size = load_batch_size
         self._expire_time = expire_time
+        self._purge_enabled = purge_enabled
         self._purge_time = purge_time
 
     @property
@@ -76,6 +82,10 @@ class QueryDBConfig:
     @property
     def expire_time(self) -> int:
         return self._expire_time
+
+    @property
+    def purge_enabled(self) -> int:
+        return self._purge_enabled
 
     @property
     def purge_time(self) -> int:
@@ -144,7 +154,8 @@ class QueryDB(metaclass=ABCMeta):
 
     def close(self):
         if self.connection is not None:
-            self.purge()
+            if self.config.purge_enabled:
+                self.purge()
             self.connection.close()
 
     @synchronized
