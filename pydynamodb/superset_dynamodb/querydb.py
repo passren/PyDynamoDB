@@ -35,7 +35,7 @@ SUPPORTED_QUERYDB_CONFIG = {
     ),
     "querydb_purge_enabled": (
         "PYDYNAMODB_QUERYDB_PURGE_ENABLED",
-        True,
+        "True",
     ),
     "querydb_purge_time": (
         "PYDYNAMODB_QUERYDB_PURGE_TIME",
