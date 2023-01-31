@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+import time
 from boto3.session import Session
+from botocore.config import Config
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 
 from .converter import Converter
@@ -40,7 +42,13 @@ class Connection:
         self,
         region_name: Optional[str] = None,
         profile_name: Optional[str] = None,
+        role_arn: Optional[str] = None,
+        role_session_name: str = f"PyDynamoDB-session-{int(time.time())}",
+        external_id: Optional[str] = None,
+        serial_number: Optional[str] = None,
+        duration_seconds: int = 3600,
         session: Optional[Session] = None,
+        config: Optional[Config] = None,
         converter: Optional[Converter] = None,
         retry_config: Optional[RetryConfig] = None,
         cursor_class: Type[BaseCursor] = Cursor,
@@ -49,14 +57,53 @@ class Connection:
     ) -> None:
         self._kwargs = {
             **kwargs,
+            "role_arn": role_arn,
+            "role_session_name": role_session_name,
+            "external_id": external_id,
+            "serial_number": serial_number,
+            "duration_seconds": duration_seconds,
         }
 
         self.region_name = region_name
         self.profile_name = profile_name
+        self.config: Optional[Config] = config if config else Config()
 
         if session:
             self._session = session
         else:
+            if role_arn:
+                creds = self._assume_role(
+                    profile_name=self.profile_name,
+                    region_name=self.region_name,
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    external_id=external_id,
+                    serial_number=serial_number,
+                    duration_seconds=duration_seconds,
+                )
+                self.profile_name = None
+                self._kwargs.update(
+                    {
+                        "aws_access_key_id": creds["AccessKeyId"],
+                        "aws_secret_access_key": creds["SecretAccessKey"],
+                        "aws_session_token": creds["SessionToken"],
+                    }
+                )
+            elif serial_number:
+                creds = self._get_session_token(
+                    profile_name=self.profile_name,
+                    region_name=self.region_name,
+                    serial_number=serial_number,
+                    duration_seconds=duration_seconds,
+                )
+                self.profile_name = None
+                self._kwargs.update(
+                    {
+                        "aws_access_key_id": creds["AccessKeyId"],
+                        "aws_secret_access_key": creds["SecretAccessKey"],
+                        "aws_session_token": creds["SessionToken"],
+                    }
+                )
             self._session = Session(
                 region_name=self.region_name,
                 profile_name=self.profile_name,
@@ -64,7 +111,10 @@ class Connection:
             )
 
         self._client = self._session.client(
-            "dynamodb", region_name=self.region_name, **self._client_kwargs
+            "dynamodb",
+            region_name=self.region_name,
+            config=self.config,
+            **self._client_kwargs,
         )
 
         self._converter = converter
@@ -74,6 +124,66 @@ class Connection:
         self._cursor_pool = list()
         self._autocommit = True
         self._in_transaction = False
+
+    def _assume_role(
+        self,
+        profile_name: Optional[str],
+        region_name: Optional[str],
+        role_arn: str,
+        role_session_name: str,
+        external_id: Optional[str],
+        serial_number: Optional[str],
+        duration_seconds: int,
+    ) -> Dict[str, Any]:
+        session = Session(
+            region_name=region_name, profile_name=profile_name, **self._session_kwargs
+        )
+        client = session.client(
+            "sts", region_name=region_name, config=self.config, **self._client_kwargs
+        )
+        request = {
+            "RoleArn": role_arn,
+            "RoleSessionName": role_session_name,
+            "DurationSeconds": duration_seconds,
+        }
+        if external_id:
+            request.update(
+                {
+                    "ExternalId": external_id,
+                }
+            )
+        if serial_number:
+            token_code = input("Enter the MFA code: ")
+            request.update(
+                {
+                    "SerialNumber": serial_number,
+                    "TokenCode": token_code,
+                }
+            )
+        response = client.assume_role(**request)
+        creds: Dict[str, Any] = response["Credentials"]
+        return creds
+
+    def _get_session_token(
+        self,
+        profile_name: Optional[str],
+        region_name: Optional[str],
+        serial_number: Optional[str],
+        duration_seconds: int,
+    ) -> Dict[str, Any]:
+        session = Session(profile_name=profile_name, **self._session_kwargs)
+        client = session.client(
+            "sts", region_name=region_name, config=self.config, **self._client_kwargs
+        )
+        token_code = input("Enter the MFA code: ")
+        request = {
+            "DurationSeconds": duration_seconds,
+            "SerialNumber": serial_number,
+            "TokenCode": token_code,
+        }
+        response = client.get_session_token(**request)
+        creds: Dict[str, Any] = response["Credentials"]
+        return creds
 
     @property
     def _session_kwargs(self) -> Dict[str, Any]:
