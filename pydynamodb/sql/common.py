@@ -157,7 +157,13 @@ class KeyWords:
         ],
     )
 
-    (LIST, SHOW, DESC, DESCRIBE, TABLES,) = map(
+    (
+        LIST,
+        SHOW,
+        DESC,
+        DESCRIBE,
+        TABLES,
+    ) = map(
         CaselessKeyword,
         [
             "LIST",

@@ -14,7 +14,6 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 
 class BaseCursor(metaclass=ABCMeta):
-
     DEFAULT_LIST_TABLES_LIMIT_SIZE: int = 100
 
     def __init__(
@@ -131,7 +130,6 @@ class BaseCursor(metaclass=ABCMeta):
 
 
 class CursorIterator(metaclass=ABCMeta):
-
     DEFAULT_FETCH_SIZE: int = 1000
 
     def __init__(self, **kwargs) -> None:

@@ -93,7 +93,6 @@ class QueryDBConfig:
 
 
 class QueryDB(metaclass=ABCMeta):
-
     CACHE_TABLE = "QUERYDB_CACHES"
 
     def __init__(
