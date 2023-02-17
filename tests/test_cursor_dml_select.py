@@ -8,7 +8,7 @@ class TestCursorDMLSelect:
         sql = (
             """
         INSERT INTO %s VALUE {
-                'key_partition': ?, 'key_sort': ?, 'col_list': ?, 'col_map': ?
+                'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_list': ?, 'col_map': ?
             }
         """
             % TESTCASE03_TABLE
@@ -16,22 +16,53 @@ class TestCursorDMLSelect:
         params_1 = [
             "row_1",
             1,
+            "Services that require ad hoc query access",
             ["A", "B", {"A": 1, "B": 2}],
             {"A": "A-1", "B": ["B-1", "B-2"]},
         ]
         params_2 = [
             "row_1",
             2,
+            "Online analytical processing (OLAP)/data warehouse implementations",
             ["C", "D", {"C": 3, "D": 4}],
             {"A": "B-1", "B": ["D-1", "D-2"]},
         ]
         params_3 = [
             "row_1",
             3,
+            "Binary large object (BLOB) storage",
             ["E", "F", {"E": 1, "F": 2}],
             {"A": "C-1", "B": ["F-1", "F-2"]},
         ]
         cursor.executemany(sql, [params_1, params_2, params_3])
+
+        sql = (
+            """
+        INSERT INTO %s VALUE {
+                'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_obj': ?
+            }
+        """
+            % TESTCASE03_TABLE
+        )
+        params_4 = [
+            "row_2",
+            1,
+            "Diagnostics can be enabled",
+            {"A": "B"}
+        ]
+        params_5 = [
+            "row_2",
+            2,
+            ["A", "B"],
+            None
+        ]
+        params_6 = [
+            "row_2",
+            3,
+            "Start the application that you downloaded",
+            ["1", "2"]
+        ]
+        cursor.executemany(sql, [params_4, params_5, params_6])
 
     def test_select_simple_columns(self, cursor):
         cursor.execute(
@@ -140,3 +171,36 @@ class TestCursorDMLSelect:
             ["test_date_row_1", 0],
         )
         assert [d[0] for d in cursor.description] == ["col1", "col2"]
+
+    def test_partiql_functions(self, cursor):
+        cursor.execute(
+            """
+            SELECT key_partition, key_sort, col_str
+            FROM %s WHERE key_partition='row_1' and contains("col_str", 'BLOB')
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 1
+        assert ret[0][1] == 3
+
+        cursor.execute(
+            """
+            SELECT key_partition, key_sort, col_str
+            FROM %s WHERE key_partition='row_1' and begins_with("col_str", 'Online')
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 1
+        assert ret[0][1] == 2
+
+        cursor.execute(
+            """
+            SELECT key_partition, key_sort, col_str
+            FROM %s WHERE key_partition='row_2' and attribute_type("col_str", 'S')
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 2

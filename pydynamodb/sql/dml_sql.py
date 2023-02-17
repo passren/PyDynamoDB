@@ -68,16 +68,35 @@ class DmlBase(Base):
         ^ (_COLUMN + KeyWords.BETWEEN + _COLUMN_RVAL + KeyWords.AND + _COLUMN_RVAL)
         ^ (_COLUMN + KeyWords.IS + Tokens.PARTIQL_DATA_TYPE)
         ^ (_COLUMN + KeyWords.IS + KeyWords.NOT + Tokens.PARTIQL_DATA_TYPE)
+        ^ (
+            KeyWords.FUNCTION_ON_WHERE
+            + "("
+            + delimited_list(quoted_string)("function_params").set_name(
+                "function_params"
+            )
+            + ")"
+        )
+        ^ (
+            KeyWords.FUNCTION_WITH_OP_ON_WHERE
+            + "("
+            + delimited_list(quoted_string)("function_params").set_name(
+                "function_params"
+            )
+            + ")"
+            + KeyWords.COMPARISON_OPERATORS
+            + _COLUMN_RVAL
+        )
     )("where_condition").set_name("where_condition")
 
     _WHERE_CONDITIONS = infix_notation(
         _WHERE_CONDITION,
         [
             (KeyWords.NOT, 1, opAssoc.RIGHT),
-            (KeyWords.AND, 2, opAssoc.LEFT),
-            (KeyWords.OR, 2, opAssoc.LEFT),
+            (one_of("AND OR", caseless=True), 2, opAssoc.LEFT),
             ((KeyWords.BETWEEN, KeyWords.AND), 3, opAssoc.RIGHT),
         ],
+        lpar="(",
+        rpar=")",
     )("where_conditions").set_name("where_expression")
 
     _RAW_SUPPORTED_OPTIONS = ZeroOrMore(

@@ -37,6 +37,7 @@ from abc import ABCMeta
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
 from .util import flatten_list
+from pyparsing import ParseResults
 from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list, Regex
 from typing import Any, Dict, List, Optional
 
@@ -144,11 +145,16 @@ class DmlSelect(DmlBase):
     def __init__(self, statement: str) -> None:
         super().__init__(statement)
         self._columns = list()
+        self._where_conditions = list()
         self._is_star_column = False
 
     @property
     def columns(self) -> List[Optional[DmlSelectColumn]]:
         return self._columns
+
+    @property
+    def where_conditions(self) -> List[Optional[str]]:
+        return self._where_conditions
 
     @property
     def is_star_column(self) -> bool:
@@ -170,11 +176,9 @@ class DmlSelect(DmlBase):
 
         columns_ = self._construct_columns(self.root_parse_results["columns"])
 
-        where_conditions_ = self.root_parse_results.get("where_conditions", None)
-        if where_conditions_ is not None:
-            where_conditions_ = where_conditions_.as_list()
-            flatted_where = " ".join(str(c) for c in flatten_list(where_conditions_))
-            where_conditions_ = "WHERE %s" % flatted_where
+        where_conditions = self.root_parse_results.get("where_conditions", None)
+        if where_conditions is not None:
+            where_conditions_ = self._construct_where_conditions(where_conditions)
         else:
             where_conditions_ = ""
 
@@ -202,7 +206,7 @@ class DmlSelect(DmlBase):
 
         return request
 
-    def _construct_columns(self, columns: List[Any]) -> List[str]:
+    def _construct_columns(self, columns: List[Any]) -> str:
         columns_ = list()
         for column in columns:
             if column["column_name"] == "*":
@@ -238,6 +242,38 @@ class DmlSelect(DmlBase):
             )
         columns_ = ",".join(columns_)
         return columns_
+
+    def _construct_where_conditions(self, where_conditions: List[Any]) -> str:
+        for condition in where_conditions:
+            if not isinstance(condition, ParseResults):
+                self._where_conditions.append(str(condition))
+            else:
+                function_ = condition.get("function", None)
+                function_with_op_ = condition.get("function_with_op", None)
+                if function_:
+                    flatted_func_params = ",".join(condition["function_params"])
+                    self._where_conditions.append(
+                        "%s(%s)" % (function_, flatted_func_params)
+                    )
+                elif function_with_op_:
+                    flatted_func_params = ",".join(condition["function_params"])
+                    self._where_conditions.append(
+                        "%s(%s) %s %s"
+                        % (
+                            function_with_op_,
+                            flatted_func_params,
+                            condition["comparison_operators"],
+                            condition["column_rvalue"].as_list()[0],
+                        )
+                    )
+                else:
+                    where_conditions_ = condition.as_list()
+                    flatted_where = " ".join(
+                        str(c) for c in flatten_list(where_conditions_)
+                    )
+                    self._where_conditions.append(flatted_where)
+
+        return "WHERE %s" % " ".join(self.where_conditions)
 
     def _construct_raw_options(self, options: List[Any]) -> Optional[List[Any]]:
         converted_ = None
