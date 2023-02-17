@@ -19,7 +19,6 @@ from sqlalchemy.sql.compiler import (
 
 
 class DynamoDBIdentifierPreparer(IdentifierPreparer):
-
     reserved_words = RESERVED_WORDS
 
 
@@ -35,7 +34,6 @@ class DynamoDBDDLCompiler(DDLCompiler):
 
 
 class DynamoDBStatementCompiler(SQLCompiler):
-
     # DynamoDB can't guarantee the column orders of result
     # _textual_ordered_columns: bool = True
     _ordered_columns: bool = False

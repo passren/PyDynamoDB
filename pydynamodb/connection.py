@@ -18,7 +18,6 @@ _logger = logging.getLogger(__name__)
 
 
 class Connection:
-
     _SESSION_PASSING_ARGS: List[str] = [
         "aws_access_key_id",
         "aws_secret_access_key",

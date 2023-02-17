@@ -44,6 +44,8 @@ class Functions:
     BOOL = "BOOL"
 
     TYPE_CONVERSION = [DATE, DATETIME, NUMBER, BOOL]
+    WHERE_CONDITION = ["begins_with", "attribute_type", "contains"]
+    WHERE_CONDITION_WITH_OP = ["size"]
 
 
 class KeyWords:
@@ -81,21 +83,24 @@ class KeyWords:
         IS,
         NOT,
         OR,
-    ) = (
-        "+",
-        "-",
-        "=",
-        "<>",
-        ">",
-        "<",
-        ">=",
-        "<=",
-        "AND",
-        "BETWEEN",
-        "IN",
-        "IS",
-        "NOT",
-        "OR",
+    ) = map(
+        CaselessKeyword,
+        [
+            "+",
+            "-",
+            "=",
+            "<>",
+            ">",
+            "<",
+            ">=",
+            "<=",
+            "AND",
+            "BETWEEN",
+            "IN",
+            "IS",
+            "NOT",
+            "OR",
+        ],
     )
     ARITHMETIC_OPERATORS = one_of("+ -")("arithmetic_operators").set_name(
         "arithmetic_operators"
@@ -152,7 +157,13 @@ class KeyWords:
         ],
     )
 
-    (LIST, SHOW, DESC, DESCRIBE, TABLES,) = map(
+    (
+        LIST,
+        SHOW,
+        DESC,
+        DESCRIBE,
+        TABLES,
+    ) = map(
         CaselessKeyword,
         [
             "LIST",
@@ -163,10 +174,19 @@ class KeyWords:
         ],
     )
 
-    # Functions
+    # Functions supported on Column
     FUNCTION_ON_COLUMN = one_of(
         Functions.TYPE_CONVERSION, caseless=True, as_keyword=True
     )("function").set_name("function")
+
+    # Functions supported on Where conditions
+    FUNCTION_ON_WHERE = one_of(
+        Functions.WHERE_CONDITION, caseless=True, as_keyword=True
+    )("function").set_name("function")
+
+    FUNCTION_WITH_OP_ON_WHERE = one_of(
+        Functions.WHERE_CONDITION_WITH_OP, caseless=True, as_keyword=True
+    )("function_with_op").set_name("function_with_op")
 
 
 class Tokens:

@@ -135,6 +135,5 @@ class DynamoDBResultSet(CursorIterator):
 
 
 class DynamoDBDictResultSet(DynamoDBResultSet):
-
     # You can override this to use OrderedDict or other dict-like types.
     dict_type: Type[Any] = dict

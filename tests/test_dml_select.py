@@ -225,3 +225,72 @@ class TestDmlSelect:
         assert ret == {
             "Statement": "SELECT IssueID,CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
+
+    def test_parse_partiql_functions(self):
+        sql = """
+            SELECT IssueID, CreatedDate, Title
+            FROM Issues WHERE key_partition='row_1' AND contains('Title', 'ABC')
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[1] == "AND"
+        assert parser.parser.where_conditions[2] == "contains('Title','ABC')"
+
+        sql = """
+            SELECT IssueID, CreatedDate, Title
+            FROM Issues WHERE key_partition='row_1' AND begins_with('Title', 'ABC')
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[1] == "AND"
+        assert parser.parser.where_conditions[2] == "begins_with('Title','ABC')"
+
+        sql = """
+            SELECT IssueID, CreatedDate, Title
+            FROM Issues WHERE key_partition='row_1' AND attribute_type('Title', 'S')
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[1] == "AND"
+        assert parser.parser.where_conditions[2] == "attribute_type('Title','S')"
+
+        sql = """
+            SELECT IssueID, CreatedDate, Title
+            FROM Issues WHERE key_partition='row_1' AND size('Title')>20
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[1] == "AND"
+        assert parser.parser.where_conditions[2] == "size('Title') > 20"
+
+        sql = """
+            SELECT IssueID, CreatedDate, Title
+            FROM Issues WHERE key_partition='row_1' AND Title is MISSING
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[1] == "AND"
+        assert parser.parser.where_conditions[2] == "Title IS MISSING"
+
+        sql = """
+            SELECT IssueID, CreatedDate, Title
+            FROM Issues WHERE key_partition='row_1' AND contains('Title', 'ABC')
+            OR begins_with('Title', 'ABC') AND size('Title') <= 20
+            AND CreatedDate is missing
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[1] == "AND"
+        assert parser.parser.where_conditions[2] == "contains('Title','ABC')"
+        assert parser.parser.where_conditions[3] == "OR"
+        assert parser.parser.where_conditions[4] == "begins_with('Title','ABC')"
+        assert parser.parser.where_conditions[5] == "AND"
+        assert parser.parser.where_conditions[6] == "size('Title') <= 20"
+        assert parser.parser.where_conditions[7] == "AND"
+        assert parser.parser.where_conditions[8] == "CreatedDate IS MISSING"
