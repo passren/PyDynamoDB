@@ -58,6 +58,10 @@ class DynamoDBResultSet(CursorIterator):
         return self._executor.metadata
 
     @property
+    def rowcount(self) -> int:
+        return len(self._executor.rows)
+
+    @property
     def description(
         self,
     ) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
