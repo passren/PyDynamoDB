@@ -59,6 +59,10 @@ class Cursor(BaseCursor, CursorIterator):
         self._result_set_class = val
 
     @property
+    def rowcount(self) -> int:
+        return self._result_set.rowcount if self._result_set else -1
+
+    @property
     def rownumber(self) -> Optional[int]:
         return self._result_set.rownumber if self._result_set else None
 

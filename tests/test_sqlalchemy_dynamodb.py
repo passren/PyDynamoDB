@@ -130,6 +130,72 @@ class TestSQLAlchemyDynamoDB:
         assert len(rows) == 1
         assert rows[0][0] == nested_data
 
+    def test_declarative_table_insert(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            for i in range(0, 5):
+                test_case02 = _TestCase02()
+                test_case02.key_partition = "test_one_row_3"
+                test_case02.key_sort = i
+                test_case02.col_str = "test case declarative table " + str(i)
+                test_case02.col_num = i
+                session.add(test_case02)
+            session.commit()
+
+        rows = conn.execute(
+            text(
+                """
+            SELECT * FROM %s WHERE key_partition = :pk
+            """
+                % TESTCASE02_TABLE
+            ),
+            {"pk": "test_one_row_3"},
+        ).fetchall()
+        assert len(rows) == 5
+
+    def test_declarative_table_update(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            test_case = session.scalars(
+                select(_TestCase02).where(
+                    _TestCase02.key_partition == "test_one_row_3",
+                    _TestCase02.key_sort == 1
+                )
+            ).one()
+            test_case.col_str = "test case declarative table 99"
+            test_case.col_num = 99
+            session.commit()
+
+        rows = conn.execute(
+            text(
+                """
+            SELECT * FROM %s
+            WHERE key_partition = :pk
+            AND key_sort = :sk
+            """
+                % TESTCASE02_TABLE
+            ),
+            {"pk": "test_one_row_3", "sk": 1},
+        ).fetchall()
+        assert len(rows) == 1
+        assert rows[0][2] == "test case declarative table 99"
+        assert rows[0][3] == 99
+
+    def test_declarative_table_delete(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            test_case = session.scalars(
+                select(_TestCase02).where(
+                    _TestCase02.key_partition == "test_one_row_3",
+                    _TestCase02.key_sort == 4
+                )
+            ).one()
+            session.delete(test_case)
+            session.commit()
+
     def test_basic_query(self, engine):
         engine, conn = engine
         rows = conn.execute(
@@ -188,7 +254,7 @@ class TestSQLAlchemyDynamoDB:
         assert len(table.c) == 4
 
         rows = conn.execute(table.select()).fetchall()
-        assert len(rows) == 6
+        assert len(rows) == 10
 
         rows = conn.execute(
             table.select().where(

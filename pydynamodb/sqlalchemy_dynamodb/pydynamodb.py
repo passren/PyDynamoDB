@@ -10,6 +10,7 @@ import botocore
 from sqlalchemy import exc, types, util
 from sqlalchemy.engine import Engine, reflection
 from sqlalchemy.engine.default import DefaultDialect
+from sqlalchemy.sql import crud
 from sqlalchemy.sql.compiler import (
     IdentifierPreparer,
     DDLCompiler,
@@ -85,6 +86,117 @@ class DynamoDBStatementCompiler(SQLCompiler):
             if select._limit_clause is not None:
                 return " LIMIT " + self.process(select._limit_clause, **kw)
         return ""
+
+    def visit_insert(self, insert_stmt, **kw):
+        compile_state = insert_stmt._compile_state_factory(insert_stmt, self, **kw)
+        insert_stmt = compile_state.statement
+
+        toplevel = not self.stack
+
+        if toplevel:
+            self.isinsert = True
+            if not self.dml_compile_state:
+                self.dml_compile_state = compile_state
+            if not self.compile_state:
+                self.compile_state = compile_state
+
+        self.stack.append(
+            {
+                "correlate_froms": set(),
+                "asfrom_froms": set(),
+                "selectable": insert_stmt,
+            }
+        )
+
+        crud_params = crud._get_crud_params(self, insert_stmt, compile_state, **kw)
+
+        if (
+            not crud_params
+            and not self.dialect.supports_default_values
+            and not self.dialect.supports_default_metavalue
+            and not self.dialect.supports_empty_insert
+        ):
+            raise exc.CompileError(
+                "The '%s' dialect with current database "
+                "version settings does not support empty "
+                "inserts." % self.dialect.name
+            )
+
+        preparer = self.preparer
+
+        text = "INSERT "
+
+        if insert_stmt._prefixes:
+            text += self._generate_prefixes(insert_stmt, insert_stmt._prefixes, **kw)
+
+        text += "INTO "
+        table_text = preparer.format_table(insert_stmt.table)
+
+        if insert_stmt._hints:
+            _, table_text = self._setup_crud_hints(insert_stmt, table_text)
+
+        if insert_stmt._independent_ctes:
+            for cte in insert_stmt._independent_ctes:
+                cte._compiler_dispatch(self, **kw)
+
+        text += table_text
+
+        if self.returning or insert_stmt._returning:
+            returning_clause = self.returning_clause(
+                insert_stmt, self.returning or insert_stmt._returning
+            )
+
+            if self.returning_precedes_values:
+                text += " " + returning_clause
+        else:
+            returning_clause = None
+
+        if insert_stmt.select is not None:
+            raise exc.CompileError(
+                "The '%s' dialect with current database "
+                "version settings does not support "
+                "select statement in insert." % self.dialect.name
+            )
+        else:
+            insert_single_values_expr = ", ".join(
+                ["'%s': %s" % (expr, value) for c, expr, value in crud_params]
+            )
+            text += " VALUE {%s}" % insert_single_values_expr
+            if toplevel:
+                self.insert_single_values_expr = insert_single_values_expr
+
+        if insert_stmt._post_values_clause is not None:
+            post_values_clause = self.process(insert_stmt._post_values_clause, **kw)
+            if post_values_clause:
+                text += " " + post_values_clause
+
+        if returning_clause and not self.returning_precedes_values:
+            text += " " + returning_clause
+
+        if self.ctes and not self.dialect.cte_follows_insert:
+            nesting_level = len(self.stack) if not toplevel else None
+            text = (
+                self._render_cte_clause(
+                    nesting_level=nesting_level, include_following_stack=True
+                )
+                + text
+            )
+
+        self.stack.pop(-1)
+
+        return text
+
+    def visit_update(self, update_stmt, **kw):
+        update_stmt._returning = "*"
+        return super().visit_update(update_stmt, **kw)
+
+    def visit_delete(self, delete_stmt, **kw):
+        delete_stmt._returning = "*"
+        return super().visit_delete(delete_stmt, **kw)
+
+    def returning_clause(self, stmt, returning_cols) -> None:
+        if stmt.is_update or stmt.is_delete:
+            return "RETURNING ALL OLD *"
 
 
 class DynamoDBTypeCompiler(GenericTypeCompiler):
