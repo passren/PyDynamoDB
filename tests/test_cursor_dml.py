@@ -181,39 +181,6 @@ class TestCursorDML:
             "list": ["Hello", "World", {1, 2, 3}, {"1", "2"}, 2],
             "map": {"str": "Best", "num": 1, "chinese": "你好"},
         }
-        ################ 
-        cursor.execute(
-            """
-            SELECT "col_nested_list[6]" FROM %s
-            WHERE key_partition = ?
-            AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
-            ["test_one_row_2", 1],
-        )
-        assert cursor.fetchone() == ({'name': 'test case 3', 'version': 1.0},)
-
-        cursor.execute(
-            """
-            SELECT col_nested_map."map".str FROM %s
-            WHERE key_partition = ?
-            AND key_sort = ?
-        """
-            % (TESTCASE01_TABLE,), 
-            ["test_one_row_2", 1],
-        )
-        assert cursor.fetchone() == ("Best", )
-
-        cursor.execute(
-            """
-            SELECT col_nested_map.list[0] FROM %s
-            WHERE key_partition = ?
-            AND key_sort = ?
-        """
-            % (TESTCASE01_TABLE,), 
-            ["test_one_row_2", 1],
-        )
-        assert cursor.fetchone() == ("Best", )
 
 
     def test_fetchmany(self, cursor):

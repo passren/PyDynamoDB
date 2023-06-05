@@ -8,13 +8,13 @@ class TestDmlSelect:
         SELECT IssueId FROM Issues
         """
         ret = SQLParser(sql).transform()
-        assert ret == {"Statement": 'SELECT IssueId FROM "Issues"'}
+        assert ret == {"Statement": 'SELECT "IssueId" FROM "Issues"'}
 
         sql = """
         SELECT IssueId, Title FROM "Issues"
         """
         ret = SQLParser(sql).transform()
-        assert ret == {"Statement": 'SELECT IssueId,Title FROM "Issues"'}
+        assert ret == {"Statement": 'SELECT "IssueId","Title" FROM "Issues"'}
 
         sql = """
         SELECT * FROM Issues.CreateDateIndex
@@ -33,6 +33,14 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {"Statement": 'SELECT * FROM "Issues"."CreateDateIndex"'}
+        
+        sql = """
+            SELECT col_str, col_num, col_byte FROM Issues
+            WHERE key_partition = ?
+            AND key_sort = ?
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {"Statement": 'SELECT "col_str","col_num","col_byte" FROM "Issues" WHERE key_partition = ? AND key_sort = ?'}
 
 
     def test_parse_simple_case_2(self):
@@ -135,7 +143,7 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT TotalNum+EachNum FROM "Orders"',
+            "Statement": 'SELECT "TotalNum"+"EachNum" FROM "Orders"',
         }
 
         sql = """
@@ -144,7 +152,7 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT TotalNum+EachNum,TotalNum-EachNum FROM "Orders"',
+            "Statement": 'SELECT "TotalNum"+"EachNum","TotalNum"-"EachNum" FROM "Orders"',
         }
 
         sql = """
@@ -153,7 +161,7 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT TotalNum+EachNum1+EachNum2,TotalNum-EachNum1+EachNum2 FROM "Orders"',
+            "Statement": 'SELECT "TotalNum"+"EachNum1"+"EachNum2","TotalNum"-"EachNum1"+"EachNum2" FROM "Orders"',
         }
 
     def test_parse_completed_case(self):
@@ -174,7 +182,7 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT IssueId,Total,Content.DateWatched[0] FROM "Issues"."CreateDateIndex" '
+            "Statement": 'SELECT "IssueId","Total","Content"."DateWatched"[0] FROM "Issues"."CreateDateIndex" '
             + "WHERE IssueId IN [100,300,234] "
             + "AND Title = 'some title' "
             + "AND Content[0] >= 100 "
@@ -195,14 +203,14 @@ class TestDmlSelect:
         """
         parser = SQLParser(sql)
         ret = parser.transform()
-        assert parser.parser.columns[0].request_name == "CreatedDate"
+        assert parser.parser.columns[0].request_name == "\"CreatedDate\""
         assert parser.parser.columns[0].function.name == "DATE"
         assert parser.parser.columns[0].function.params is None
-        assert parser.parser.columns[1].request_name == "IssueDate"
+        assert parser.parser.columns[1].request_name == "\"IssueDate\""
         assert parser.parser.columns[1].function.name == "DATE"
         assert parser.parser.columns[1].function.params == ["%Y-%m-%d"]
         assert ret == {
-            "Statement": "SELECT CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
+            "Statement": "SELECT \"CreatedDate\",\"IssueDate\" FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
 
     def test_parse_alias_case(self):
@@ -216,7 +224,7 @@ class TestDmlSelect:
         assert parser.parser.columns[1].alias == "create_data"
         assert parser.parser.columns[2].alias is None
         assert ret == {
-            "Statement": "SELECT IssueID,CreatedDate,Title FROM \"Issues\" WHERE key_partition = 'row_1'"
+            "Statement": "SELECT \"IssueID\",\"CreatedDate\",\"Title\" FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
 
         sql = """
@@ -229,7 +237,7 @@ class TestDmlSelect:
         assert parser.parser.columns[1].alias == "create_data"
         assert parser.parser.columns[2].alias == "issue_date"
         assert ret == {
-            "Statement": "SELECT IssueID,CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
+            "Statement": "SELECT \"IssueID\",\"CreatedDate\",\"IssueDate\" FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
 
     def test_parse_partiql_functions(self):
@@ -300,6 +308,3 @@ class TestDmlSelect:
         assert parser.parser.where_conditions[6] == "size('Title') <= 20"
         assert parser.parser.where_conditions[7] == "AND"
         assert parser.parser.where_conditions[8] == "CreatedDate IS MISSING"
-
-tds = TestDmlSelect()
-tds.test_parse_simple_case_1()

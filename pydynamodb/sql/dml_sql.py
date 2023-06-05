@@ -8,7 +8,6 @@ from pyparsing import (
     Word,
     CaselessKeyword,
     alphanums,
-    nums,
     quoted_string,
     Group,
     ZeroOrMore,
@@ -37,7 +36,7 @@ class DmlBase(Base):
     #     "column_name"
     # )
 
-    _COLUMN_NAME_EXPRESSION = Combine(Opt(KeyWords.SUPPRESS_QUOTE) +
+    _COLUMN_NAME_EXPRESSION = Combine(Opt(KeyWords.SUPPRESS_QUOTE) + 
                                       Word(alphanums + "_-[]") + Opt(KeyWords.SUPPRESS_QUOTE))
     _COLUMN_NAME = (KeyWords.STAR ^
                     Combine(_COLUMN_NAME_EXPRESSION + ZeroOrMore("." + _COLUMN_NAME_EXPRESSION))
@@ -45,6 +44,7 @@ class DmlBase(Base):
 
     _ALIAS_NAME = Word(alphanums + "_-")("alias_name").set_name("alias_name")
 
+    # _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + delimited_list(_COLUMN_NAME, delim=".") + Opt(KeyWords.SUPPRESS_QUOTE)
     _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
 
     _COLUMNS = delimited_list(

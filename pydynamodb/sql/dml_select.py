@@ -35,7 +35,7 @@ import logging
 import re
 from abc import ABCMeta
 from .dml_sql import DmlBase, DmlFunction
-from .common import KeyWords, Tokens
+from .common import KeyWords, Tokens, RESERVED_WORDS
 from .util import flatten_list
 from pyparsing import ParseResults
 from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list, Regex
@@ -203,9 +203,21 @@ class DmlSelect(DmlBase):
         options_ = self._construct_options(options)
         if options_ is not None:
             request.update(options_)
-
         return request
-
+    
+    def _convert_column_name(self, column_name) -> str:
+        if column_name is None:
+            return ""
+        _column_name_arr = []
+        name_arr = column_name.split(".")
+        for name in name_arr:
+            if '[' in name and ']' in name:
+                lmb_index =  name.find("[")
+                _column_name_arr.append(f'"{name[:lmb_index]}"{name[lmb_index:]}')
+            else:
+                _column_name_arr.append(f'"{name}"')
+        return ".".join(_column_name_arr)   
+    
     def _construct_columns(self, columns: List[Any]) -> str:
         columns_ = list()
         for column in columns:
@@ -215,11 +227,11 @@ class DmlSelect(DmlBase):
                 return "*"
 
             column_ = list()
-            column_.append(column["column_name"])
+            column_.append(self._convert_column_name(column['column_name']))
 
             for rcolumn in column["column_ops"]:
                 column_.append(rcolumn["arithmetic_operators"])
-                column_.append(rcolumn["column_name"])
+                column_.append(self._convert_column_name(rcolumn['column_name']))
 
             column__ = "".join(column_)
             columns_.append(column__)
