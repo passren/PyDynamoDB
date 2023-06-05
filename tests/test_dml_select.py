@@ -28,6 +28,13 @@ class TestDmlSelect:
         ret = SQLParser(sql).transform()
         assert ret == {"Statement": 'SELECT * FROM "Issues"."CreateDateIndex"'}
 
+        sql = """
+        SELECT * FROM Issues."CreateDateIndex"
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {"Statement": 'SELECT * FROM "Issues"."CreateDateIndex"'}
+
+
     def test_parse_simple_case_2(self):
         sql = """
         SELECT * FROM Orders
@@ -194,7 +201,6 @@ class TestDmlSelect:
         assert parser.parser.columns[1].request_name == "IssueDate"
         assert parser.parser.columns[1].function.name == "DATE"
         assert parser.parser.columns[1].function.params == ["%Y-%m-%d"]
-
         assert ret == {
             "Statement": "SELECT CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
@@ -294,3 +300,6 @@ class TestDmlSelect:
         assert parser.parser.where_conditions[6] == "size('Title') <= 20"
         assert parser.parser.where_conditions[7] == "AND"
         assert parser.parser.where_conditions[8] == "CreatedDate IS MISSING"
+
+tds = TestDmlSelect()
+tds.test_parse_simple_case_1()

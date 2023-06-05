@@ -8,3 +8,4 @@ archived/
 build/
 .env
 *coverage*
+.idea

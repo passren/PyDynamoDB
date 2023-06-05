@@ -8,6 +8,7 @@ from pyparsing import (
     Word,
     CaselessKeyword,
     alphanums,
+    nums,
     quoted_string,
     Group,
     ZeroOrMore,
@@ -17,6 +18,7 @@ from pyparsing import (
     one_of,
     infix_notation,
     pyparsing_common as ppc,
+    Combine
 )
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -30,10 +32,16 @@ class DmlBase(Base):
             "ReturnConsumedCapacity",
         ],
     )
+    # column_name, "column_name", "table_name"."column_name", "table_name.column_name", table_name.column_name[0]
+    # _COLUMN_NAME = (KeyWords.STAR ^ Word(alphanums + "_.-[]"))("column_name").set_name(
+    #     "column_name"
+    # )
 
-    _COLUMN_NAME = (KeyWords.STAR ^ Word(alphanums + "_.-[]"))("column_name").set_name(
-        "column_name"
-    )
+    _COLUMN_NAME_EXPRESSION = Combine(Opt(KeyWords.SUPPRESS_QUOTE) +
+                                      Word(alphanums + "_-[]") + Opt(KeyWords.SUPPRESS_QUOTE))
+    _COLUMN_NAME = (KeyWords.STAR ^
+                    Combine(_COLUMN_NAME_EXPRESSION + ZeroOrMore("." + _COLUMN_NAME_EXPRESSION))
+                    )("column_name").set_name("column_name")
 
     _ALIAS_NAME = Word(alphanums + "_-")("alias_name").set_name("alias_name")
 
