@@ -76,6 +76,7 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
         if self.request_name is not None:
             self._result_name = self.request_name.split(".")[-1]
+            self._result_name = self._result_name.replace('"', "")
 
         return self._result_name
 
@@ -95,19 +96,16 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
 
 class DmlSelect(DmlBase):
-    _REQUEST_COLUMN = KeyWords.FUNCTION_ON_COLUMN + KeyWords.LPAR + Opt(
-        KeyWords.SUPPRESS_QUOTE
-    ) + DmlBase._COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE) + ZeroOrMore(
-        KeyWords.COMMA
-        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
-    )(
-        "function_params"
-    ).set_name(
-        "function_params"
-    ) + KeyWords.RPAR | Opt(
-        KeyWords.SUPPRESS_QUOTE
-    ) + DmlBase._COLUMN_NAME + Opt(
-        KeyWords.SUPPRESS_QUOTE
+    _REQUEST_COLUMN = (
+        KeyWords.FUNCTION_ON_COLUMN
+        + KeyWords.LPAR
+        + DmlBase._COLUMN_NAME
+        + ZeroOrMore(
+            KeyWords.COMMA
+            + Tokens.QUOTED_STRING("function_param").set_name("function_param")
+        )("function_params").set_name("function_params")
+        + KeyWords.RPAR
+        | DmlBase._COLUMN_NAME
     )
 
     _ALIAS = (
@@ -263,7 +261,7 @@ class DmlSelect(DmlBase):
                             function_with_op_,
                             flatted_func_params,
                             condition["comparison_operators"],
-                            condition["column_rvalue"].as_list()[0],
+                            condition["column_rvalue"],
                         )
                     )
                 else:

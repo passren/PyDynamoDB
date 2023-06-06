@@ -121,6 +121,30 @@ class TestDmlSelect:
             "Limit": 10,
         }
 
+        sql = """
+        SELECT IssueId, "Total" FROM Orders
+        WHERE "OrderID" = ? OR Title = ?
+        LIMIT 10
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {
+            "Statement": 'SELECT IssueId,"Total" '+
+                        'FROM "Orders" WHERE "OrderID" = ? OR Title = ?',
+            "Limit": 10,
+        }
+
+        sql = """
+        SELECT "IssueId", "Total", Content."DateWatched"[0] FROM Orders
+        WHERE OrderID = ? OR "Title" = ?
+        LIMIT 10
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {
+            "Statement": 'SELECT "IssueId","Total",Content."DateWatched"[0] '+
+                        'FROM "Orders" WHERE OrderID = ? OR "Title" = ?',
+            "Limit": 10,
+        }
+
     def test_parse_attributes_with_op(self):
         sql = """
         SELECT TotalNum + EachNum
