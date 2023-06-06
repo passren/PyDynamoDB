@@ -4,7 +4,7 @@ from distutils.util import strtobool
 
 import pydynamodb
 from pydynamodb.error import OperationalError
-from sql.common import RESERVED_WORDS
+from ..sql.common import RESERVED_WORDS
 
 import botocore
 from sqlalchemy import exc, types, util

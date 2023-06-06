@@ -62,7 +62,9 @@ class KeyWords:
         BACKQUOTE,
         EQUALS,
         SPACE,
-    ) = map(Suppress, "(),;:.'\"`= ")
+        LBRACKET,
+        RBRACKET,
+    ) = map(Suppress, "(),;:.'\"`= []")
     STAR, QUESTION = "*", "?"
     SUPPRESS_QUOTE = (SINGLEQUOTE | BACKQUOTE | DOUBLEQUOTE).set_name("suppress_quote")
     QUOTE = one_of("' \" `").set_name("quote")
@@ -306,7 +308,8 @@ def get_query_type(sql: str) -> QueryType:
 
     raise LookupError("Not supported query type")
 
-# sqlalchemy reserved words
+
+# DynamoDB reserved words
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html
 RESERVED_WORDS = [
     "ABORT",

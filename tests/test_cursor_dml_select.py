@@ -64,6 +64,29 @@ class TestCursorDMLSelect:
         ]
         cursor.executemany(sql, [params_4, params_5, params_6])
 
+        sql = (
+            """
+        INSERT INTO %s VALUE {
+                'key_partition': ?, 'key_sort': ?, 'size': ?, 'col_map': ?
+            }
+        """
+            % TESTCASE03_TABLE
+        )
+        params_7 = [
+            "row_3",
+            0,
+            [100, 300, 500],
+            {"all": "true", "max": ["text", 'json']}
+        ]
+        params_8 = [
+            "row_3",
+            1,
+            [500, 800, 1000, 1500],
+            {"ALL": "false", "max": ['image', 'blob']}
+        ]
+
+        cursor.executemany(sql, [params_7, params_8])
+
     def test_select_simple_columns(self, cursor):
         cursor.execute(
             "SELECT * FROM %s WHERE key_partition='row_1'" % TESTCASE03_TABLE
@@ -110,6 +133,67 @@ class TestCursorDMLSelect:
         assert len(ret) == 3
         assert [d[0] for d in cursor.description] == ["col_list[1]", "A"]
         assert ret == [("B", "A-1"), ("D", "B-1"), ("F", "C-1")]
+
+    def test_reserved_word(self, cursor):
+        try:
+            cursor.execute(
+                """
+                SELECT size FROM %s WHERE key_partition='row_3'
+            """
+                % TESTCASE03_TABLE
+            )
+        except Exception as e:
+            assert "Statement wasn't well formed" in str(e)
+
+        cursor.execute(
+            """
+            SELECT "size" FROM %s WHERE key_partition='row_3'
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 2
+        assert ret == [([100, 300, 500],), ([500, 800, 1000, 1500],)]
+
+        cursor.execute(
+            """
+            SELECT "size"[0] FROM %s WHERE key_partition='row_3'
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 2
+        assert cursor.description == [
+            ("size[0]", "STRING", None, None, None, None, None),
+        ]
+        assert ret == [(100,), (500,)]
+
+        cursor.execute(
+            """
+            SELECT col_map."all", col_map."ALL" FROM %s WHERE key_partition='row_3'
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 2
+        assert cursor.description == [
+            ("all", "STRING", None, None, None, None, None),
+            ("ALL", "STRING", None, None, None, None, None),
+        ]
+        assert ret == [("true", None), (None, "false")]
+
+        cursor.execute(
+            """
+            SELECT col_map."max"[1] FROM %s WHERE key_partition='row_3' and key_sort=1
+        """
+            % TESTCASE03_TABLE
+        )
+        ret = cursor.fetchall()
+        assert len(ret) == 1
+        assert cursor.description == [
+            ("max[1]", "STRING", None, None, None, None, None),
+        ]
+        assert ret == [("blob",)]
 
     def test_function_in_columns(self, cursor):
         from datetime import date, datetime

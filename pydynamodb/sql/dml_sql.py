@@ -8,6 +8,7 @@ from pyparsing import (
     Word,
     CaselessKeyword,
     alphanums,
+    nums,
     quoted_string,
     Group,
     ZeroOrMore,
@@ -17,7 +18,7 @@ from pyparsing import (
     one_of,
     infix_notation,
     pyparsing_common as ppc,
-    Combine
+    Combine,
 )
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -31,21 +32,18 @@ class DmlBase(Base):
             "ReturnConsumedCapacity",
         ],
     )
-    # column_name, "column_name", "table_name"."column_name", "table_name.column_name", table_name.column_name[0]
-    # _COLUMN_NAME = (KeyWords.STAR ^ Word(alphanums + "_.-[]"))("column_name").set_name(
-    #     "column_name"
-    # )
 
-    _COLUMN_NAME_EXPRESSION = Combine(Opt(KeyWords.SUPPRESS_QUOTE) + 
-                                      Word(alphanums + "_-[]") + Opt(KeyWords.SUPPRESS_QUOTE))
-    _COLUMN_NAME = (KeyWords.STAR ^
-                    Combine(_COLUMN_NAME_EXPRESSION + ZeroOrMore("." + _COLUMN_NAME_EXPRESSION))
-                    )("column_name").set_name("column_name")
+    ATTR_NAME = Opt('"') + Word(alphanums + "_-") + Opt('"')
+    ATTR_ARRAY_NAME = ATTR_NAME + "[" + Word(nums) + "]"
+
+    _COLUMN_NAME = (
+        KeyWords.STAR
+        ^ Combine(delimited_list(ATTR_NAME ^ ATTR_ARRAY_NAME, delim=".", combine=True))
+    )("column_name").set_name("column_name")
 
     _ALIAS_NAME = Word(alphanums + "_-")("alias_name").set_name("alias_name")
 
-    # _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + delimited_list(_COLUMN_NAME, delim=".") + Opt(KeyWords.SUPPRESS_QUOTE)
-    _COLUMN = Opt(KeyWords.SUPPRESS_QUOTE) + _COLUMN_NAME + Opt(KeyWords.SUPPRESS_QUOTE)
+    _COLUMN = _COLUMN_NAME
 
     _COLUMNS = delimited_list(
         Group(
