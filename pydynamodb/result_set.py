@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 
 from .converter import Converter
 from .common import CursorIterator
 from .model import Statements, Metadata
 from .executor import BaseExecutor, dispatch_executor
+from .executor import DmlStatementDictExecutor
 from .error import ProgrammingError
 from .util import RetryConfig
 
@@ -139,5 +140,27 @@ class DynamoDBResultSet(CursorIterator):
 
 
 class DynamoDBDictResultSet(DynamoDBResultSet):
-    # You can override this to use OrderedDict or other dict-like types.
-    dict_type: Type[Any] = dict
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        arraysize: int,
+        retry_config: RetryConfig,
+        is_transaction: bool = False,
+        executor_class: BaseExecutor = None,
+        **kwargs
+    ) -> None:
+        assert (
+            statements.query_type[0] == "DML" and len(statements) == 1
+        ), "DictExecutor can only support single DML statement"
+        super().__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            arraysize=arraysize,
+            retry_config=retry_config,
+            is_transaction=is_transaction,
+            executor_class=DmlStatementDictExecutor,
+            **kwargs
+        )
