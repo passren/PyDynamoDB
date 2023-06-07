@@ -101,8 +101,8 @@ Basic usage
     from pydynamodb import connect
 
     cursor = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name").cursor()
+                    aws_secret_access_key="aws_secret_access_key",
+                    region_name="region_name").cursor()
     cursor.execute('SELECT * FROM "ddb_table_name"')
     print(cursor.fetchall())
 
@@ -115,8 +115,8 @@ Cursor iteration
     from pydynamodb import connect
 
     cursor = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name").cursor()
+                    aws_secret_access_key="aws_secret_access_key",
+                    region_name="region_name").cursor()
     cursor.execute('SELECT * FROM "ddb_table_name"')
     rows = cursor.fetchall()
     for row in rows:
@@ -134,8 +134,8 @@ and deserialize the response to Python built-in types.
     from pydynamodb import connect
     from datetime import date, datetime
     cursor = connect(aws_access_key_id="aws_access_key_id",
-                    aws_secret_access_key="aws_secret_access_key"
-                     region_name="region_name").cursor()
+                    aws_secret_access_key="aws_secret_access_key",
+                    region_name="region_name").cursor()
     cursor.execute("""INSERT INTO "ddb_table_name" VALUE {
                         'partition_key' = ?, 'sort_key' = ?, 'col_str' = ?,
                         'col_num' = ?, 'col_byte' = ?, 'col_ss' = ?,
