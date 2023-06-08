@@ -200,8 +200,18 @@ class Cursor(BaseCursor, CursorIterator):
 
 
 class DictCursor(Cursor):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        retry_config: RetryConfig,
+        **kwargs
+    ) -> None:
+        super().__init__(
+            connection=connection,
+            converter=converter,
+            retry_config=retry_config,
+            **kwargs,
+        )
+        self._result_set: Optional[DynamoDBDictResultSet] = None
         self._result_set_class = DynamoDBDictResultSet
-        if "dict_type" in kwargs:
-            DynamoDBDictResultSet.dict_type = kwargs["dict_type"]

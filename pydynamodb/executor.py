@@ -275,6 +275,45 @@ class DmlStatementExecutor(BaseExecutor):
             self._is_predef_metadata = False
 
 
+class DmlStatementDictExecutor(DmlStatementExecutor):
+    def __init__(
+        self,
+        connection: "Connection",
+        converter: Converter,
+        statements: Statements,
+        retry_config: RetryConfig,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            connection=connection,
+            converter=converter,
+            statements=statements,
+            retry_config=retry_config,
+            **kwargs,
+        )
+
+    def process_rows(self, response: Dict[str, Any]) -> None:
+        rows = response.get("Items", None)
+        if rows is None:
+            raise DataError("KeyError `Items`")
+
+        processed_rows = list()
+        for row in rows:
+            row_ = self._process_row_item(row)
+            processed_rows.append(row_)
+
+        self._rows.extend(processed_rows)
+        self._next_token = response.get("NextToken", None)
+
+    def _process_row_item(self, row) -> Optional[Dict[str, Any]]:
+        row_ = dict()
+        for col, val in row.items():
+            val_ = self._converter.deserialize(val)
+            row_[col] = val_
+
+        return row_
+
+
 class DmlBatchExecutor(DmlStatementExecutor):
     def __init__(
         self,
