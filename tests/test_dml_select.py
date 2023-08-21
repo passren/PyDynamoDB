@@ -70,11 +70,12 @@ class TestDmlSelect:
         sql = """
         SELECT * FROM Orders
         WHERE OrderID = 100
+        AND "Author" != 'PR'
         ORDER BY OrderID DESC
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT * FROM "Orders" WHERE OrderID = 100 ORDER BY OrderID DESC'
+            "Statement": 'SELECT * FROM "Orders" WHERE OrderID = 100 AND "Author" != \'PR\' ORDER BY OrderID DESC'
         }
 
         sql = """

@@ -10,8 +10,8 @@ jobs:
     env:
       USE_LOCAL_DDB: "true"
       AWS_DEFAULT_REGION: "us-west-2"
-      AWS_ACCESS_KEY_ID: "***"
-      AWS_SECRET_ACCESS_KEY: "***"
+      AWS_ACCESS_KEY_ID: "dummy"
+      AWS_SECRET_ACCESS_KEY: "dummy"
       LOCAL_DDB_ENDPOINT_URL: "http://localhost:8000"
 
     strategy:
