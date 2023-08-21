@@ -107,7 +107,7 @@ class KeyWords:
     ARITHMETIC_OPERATORS = one_of("+ -")("arithmetic_operators").set_name(
         "arithmetic_operators"
     )
-    COMPARISON_OPERATORS = one_of("= <> < > >= <=")("comparison_operators").set_name(
+    COMPARISON_OPERATORS = one_of("= <> != < > >= <=")("comparison_operators").set_name(
         "comparison_operators"
     )
 
