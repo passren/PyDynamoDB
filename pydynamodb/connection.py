@@ -45,6 +45,8 @@ class Connection:
         role_session_name: str = f"PyDynamoDB-session-{int(time.time())}",
         external_id: Optional[str] = None,
         serial_number: Optional[str] = None,
+        web_identity_token: Optional[str] = None,
+        provider_id: Optional[str] = None,
         duration_seconds: int = 3600,
         session: Optional[Session] = None,
         config: Optional[Config] = None,
@@ -60,6 +62,8 @@ class Connection:
             "role_session_name": role_session_name,
             "external_id": external_id,
             "serial_number": serial_number,
+            "web_identity_token": web_identity_token,
+            "provider_id": provider_id,
             "duration_seconds": duration_seconds,
         }
 
@@ -70,7 +74,18 @@ class Connection:
         if session:
             self._session = session
         else:
-            if role_arn:
+            creds = None
+            if role_arn and web_identity_token:
+                creds = self._assume_role_with_web_identity(
+                    profile_name=self.profile_name,
+                    region_name=self.region_name,
+                    role_arn=role_arn,
+                    role_session_name=role_session_name,
+                    web_identity_token=web_identity_token,
+                    provider_id=provider_id,
+                    duration_seconds=duration_seconds,
+                )
+            elif role_arn:
                 creds = self._assume_role(
                     profile_name=self.profile_name,
                     region_name=self.region_name,
@@ -80,14 +95,6 @@ class Connection:
                     serial_number=serial_number,
                     duration_seconds=duration_seconds,
                 )
-                self.profile_name = None
-                self._kwargs.update(
-                    {
-                        "aws_access_key_id": creds["AccessKeyId"],
-                        "aws_secret_access_key": creds["SecretAccessKey"],
-                        "aws_session_token": creds["SessionToken"],
-                    }
-                )
             elif serial_number:
                 creds = self._get_session_token(
                     profile_name=self.profile_name,
@@ -95,6 +102,8 @@ class Connection:
                     serial_number=serial_number,
                     duration_seconds=duration_seconds,
                 )
+
+            if creds:
                 self.profile_name = None
                 self._kwargs.update(
                     {
@@ -162,6 +171,34 @@ class Connection:
         response = client.assume_role(**request)
         creds: Dict[str, Any] = response["Credentials"]
         return creds
+
+    def _assume_role_with_web_identity(
+        self,
+        profile_name: Optional[str],
+        region_name: Optional[str],
+        role_arn: str,
+        role_session_name: str,
+        web_identity_token: str,
+        provider_id: Optional[str],
+        duration_seconds: int,
+    ) -> Dict[str, Any]:
+        session = Session(
+            region_name=region_name, profile_name=profile_name, **self._session_kwargs
+        )
+        client = session.client(
+            "sts", region_name=region_name, config=self.config, **self._client_kwargs
+        )
+        request = {
+            "RoleArn": role_arn,
+            "RoleSessionName": role_session_name,
+            "DurationSeconds": duration_seconds,
+            "WebIdentityToken": web_identity_token,
+            "ProviderId": provider_id if provider_id else "",
+        }
+        response = client.assume_role_with_web_identity(**request)
+        creds: Dict[str, Any] = response["Credentials"]
+        return creds
+        
 
     def _get_session_token(
         self,
