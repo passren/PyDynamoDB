@@ -198,7 +198,6 @@ class Connection:
         response = client.assume_role_with_web_identity(**request)
         creds: Dict[str, Any] = response["Credentials"]
         return creds
-        
 
     def _get_session_token(
         self,
