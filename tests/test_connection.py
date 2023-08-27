@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from moto import mock_sts
 
 TESTCASE01_TABLE = "pydynamodb_test_case01"
 
@@ -177,3 +178,49 @@ class TestConnection:
             [test_case],
         )
         return cursor.fetchall()
+    
+    @mock_sts
+    def test_conn_with_credentials(self):
+        from pydynamodb import connect
+
+        # assume_role
+        conn = connect(
+            region_name="us-east-1",
+            role_arn="arn:aws:iam::123456789012:role/TestRole",
+        )
+        assert conn._session_kwargs["aws_access_key_id"] is not None
+        assert conn._session_kwargs["aws_secret_access_key"] is not None
+        assert conn._session_kwargs["aws_session_token"] is not None
+
+        # assume_role with ExternalId
+        conn = connect(
+            region_name="us-east-1",
+            role_arn="arn:aws:iam::123456789012:role/TestRole",
+            external_id="123ABC",
+        )
+        assert conn._session_kwargs["aws_access_key_id"] is not None
+        assert conn._session_kwargs["aws_secret_access_key"] is not None
+        assert conn._session_kwargs["aws_session_token"] is not None
+
+        # assume_role with ExternalId and MFA
+        conn = connect(
+            region_name="us-east-1",
+            role_arn="arn:aws:iam::123456789012:role/TestRole",
+            external_id="123ABC",
+            serial_number="xhseh35s12",
+            token_code="7766933",
+        )
+        assert conn._session_kwargs["aws_access_key_id"] is not None
+        assert conn._session_kwargs["aws_secret_access_key"] is not None
+        assert conn._session_kwargs["aws_session_token"] is not None
+
+        # assume_role_with_web_identity
+        conn = connect(
+            region_name="us-east-1",
+            role_arn="arn:aws:iam::123456789012:role/FederatedWebIdentityRole",
+            web_identity_token="Atza%7CIQEBLjAsAhRFiXuWpUXuRvQ9PZL3GMFcYevydwIUFAHZwXZXXXXXXXXJnrulxKDHwy87oGKPznh0D6bEQZTSCzyoCtL_8S07pLpr0zMbn6w1lfVZKNTBdDansFBmtGnIsIapjI6xKR02Yc_2bQ8LZbUXSGm6Ry6_BG7PrtLZtj_dfCTj92xNGed-CrKqjG7nPBjNIL016GGvuS5gSvPRUxWES3VYfm1wl7WTI7jn-Pcb6M-buCgHhFOzTQxod27L9CqnOLio7N3gZAGpsp6n1-AJBOCJckcyXe2c6uD0srOJeZlKUm2eTDVMf8IehDVI0r1QOnTV6KzzAI3OY87Vd_cVMQ",
+            provider_id="www.amazon.com",
+        )
+        assert conn._session_kwargs["aws_access_key_id"] is not None
+        assert conn._session_kwargs["aws_secret_access_key"] is not None
+        assert conn._session_kwargs["aws_session_token"] is not None
