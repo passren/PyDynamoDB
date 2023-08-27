@@ -45,6 +45,7 @@ class Connection:
         role_session_name: str = f"PyDynamoDB-session-{int(time.time())}",
         external_id: Optional[str] = None,
         serial_number: Optional[str] = None,
+        token_code: Optional[str] = None,
         web_identity_token: Optional[str] = None,
         provider_id: Optional[str] = None,
         duration_seconds: int = 3600,
@@ -62,6 +63,7 @@ class Connection:
             "role_session_name": role_session_name,
             "external_id": external_id,
             "serial_number": serial_number,
+            "token_code": token_code,
             "web_identity_token": web_identity_token,
             "provider_id": provider_id,
             "duration_seconds": duration_seconds,
@@ -93,6 +95,7 @@ class Connection:
                     role_session_name=role_session_name,
                     external_id=external_id,
                     serial_number=serial_number,
+                    token_code=token_code,
                     duration_seconds=duration_seconds,
                 )
             elif serial_number:
@@ -141,6 +144,7 @@ class Connection:
         role_session_name: str,
         external_id: Optional[str],
         serial_number: Optional[str],
+        token_code: Optional[str],
         duration_seconds: int,
     ) -> Dict[str, Any]:
         session = Session(
@@ -161,13 +165,13 @@ class Connection:
                 }
             )
         if serial_number:
-            token_code = input("Enter the MFA code: ")
             request.update(
                 {
                     "SerialNumber": serial_number,
                     "TokenCode": token_code,
                 }
             )
+
         response = client.assume_role(**request)
         creds: Dict[str, Any] = response["Credentials"]
         return creds
@@ -195,6 +199,7 @@ class Connection:
             "WebIdentityToken": web_identity_token,
             "ProviderId": provider_id if provider_id else "",
         }
+
         response = client.assume_role_with_web_identity(**request)
         creds: Dict[str, Any] = response["Credentials"]
         return creds
