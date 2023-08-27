@@ -46,6 +46,8 @@ class Connection:
         external_id: Optional[str] = None,
         serial_number: Optional[str] = None,
         token_code: Optional[str] = None,
+        principal_arn: Optional[str] = None,
+        saml_assertion: Optional[str] = None,
         web_identity_token: Optional[str] = None,
         provider_id: Optional[str] = None,
         duration_seconds: int = 3600,
@@ -64,6 +66,8 @@ class Connection:
             "external_id": external_id,
             "serial_number": serial_number,
             "token_code": token_code,
+            "principal_arn": principal_arn,
+            "saml_assertion": saml_assertion,
             "web_identity_token": web_identity_token,
             "provider_id": provider_id,
             "duration_seconds": duration_seconds,
@@ -77,7 +81,16 @@ class Connection:
             self._session = session
         else:
             creds = None
-            if role_arn and web_identity_token:
+            if role_arn and saml_assertion:
+                creds = self._assume_role_with_saml(
+                    profile_name=self.profile_name,
+                    region_name=self.region_name,
+                    role_arn=role_arn,
+                    principal_arn=principal_arn,
+                    saml_assertion=saml_assertion,
+                    duration_seconds=duration_seconds,
+                )
+            elif role_arn and web_identity_token:
                 creds = self._assume_role_with_web_identity(
                     profile_name=self.profile_name,
                     region_name=self.region_name,
@@ -173,6 +186,32 @@ class Connection:
             )
 
         response = client.assume_role(**request)
+        creds: Dict[str, Any] = response["Credentials"]
+        return creds
+
+    def _assume_role_with_saml(
+        self,
+        profile_name: Optional[str],
+        region_name: Optional[str],
+        role_arn: str,
+        principal_arn: str,
+        saml_assertion: str,
+        duration_seconds: int,
+    ) -> Dict[str, Any]:
+        session = Session(
+            region_name=region_name, profile_name=profile_name, **self._session_kwargs
+        )
+        client = session.client(
+            "sts", region_name=region_name, config=self.config, **self._client_kwargs
+        )
+        request = {
+            "RoleArn": role_arn,
+            "PrincipalArn": principal_arn,
+            "SAMLAssertion": saml_assertion,
+            "DurationSeconds": duration_seconds,
+        }
+
+        response = client.assume_role_with_saml(**request)
         creds: Dict[str, Any] = response["Credentials"]
         return creds
 
