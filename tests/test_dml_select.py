@@ -257,8 +257,9 @@ class TestDmlSelect:
             FROM Issues WHERE key_partition='row_1' AND contains('Title', 'ABC')
         """
         parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        parser.transform()
+        WHERE_CONDITIONS_0 = "key_partition = 'row_1'"
+        assert parser.parser.where_conditions[0] == WHERE_CONDITIONS_0
         assert parser.parser.where_conditions[1] == "AND"
         assert parser.parser.where_conditions[2] == "contains('Title','ABC')"
 
@@ -267,8 +268,8 @@ class TestDmlSelect:
             FROM Issues WHERE key_partition='row_1' AND begins_with('Title', 'ABC')
         """
         parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        parser.transform()
+        assert parser.parser.where_conditions[0] == WHERE_CONDITIONS_0
         assert parser.parser.where_conditions[1] == "AND"
         assert parser.parser.where_conditions[2] == "begins_with('Title','ABC')"
 
@@ -277,8 +278,8 @@ class TestDmlSelect:
             FROM Issues WHERE key_partition='row_1' AND attribute_type('Title', 'S')
         """
         parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        parser.transform()
+        assert parser.parser.where_conditions[0] == WHERE_CONDITIONS_0
         assert parser.parser.where_conditions[1] == "AND"
         assert parser.parser.where_conditions[2] == "attribute_type('Title','S')"
 
@@ -287,8 +288,8 @@ class TestDmlSelect:
             FROM Issues WHERE key_partition='row_1' AND size('Title')>20
         """
         parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        parser.transform()
+        assert parser.parser.where_conditions[0] == WHERE_CONDITIONS_0
         assert parser.parser.where_conditions[1] == "AND"
         assert parser.parser.where_conditions[2] == "size('Title') > 20"
 
@@ -297,8 +298,8 @@ class TestDmlSelect:
             FROM Issues WHERE key_partition='row_1' AND Title is MISSING
         """
         parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        parser.transform()
+        assert parser.parser.where_conditions[0] == WHERE_CONDITIONS_0
         assert parser.parser.where_conditions[1] == "AND"
         assert parser.parser.where_conditions[2] == "Title IS MISSING"
 
@@ -309,8 +310,8 @@ class TestDmlSelect:
             AND CreatedDate is missing
         """
         parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.parser.where_conditions[0] == "key_partition = 'row_1'"
+        parser.transform()
+        assert parser.parser.where_conditions[0] == WHERE_CONDITIONS_0
         assert parser.parser.where_conditions[1] == "AND"
         assert parser.parser.where_conditions[2] == "contains('Title','ABC')"
         assert parser.parser.where_conditions[3] == "OR"

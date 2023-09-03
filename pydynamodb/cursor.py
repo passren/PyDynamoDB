@@ -18,6 +18,8 @@ _T = TypeVar("_T", bound="Cursor")
 
 
 class Cursor(BaseCursor, CursorIterator):
+    NO_RESULT_SET = "No result set."
+
     def __init__(
         self,
         connection: "Connection",
@@ -167,13 +169,13 @@ class Cursor(BaseCursor, CursorIterator):
         self,
     ) -> Optional[Dict[Any, Optional[Any]]]:
         if not self.has_result_set:
-            raise ProgrammingError("No result set.")
+            raise ProgrammingError(Cursor.NO_RESULT_SET)
         result_set = cast(DynamoDBResultSet, self._result_set)
         return result_set.fetchone()
 
     def fetchmany(self, size: int = None) -> Optional[Dict[Any, Optional[Any]]]:
         if not self.has_result_set:
-            raise ProgrammingError("No result set.")
+            raise ProgrammingError(Cursor.NO_RESULT_SET)
         result_set = cast(DynamoDBResultSet, self._result_set)
         return result_set.fetchmany(size)
 
@@ -181,7 +183,7 @@ class Cursor(BaseCursor, CursorIterator):
         self,
     ) -> Optional[Dict[Any, Optional[Any]]]:
         if not self.has_result_set:
-            raise ProgrammingError("No result set.")
+            raise ProgrammingError(Cursor.NO_RESULT_SET)
         result_set = cast(DynamoDBResultSet, self._result_set)
         return result_set.fetchall()
 

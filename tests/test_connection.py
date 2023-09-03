@@ -183,10 +183,12 @@ class TestConnection:
     def test_conn_with_credentials(self):
         from pydynamodb import connect
 
+        ROLE_ARN = "arn:aws:iam::123456789012:role/TestRole"
+
         # assume_role
         conn = connect(
             region_name="us-east-1",
-            role_arn="arn:aws:iam::123456789012:role/TestRole",
+            role_arn=ROLE_ARN,
         )
         assert conn._session_kwargs["aws_access_key_id"] is not None
         assert conn._session_kwargs["aws_secret_access_key"] is not None
@@ -195,7 +197,7 @@ class TestConnection:
         # assume_role with ExternalId
         conn = connect(
             region_name="us-east-1",
-            role_arn="arn:aws:iam::123456789012:role/TestRole",
+            role_arn=ROLE_ARN,
             external_id="123ABC",
         )
         assert conn._session_kwargs["aws_access_key_id"] is not None
@@ -205,7 +207,7 @@ class TestConnection:
         # assume_role with ExternalId and MFA
         conn = connect(
             region_name="us-east-1",
-            role_arn="arn:aws:iam::123456789012:role/TestRole",
+            role_arn=ROLE_ARN,
             external_id="123ABC",
             serial_number="xhseh35s12",
             token_code="7766933",

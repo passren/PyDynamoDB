@@ -187,7 +187,6 @@ class DmlSelect(DmlBase):
         else:
             raw_supported_options_ = ""
 
-        request = dict()
         statement_ = "SELECT {columns} FROM {table} {where_conditions} {options}"
         statement_ = statement_.format(
             columns=columns_,

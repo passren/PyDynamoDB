@@ -92,7 +92,7 @@ class Serializer(metaclass=ABCMeta):
 
         return {"S": value.isoformat()}
 
-    def _to_default(self, value: Optional[Any], **kwargs) -> Optional[str]:
+    def _to_default(self, value: Optional[Any], **kwargs) -> Optional[Dict[str, Any]]:
         return {"S": str(value)}
 
     def get(self, type_: Type) -> Callable[[Optional[str]], Optional[Any]]:
@@ -181,9 +181,7 @@ class Deserializer(metaclass=ABCMeta):
     def _to_binary_set(
         self, value: Optional[List[str]], **kwargs
     ) -> Optional[Set[bytes]]:
-        if value is None:
-            return None
-        return set([v for v in value])
+        return self._to_string_set(value)
 
     def _to_map(
         self, value: Optional[Dict[str, Any]], **kwargs

@@ -194,7 +194,7 @@ class DynamoDBStatementCompiler(SQLCompiler):
         delete_stmt._returning = "*"
         return super().visit_delete(delete_stmt, **kw)
 
-    def returning_clause(self, stmt, returning_cols) -> None:
+    def returning_clause(self, stmt, returning_cols):
         if stmt.is_update or stmt.is_delete:
             return "RETURNING ALL OLD *"
 
