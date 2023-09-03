@@ -13,6 +13,15 @@
 .. image:: https://codecov.io/github/passren/PyDynamoDB/branch/main/graph/badge.svg?token=Y5DG320O76 
     :target: https://codecov.io/github/passren/PyDynamoDB
 
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=reliability_rating 
+    :target: https://sonarcloud.io/summary/new_code?id=passren_PyDynamoDB
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=sqale_rating 
+    :target: https://sonarcloud.io/summary/new_code?id=passren_PyDynamoDB
+
+.. image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=vulnerabilities 
+    :target: https://sonarcloud.io/summary/new_code?id=passren_PyDynamoDB
+
 PyDynamoDB
 ===========
 
