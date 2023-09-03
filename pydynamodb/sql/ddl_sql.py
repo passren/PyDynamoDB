@@ -220,8 +220,6 @@ class DdlBase(Base):
                     and option_value.get_name() == "replication_group"
                 ):
                     option_value = [{"RegionName": o} for o in option_value]
-                else:
-                    pass
 
             self._parse_option_path(option_name_path, option_value, converted_)
         return converted_

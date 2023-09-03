@@ -45,20 +45,18 @@ def boto3_connect():
 def create_engine(**kwargs):
     from pydynamodb import sqlalchemy_dynamodb  # noqa
 
+    CONN_STR_PREFIX = "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+    CONN_STR_URL = "@dynamodb.{region_name}.amazonaws.com:443"
+    CONN_STR_PARAM = "?endpoint_url={endpoint_url}"
+
+    CONN_STR = CONN_STR_PREFIX + CONN_STR_URL + CONN_STR_PARAM
+
     if ENV.use_local_ddb:
         connector = kwargs.get("connector", None)
         if connector == "superset":
-            conn_str = (
-                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
-                + "@dynamodb.{region_name}.amazonaws.com:443"
-                + "?endpoint_url={endpoint_url}&connector=superset"
-            )
+            conn_str = CONN_STR + "&connector=superset"
         else:
-            conn_str = (
-                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
-                + "@dynamodb.{region_name}.amazonaws.com:443"
-                + "?endpoint_url={endpoint_url}"
-            )
+            conn_str = CONN_STR
 
         conn_str = conn_str.format(
             aws_access_key_id="NA",
@@ -71,14 +69,14 @@ def create_engine(**kwargs):
         connector = kwargs.get("connector", None)
         if connector == "superset":
             conn_str = (
-                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
-                + "@dynamodb.{region_name}.amazonaws.com:443"
+                CONN_STR_PREFIX
+                + CONN_STR_URL
                 + "?verify=false&connector=superset"
             )
         else:
             conn_str = (
-                "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
-                + "@dynamodb.{region_name}.amazonaws.com:443"
+                CONN_STR_PREFIX
+                + CONN_STR_URL
                 + "?verify=false"
             )
 
@@ -151,7 +149,6 @@ def _is_table_ready(client, table_name):
             if status_ in ["CREATING", "UPDATING"]:
                 retry_count += 1
                 time.sleep(2)
-                continue
             elif status_ == "ACTIVE":
                 return True
             else:

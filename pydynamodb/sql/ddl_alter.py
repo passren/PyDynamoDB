@@ -297,7 +297,7 @@ class DdlAlter(DdlBase):
 
         return request
 
-    def _get_alter_operation(self, ops: str) -> str:
+    def _get_alter_operation(self, ops: str) -> Optional[str]:
         if ops is None:
             return None
 
@@ -368,6 +368,5 @@ class DdlAlter(DdlBase):
                     if options is not None or len(options) > 0:
                         converted_.update(options)
                     gsis_.append(converted_)
-                else:
-                    pass
+
         return gsis_

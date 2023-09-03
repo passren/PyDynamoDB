@@ -18,7 +18,6 @@ class _TestCase02(Base):
     col_str = Column(String)
     col_num = Column(Numeric)
     col_nested = Column()
-    # col_byte = Column(BINARY)
 
 
 class TestSQLAlchemyDynamoDB:

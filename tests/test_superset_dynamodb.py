@@ -36,10 +36,11 @@ class TestSupersetDynamoDB:
         """
         parser = SQLParser(sql, parser_class=SupersetSelect)
         ret = parser.transform()
+        CLOUMN_LIST_1 = "col_list[1]"
         assert parser.query_type == QueryType.SELECT
         assert len(parser.parser.columns) == 2
-        assert parser.parser.columns[0].request_name == "col_list[1]"
-        assert parser.parser.columns[0].result_name == "col_list[1]"
+        assert parser.parser.columns[0].request_name == CLOUMN_LIST_1
+        assert parser.parser.columns[0].result_name == CLOUMN_LIST_1
         assert parser.parser.columns[1].request_name == "col_map.A"
         assert parser.parser.columns[1].result_name == "A"
         assert parser.parser.outer_columns == '"col_list[1]", min("A"), max(A)'
@@ -282,7 +283,7 @@ class TestSupersetDynamoDB:
         assert ret == [("F", 9.0, 2), ("D", 2.0, 1), ("B", 10.0, 3)]
 
     def test_sqlalchemy_execute_nested_select(self, superset_engine):
-        engine, conn = superset_engine
+        _, conn = superset_engine
         rows = conn.execute(
             text(
                 """
@@ -300,7 +301,7 @@ class TestSupersetDynamoDB:
         assert len(rows) == 3
 
     def test_sqlalchemy_execute_flat_data(self, superset_engine):
-        engine, conn = superset_engine
+        _, conn = superset_engine
         rows = conn.execute(
             text(
                 """
@@ -328,7 +329,7 @@ class TestSupersetDynamoDB:
         ]
 
     def test_sqlalchemy_execute_alias_select(self, superset_engine):
-        engine, conn = superset_engine
+        _, conn = superset_engine
         rows = conn.execute(
             text(
                 """
@@ -400,7 +401,7 @@ class TestSupersetDynamoDB:
         self.query_final_cached_querydb(superset_engine)
 
     def query_final_cached_querydb(self, superset_engine):
-        engine, conn = superset_engine
+        _, conn = superset_engine
         rows = conn.execute(
             text(
                 """

@@ -3,7 +3,7 @@ import os
 import logging
 import importlib
 from abc import ABCMeta
-from typing import Union
+from typing import Optional, Union
 
 from .querydb import (
     QueryDBConfig,
@@ -95,7 +95,7 @@ class QueryDBHelper(metaclass=ABCMeta):
         )
 
     @staticmethod
-    def get_config_value(config_name: str, **kwargs) -> Union[str, int]:
+    def get_config_value(config_name: str, **kwargs) -> Optional[Union[str, int]]:
         if config_name in kwargs:
             return kwargs[config_name]
         else:

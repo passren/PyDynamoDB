@@ -115,7 +115,7 @@ def dispatch_executor(
     is_transaction: bool = False,
     executor_class: BaseExecutor = None,
     **kwargs,
-) -> BaseExecutor:
+) -> Optional[BaseExecutor]:
     if statements is None or len(statements) == 0:
         return None
 
@@ -234,7 +234,7 @@ class DmlStatementExecutor(BaseExecutor):
         return self._metadata.index(col_name)
 
     def _process_predef_row_item(self, row) -> Optional[Tuple]:
-        row_ = [None for i in range(len(self.metadata))]
+        row_ = [None for _ in range(len(self.metadata))]
         for col, val in row.items():
             col_info = self.metadata.get(col, None)
             if col_info:
