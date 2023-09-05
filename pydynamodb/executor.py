@@ -119,39 +119,54 @@ def dispatch_executor(
     if statements is None or len(statements) == 0:
         return None
 
-    if executor_class is None:
-        if statements.query_type[0] == "DML":
-            if len(statements) > 1:
-                if is_transaction:
-                    executor_class = DmlTransactionExecutor
-                else:
-                    executor_class = DmlBatchExecutor
-            else:
-                executor_class = DmlStatementExecutor
-        elif statements.query_type == QueryType.CREATE:
-            executor_class = DdlCreateExecutor
-        elif statements.query_type == QueryType.ALTER:
-            executor_class = DdlAlterExecutor
-        elif statements.query_type == QueryType.DROP:
-            executor_class = DdlDropExecutor
-        elif statements.query_type == QueryType.LIST:
-            executor_class = UtilListTablesExecutor
-        elif statements.query_type == QueryType.DESC:
-            executor_class = UtilDescTableExecutor
-        elif statements.query_type == QueryType.CREATE_GLOBAL:
-            executor_class = DdlCreateGlobalExecutor
-        elif statements.query_type == QueryType.DROP_GLOBAL:
-            executor_class = DdlDropGlobalExecutor
-        elif statements.query_type == QueryType.LIST_GLOBAL:
-            executor_class = UtilListGlobalTablesExecutor
-        elif statements.query_type == QueryType.DESC_GLOBAL:
-            executor_class = UtilDescGlobalTableExecutor
-        else:
-            raise LookupError(
-                "Not support executor for query type: %s" % str(statements.query_type)
-            )
+    _executor_class = (
+        _get_executor_class(statements, is_transaction)
+        if executor_class is None
+        else executor_class
+    )
 
-    return executor_class(connection, converter, statements, retry_config, **kwargs)
+    return _executor_class(connection, converter, statements, retry_config, **kwargs)
+
+
+def _get_executor_class(
+    statements: Statements, is_transaction: bool
+) -> type[BaseExecutor]:
+    if statements.query_type[0] == "DML":
+        return _get_dml_executor_class(statements, is_transaction)
+    elif statements.query_type == QueryType.CREATE:
+        return DdlCreateExecutor
+    elif statements.query_type == QueryType.ALTER:
+        return DdlAlterExecutor
+    elif statements.query_type == QueryType.DROP:
+        return DdlDropExecutor
+    elif statements.query_type == QueryType.LIST:
+        return UtilListTablesExecutor
+    elif statements.query_type == QueryType.DESC:
+        return UtilDescTableExecutor
+    elif statements.query_type == QueryType.CREATE_GLOBAL:
+        return DdlCreateGlobalExecutor
+    elif statements.query_type == QueryType.DROP_GLOBAL:
+        return DdlDropGlobalExecutor
+    elif statements.query_type == QueryType.LIST_GLOBAL:
+        return UtilListGlobalTablesExecutor
+    elif statements.query_type == QueryType.DESC_GLOBAL:
+        return UtilDescGlobalTableExecutor
+    else:
+        raise LookupError(
+            "Not support executor for query type: %s" % str(statements.query_type)
+        )
+
+
+def _get_dml_executor_class(
+    statements: Statements, is_transaction: bool
+) -> type[BaseExecutor]:
+    if len(statements) > 1:
+        if is_transaction:
+            return DmlTransactionExecutor
+        else:
+            return DmlBatchExecutor
+    else:
+        return DmlStatementExecutor
 
 
 class DmlStatementExecutor(BaseExecutor):
@@ -254,25 +269,28 @@ class DmlStatementExecutor(BaseExecutor):
     def _process_predef_metadata(self, sql_parser: SQLParser) -> None:
         if sql_parser.query_type == QueryType.SELECT:
             if not sql_parser.parser.is_star_column:
-                for column in sql_parser.parser.columns:
-                    type_ = DataTypes.STRING
-                    if column.function is not None:
-                        function_name = column.function.name
-                        if function_name in Functions.TYPE_CONVERSION:
-                            type_ = function_name
-
-                    self._metadata.update(
-                        ColumnInfo(
-                            column.result_name,
-                            column.request_name,
-                            column.alias,
-                            function=column.function,
-                            type_code=type_,
-                        )
-                    )
+                self._collect_column_info(sql_parser.parser.columns)
                 self._is_predef_metadata = True
         else:
             self._is_predef_metadata = False
+
+    def _collect_column_info(self, columns: List[Optional[Any]]) -> None:
+        for column in columns:
+            type_ = DataTypes.STRING
+            if column.function is not None:
+                function_name = column.function.name
+                if function_name in Functions.TYPE_CONVERSION:
+                    type_ = function_name
+
+            self._metadata.update(
+                ColumnInfo(
+                    column.result_name,
+                    column.request_name,
+                    column.alias,
+                    function=column.function,
+                    type_code=type_,
+                )
+            )
 
 
 class DmlStatementDictExecutor(DmlStatementExecutor):
