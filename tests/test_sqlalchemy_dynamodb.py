@@ -183,7 +183,7 @@ class TestSQLAlchemyDynamoDB:
         assert rows[0][3] == 99
 
     def test_declarative_table_delete(self, engine):
-        engine, conn = engine
+        engine, _ = engine
 
         with Session(engine) as session:
             test_case = session.scalars(
@@ -319,7 +319,7 @@ class TestSQLAlchemyDynamoDB:
         assert len(rows) == 0
 
     def test_declarative_table(self, engine):
-        engine, conn = engine
+        engine, _ = engine
 
         with Session(engine) as session:
             rows1 = session.execute(

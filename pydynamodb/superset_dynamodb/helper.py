@@ -33,10 +33,11 @@ class QueryDBHelper(metaclass=ABCMeta):
 
         _query_db_class = None
         if _config.db_type.lower() == DEFAULT_QUERYDB_TYPE:
-            if _config.db_url.lower() == DEFAULT_QUERYDB_URL:
-                _query_db_class = SqliteMemQueryDB
-            else:
-                _query_db_class = SqliteFileQueryDB
+            _query_db_class = (
+                SqliteMemQueryDB
+                if _config.db_url.lower() == DEFAULT_QUERYDB_URL
+                else SqliteFileQueryDB
+            )
         else:
             if _config.db_class:
                 db_apis = _config.db_class.split(":")
