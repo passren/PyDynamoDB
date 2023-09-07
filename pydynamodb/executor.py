@@ -130,7 +130,7 @@ def dispatch_executor(
 
 def _get_executor_class(
     statements: Statements, is_transaction: bool
-) -> type[BaseExecutor]:
+):
     if statements.query_type[0] == "DML":
         return _get_dml_executor_class(statements, is_transaction)
     elif statements.query_type == QueryType.CREATE:
