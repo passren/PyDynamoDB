@@ -128,9 +128,7 @@ def dispatch_executor(
     return _executor_class(connection, converter, statements, retry_config, **kwargs)
 
 
-def _get_executor_class(
-    statements: Statements, is_transaction: bool
-):
+def _get_executor_class(statements: Statements, is_transaction: bool):
     if statements.query_type[0] == "DML":
         return _get_dml_executor_class(statements, is_transaction)
     elif statements.query_type == QueryType.CREATE:
