@@ -44,24 +44,9 @@ class TestCursorDMLSelect:
         """
             % TESTCASE03_TABLE
         )
-        params_4 = [
-            "row_2",
-            1,
-            "Diagnostics can be enabled",
-            {"A": "B"}
-        ]
-        params_5 = [
-            "row_2",
-            2,
-            ["A", "B"],
-            None
-        ]
-        params_6 = [
-            "row_2",
-            3,
-            "Start the application that you downloaded",
-            ["1", "2"]
-        ]
+        params_4 = ["row_2", 1, "Diagnostics can be enabled", {"A": "B"}]
+        params_5 = ["row_2", 2, ["A", "B"], None]
+        params_6 = ["row_2", 3, "Start the application that you downloaded", ["1", "2"]]
         cursor.executemany(sql, [params_4, params_5, params_6])
 
         sql = (
@@ -76,13 +61,13 @@ class TestCursorDMLSelect:
             "row_3",
             0,
             [100, 300, 500],
-            {"all": "true", "max": ["text", 'json']}
+            {"all": "true", "max": ["text", "json"]},
         ]
         params_8 = [
             "row_3",
             1,
             [500, 800, 1000, 1500],
-            {"ALL": "false", "max": ['image', 'blob']}
+            {"ALL": "false", "max": ["image", "blob"]},
         ]
 
         cursor.executemany(sql, [params_7, params_8])

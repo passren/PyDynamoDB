@@ -160,7 +160,7 @@ class TestSQLAlchemyDynamoDB:
             test_case = session.scalars(
                 select(_TestCase02).where(
                     _TestCase02.key_partition == "test_one_row_3",
-                    _TestCase02.key_sort == 1
+                    _TestCase02.key_sort == 1,
                 )
             ).one()
             test_case.col_str = "test case declarative table 99"
@@ -189,7 +189,7 @@ class TestSQLAlchemyDynamoDB:
             test_case = session.scalars(
                 select(_TestCase02).where(
                     _TestCase02.key_partition == "test_one_row_3",
-                    _TestCase02.key_sort == 4
+                    _TestCase02.key_sort == 4,
                 )
             ).one()
             session.delete(test_case)

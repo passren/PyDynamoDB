@@ -182,7 +182,6 @@ class TestCursorDML:
             "map": {"str": "Best", "num": 1, "chinese": "你好"},
         }
 
-
     def test_fetchmany(self, cursor):
         cursor.execute(
             """
