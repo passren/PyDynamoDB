@@ -69,16 +69,10 @@ def create_engine(**kwargs):
         connector = kwargs.get("connector", None)
         if connector == "superset":
             conn_str = (
-                CONN_STR_PREFIX
-                + CONN_STR_URL
-                + "?verify=false&connector=superset"
+                CONN_STR_PREFIX + CONN_STR_URL + "?verify=false&connector=superset"
             )
         else:
-            conn_str = (
-                CONN_STR_PREFIX
-                + CONN_STR_URL
-                + "?verify=false"
-            )
+            conn_str = CONN_STR_PREFIX + CONN_STR_URL + "?verify=false"
 
         conn_str = conn_str.format(
             aws_access_key_id=ENV.aws_access_key_id,

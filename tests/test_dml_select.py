@@ -129,8 +129,8 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT IssueId,"Total" '+
-                        'FROM "Orders" WHERE "OrderID" = ? OR Title = ?',
+            "Statement": 'SELECT IssueId,"Total" '
+            + 'FROM "Orders" WHERE "OrderID" = ? OR Title = ?',
             "Limit": 10,
         }
 
@@ -141,8 +141,8 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT "IssueId","Total",Content."DateWatched"[0] '+
-                        'FROM "Orders" WHERE OrderID = ? OR "Title" = ?',
+            "Statement": 'SELECT "IssueId","Total",Content."DateWatched"[0] '
+            + 'FROM "Orders" WHERE OrderID = ? OR "Title" = ?',
             "Limit": 10,
         }
 

@@ -61,7 +61,8 @@ class TestCursorDMLDictRs:
         assert len(ret) == 2
 
         dict_cursor.execute(
-            "SELECT col_ss, col_nested_list[4] FROM %s WHERE key_partition='row_1'" % TESTCASE05_TABLE
+            "SELECT col_ss, col_nested_list[4] FROM %s WHERE key_partition='row_1'"
+            % TESTCASE05_TABLE
         )
         ret = dict_cursor.fetchall()
         assert len(ret) == 2
