@@ -155,9 +155,7 @@ def _get_executor_class(statements: Statements, is_transaction: bool):
         )
 
 
-def _get_dml_executor_class(
-    statements: Statements, is_transaction: bool
-) -> type[BaseExecutor]:
+def _get_dml_executor_class(statements: Statements, is_transaction: bool):
     if len(statements) > 1:
         if is_transaction:
             return DmlTransactionExecutor
