@@ -204,6 +204,10 @@ class Connection:
         client = session.client(
             "sts", region_name=region_name, config=self.config, **self._client_kwargs
         )
+
+        # Resolve the issue which plus sign will be replaced to space by url.parse_qsl
+        saml_assertion = saml_assertion.replace(" ", "+")
+
         request = {
             "RoleArn": role_arn,
             "PrincipalArn": principal_arn,
@@ -236,8 +240,14 @@ class Connection:
             "RoleSessionName": role_session_name,
             "DurationSeconds": duration_seconds,
             "WebIdentityToken": web_identity_token,
-            "ProviderId": provider_id if provider_id else "",
         }
+
+        if provider_id:
+            request.update(
+                {
+                    "ProviderId": provider_id,
+                }
+            )
 
         response = client.assume_role_with_web_identity(**request)
         creds: Dict[str, Any] = response["Credentials"]
