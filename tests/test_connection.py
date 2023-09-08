@@ -243,6 +243,15 @@ class TestConnectionWithSTS:
             region_name=TestConnectionWithSTS.TEST_REGION_NAME,
             role_arn=TestConnectionWithSTS.TEST_ROLE_ARN,
             web_identity_token=TestConnectionWithSTS.TEST_WEB_IDENTITY_TOKEN,
+        )
+        assert conn._session_kwargs["aws_access_key_id"] is not None
+        assert conn._session_kwargs["aws_secret_access_key"] is not None
+        assert conn._session_kwargs["aws_session_token"] is not None
+
+        conn = connect(
+            region_name=TestConnectionWithSTS.TEST_REGION_NAME,
+            role_arn=TestConnectionWithSTS.TEST_ROLE_ARN,
+            web_identity_token=TestConnectionWithSTS.TEST_WEB_IDENTITY_TOKEN,
             provider_id=TestConnectionWithSTS.TEST_PROVIDER_ID,
         )
         assert conn._session_kwargs["aws_access_key_id"] is not None
@@ -278,16 +287,29 @@ class TestConnectionWithSTS:
         with contextlib.closing(engine.connect()) as conn:
             assert conn is not None
 
-        # TODO: Some particular characters in connection string will be converted by sqlalchemy.
-        # Need to figure out a solution for this.
+        conn_str = (
+            CONN_STR_PREFIX
+            + CONN_STR_URL
+            + CONN_STR_PARAM
+            + "&principal_arn="
+            + TestConnectionWithSTS.TEST_PRINCIPAL_ARN
+            + "&saml_assertion="
+            + TestConnectionWithSTS.TEST_SAML_ASSERTION
+        )
+        engine = sqlalchemy.engine.create_engine(conn_str, echo=True)
+        with contextlib.closing(engine.connect()) as conn:
+            assert conn is not None
 
-        # conn_str = (CONN_STR_PREFIX + CONN_STR_URL + CONN_STR_PARAM
-        #             + "&principal_arn=" + TestConnectionWithSTS.TEST_PRINCIPAL_ARN
-        #             + "&saml_assertion=" + TestConnectionWithSTS.TEST_SAML_ASSERTION
-        # )
-        # engine = sqlalchemy.engine.create_engine(conn_str, echo=True)
-        # with contextlib.closing(engine.connect()) as conn:
-        #     assert conn is not None
+        conn_str = (
+            CONN_STR_PREFIX
+            + CONN_STR_URL
+            + CONN_STR_PARAM
+            + "&web_identity_token="
+            + TestConnectionWithSTS.TEST_WEB_IDENTITY_TOKEN
+        )
+        engine = sqlalchemy.engine.create_engine(conn_str, echo=True)
+        with contextlib.closing(engine.connect()) as conn:
+            assert conn is not None
 
         conn_str = (
             CONN_STR_PREFIX
