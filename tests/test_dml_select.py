@@ -85,7 +85,6 @@ class TestDmlSelect:
         ret = SQLParser(sql).transform()
         assert ret == {
             "Statement": 'SELECT * FROM "Orders" WHERE OrderID = 100',
-            "Limit": 10,
         }
 
         sql = """
@@ -97,7 +96,6 @@ class TestDmlSelect:
         ret = SQLParser(sql).transform()
         assert ret == {
             "Statement": 'SELECT * FROM "Orders" WHERE OrderID = 100',
-            "Limit": 10,
             "ConsistentRead": True,
         }
 
@@ -119,7 +117,6 @@ class TestDmlSelect:
         ret = SQLParser(sql).transform()
         assert ret == {
             "Statement": 'SELECT * FROM "Orders" WHERE OrderID = ? OR Title = ?',
-            "Limit": 10,
         }
 
         sql = """
@@ -131,7 +128,6 @@ class TestDmlSelect:
         assert ret == {
             "Statement": 'SELECT IssueId,"Total" '
             + 'FROM "Orders" WHERE "OrderID" = ? OR Title = ?',
-            "Limit": 10,
         }
 
         sql = """
@@ -143,7 +139,6 @@ class TestDmlSelect:
         assert ret == {
             "Statement": 'SELECT "IssueId","Total",Content."DateWatched"[0] '
             + 'FROM "Orders" WHERE OrderID = ? OR "Title" = ?',
-            "Limit": 10,
         }
 
     def test_parse_attributes_with_op(self):
@@ -201,7 +196,6 @@ class TestDmlSelect:
             + "OR Total BETWEEN 500 AND 600 "
             + "AND Author IS NOT NULL "
             + "ORDER BY IssueId DESC",
-            "Limit": 10,
             "ConsistentRead": False,
             "ReturnConsumedCapacity": "NONE",
         }

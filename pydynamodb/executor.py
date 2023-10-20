@@ -96,8 +96,8 @@ class BaseExecutor(metaclass=ABCMeta):
 
     def close(self) -> None:
         self._metadata = None
-        self._rows = None
-        self._errors = None
+        self._rows = self._rows.clear()
+        self._errors = self._errors.clear()
         self._next_token = None
 
     def __enter__(self):

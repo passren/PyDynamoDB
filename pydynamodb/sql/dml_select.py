@@ -292,6 +292,7 @@ class DmlSelect(DmlBase):
 
             if option_name == "Limit":
                 self._limit = option_value
+                continue
             elif option_name == "ConsistentRead":
                 self._consistent_read = option_value
             elif option_name == "ReturnConsumedCapacity":

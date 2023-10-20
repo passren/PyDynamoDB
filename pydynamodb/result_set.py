@@ -87,9 +87,11 @@ class DynamoDBResultSet(CursorIterator):
         self,
     ) -> Optional[Dict[Any, Optional[Any]]]:
         limit_ = self._statements.limit
-        if not self._executor.rows and self._executor.next_token:
+        while len(self._executor.rows) == 0 and self._executor.next_token:
             if not limit_ or (limit_ and self._rownumber < limit_):
                 self._executor.execute()
+            else:
+                break
         if not self._executor.rows:
             return None
         else:
@@ -98,8 +100,9 @@ class DynamoDBResultSet(CursorIterator):
             if limit_ and self._rownumber >= limit_:
                 self._executor.rows.clear()
                 return None
+            row = self._executor.rows.popleft()
             self._rownumber += 1
-            return self._executor.rows.popleft()
+            return row
 
     def fetchmany(self, size: Optional[int] = None) -> List[Dict[Any, Optional[Any]]]:
         if not size or size <= 0:
