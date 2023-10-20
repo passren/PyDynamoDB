@@ -6,7 +6,7 @@ from .error import *  # noqa
 if TYPE_CHECKING:
     from .connection import Connection
 
-__version__: str = "0.5.4"
+__version__: str = "0.5.5"
 
 # Globals https://www.python.org/dev/peps/pep-0249/#globals
 apilevel: str = "2.0"
