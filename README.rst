@@ -1,26 +1,29 @@
-.. image:: https://badge.fury.io/py/pydynamodb.svg
+.. |badge package| image:: https://badge.fury.io/py/pydynamodb.svg
     :target: https://badge.fury.io/py/pydynamodb
 
-.. image:: https://github.com/passren/PyDynamoDB/actions/workflows/run-test.yaml/badge.svg
+.. |badge test|  image:: https://github.com/passren/PyDynamoDB/actions/workflows/run-test.yaml/badge.svg
     :target: https://github.com/passren/PyDynamoDB/actions/workflows/run-test.yaml
 
-.. image:: https://static.pepy.tech/badge/pydynamodb/month
+.. |badge downloads|  image:: https://static.pepy.tech/badge/pydynamodb/month
     :target: https://pepy.tech/project/pydynamodb
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |badge formation| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-.. image:: https://codecov.io/github/passren/PyDynamoDB/branch/main/graph/badge.svg?token=Y5DG320O76 
+.. |badge codcov| image:: https://codecov.io/github/passren/PyDynamoDB/branch/main/graph/badge.svg?token=Y5DG320O76 
     :target: https://codecov.io/github/passren/PyDynamoDB
 
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=reliability_rating 
+.. |badge sqrelia| image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=reliability_rating 
     :target: https://sonarcloud.io/summary/new_code?id=passren_PyDynamoDB
 
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=sqale_rating 
+.. |badge sqale| image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=sqale_rating 
     :target: https://sonarcloud.io/summary/new_code?id=passren_PyDynamoDB
 
-.. image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=vulnerabilities 
+.. |badge sqvuln| image:: https://sonarcloud.io/api/project_badges/measure?project=passren_PyDynamoDB&metric=vulnerabilities 
     :target: https://sonarcloud.io/summary/new_code?id=passren_PyDynamoDB
+
+|badge package| |badge test| |badge downloads| |badge formation| |badge codcov| 
+|badge sqrelia| |badge sqale| |badge sqvuln|
 
 PyDynamoDB
 ===========
