@@ -75,10 +75,12 @@ def retry_api_call(
 ) -> Any:
     retry = tenacity.Retrying(
         retry=retry_if_exception(
-            lambda e: getattr(e, "response", {}).get("Error", {}).get("Code", None)
-            in config.exceptions
-            if e
-            else False
+            lambda e: (
+                getattr(e, "response", {}).get("Error", {}).get("Code", None)
+                in config.exceptions
+                if e
+                else False
+            )
         ),
         stop=stop_after_attempt(config.attempt),
         wait=wait_exponential(
