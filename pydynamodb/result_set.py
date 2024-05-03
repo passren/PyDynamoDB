@@ -70,9 +70,11 @@ class DynamoDBResultSet(CursorIterator):
             return None
         return [
             (
-                column_info.alias
-                if column_info.alias is not None
-                else column_info.name,
+                (
+                    column_info.alias
+                    if column_info.alias is not None
+                    else column_info.name
+                ),
                 column_info.type_code,
                 None,
                 None,
