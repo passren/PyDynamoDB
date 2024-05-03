@@ -51,7 +51,7 @@ jobs:
         run: |
           pip install pytest
           pip install pytest-cov
-          pip install moto[sts]
+          pip install moto[sts]==4.2.0
           pytest --cov=pydynamodb --cov-report=xml tests/
       - name: Upload test coverage
         uses: codecov/codecov-action@v3
