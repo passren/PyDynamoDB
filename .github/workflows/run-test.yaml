@@ -55,6 +55,8 @@ jobs:
           pytest --cov=pydynamodb --cov-report=xml tests/
       - name: Upload test coverage
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           env_vars: OS,PYTHON
           files: ./coverage.xml
