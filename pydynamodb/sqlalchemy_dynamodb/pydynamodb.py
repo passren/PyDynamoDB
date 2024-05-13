@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
-from distutils.util import strtobool
+from ..util import strtobool
 
 import pydynamodb
 from pydynamodb.error import OperationalError
