@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pydynamodb.sql.util import strtobool
+from pydynamodb.util import strtobool
 from pydynamodb.util import flatten_dict
 from pydynamodb.sql.util import flatten_list
 

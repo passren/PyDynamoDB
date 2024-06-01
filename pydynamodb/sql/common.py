@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
-from .util import strtobool
+from ..util import strtobool
 from pyparsing import (
     Word,
     nums,

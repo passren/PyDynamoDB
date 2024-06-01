@@ -16,7 +16,7 @@ from .querydb import (
     DEFAULT_QUERYDB_PURGE_TIME,
 )
 from ..model import Statement
-from ..sql.util import strtobool
+from ..util import strtobool
 from ..error import NotSupportedError, OperationalError
 from .querydb_sqlite import SqliteMemQueryDB, SqliteFileQueryDB
 
