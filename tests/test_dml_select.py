@@ -200,7 +200,7 @@ class TestDmlSelect:
             "ReturnConsumedCapacity": "NONE",
         }
 
-    def test_parse_function_case(self):
+    def test_parse_function_case_1(self):
         sql = """
             SELECT DATE(CreatedDate), DATE(IssueDate, '%Y-%m-%d')
             FROM Issues WHERE key_partition='row_1'
@@ -216,6 +216,31 @@ class TestDmlSelect:
 
         assert ret == {
             "Statement": "SELECT CreatedDate,IssueDate FROM \"Issues\" WHERE key_partition = 'row_1'"
+        }
+
+    def test_parse_function_case_2(self):
+        sql = """
+            SELECT NUMBER(IssueID), SUBSTR(IssueDesc, 1, 3), SUBSTRING(IssueDesc, 1, 3),
+            REPLACE(IssueDesc, 'abc', 'def')
+            FROM Issues WHERE key_partition='row_1'
+        """
+        parser = SQLParser(sql)
+        ret = parser.transform()
+        assert parser.parser.columns[0].request_name == "IssueID"
+        assert parser.parser.columns[0].function.name == "NUMBER"
+        assert parser.parser.columns[0].function.params is None
+        assert parser.parser.columns[1].request_name == "IssueDesc"
+        assert parser.parser.columns[1].function.name == "SUBSTR"
+        assert parser.parser.columns[1].function.params == [1,3]
+        assert parser.parser.columns[2].request_name == "IssueDesc"
+        assert parser.parser.columns[2].function.name == "SUBSTRING"
+        assert parser.parser.columns[2].function.params == [1,3]
+        assert parser.parser.columns[3].request_name == "IssueDesc"
+        assert parser.parser.columns[3].function.name == "REPLACE"
+        assert parser.parser.columns[3].function.params == ['abc', 'def']
+
+        assert ret == {
+            "Statement": "SELECT IssueID,IssueDesc FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
 
     def test_parse_alias_case(self):

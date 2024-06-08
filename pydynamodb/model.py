@@ -124,13 +124,13 @@ class Metadata:
 
         if column_infos is not None:
             for column_info in column_infos:
-                self._column_infos.update({column_info.name: column_info})
+                self.append(column_info)
 
     def get(self, name: str, default: Any = None) -> ColumnInfo:
         return self._column_infos.get(name, default)
 
     def append(self, column_info: ColumnInfo) -> None:
-        self._column_infos.update({column_info.name: column_info})
+        self.update(column_info)
 
     def update(self, column_info: ColumnInfo) -> None:
         self._column_infos.update({column_info.name: column_info})

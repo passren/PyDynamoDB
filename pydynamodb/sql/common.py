@@ -38,12 +38,18 @@ class DdbDataTypes:
 
 
 class Functions:
+    TYPE_CONVERSION = "TYPE_CONVERSION"
+    STRING_FUNCTION = "STRING_FUNCTION"
+
     DATE = "DATE"
     DATETIME = "DATETIME"
     NUMBER = "NUMBER"
     BOOL = "BOOL"
 
-    TYPE_CONVERSION = [DATE, DATETIME, NUMBER, BOOL]
+    SUPPORTED_FUNTIONS = {
+        TYPE_CONVERSION: ["DATE", "DATETIME", "NUMBER", "BOOL"],
+        STRING_FUNCTION: ["SUBSTR", "SUBSTRING", "REPLACE"],
+    }
     WHERE_CONDITION = ["begins_with", "attribute_type", "contains"]
     WHERE_CONDITION_WITH_OP = ["size"]
 
@@ -178,7 +184,9 @@ class KeyWords:
 
     # Functions supported on Column
     FUNCTION_ON_COLUMN = one_of(
-        Functions.TYPE_CONVERSION, caseless=True, as_keyword=True
+        [fun for subfuns in Functions.SUPPORTED_FUNTIONS.values() for fun in subfuns],
+        caseless=True,
+        as_keyword=True,
     )("function").set_name("function")
 
     # Functions supported on Where conditions
