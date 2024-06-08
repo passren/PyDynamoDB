@@ -97,19 +97,30 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
 
 class DmlSelect(DmlBase):
-    _REQUEST_COLUMN = (
+    _FUNCTION_PARAMS = ZeroOrMore(
+        KeyWords.COMMA
+        + Tokens.QUOTED_STRING("function_param").set_name("function_param")
+        | KeyWords.COMMA + Tokens.INT_VALUE("function_param").set_name("function_param")
+    )("function_params").set_name("function_params")
+
+    _COLUMN_WITH_FUNCTION = (
         KeyWords.FUNCTION_ON_COLUMN
         + KeyWords.LPAR
         + DmlBase._COLUMN_NAME
-        + ZeroOrMore(
-            KeyWords.COMMA
-            + Tokens.QUOTED_STRING("function_param").set_name("function_param")
-            | KeyWords.COMMA
-            + Tokens.INT_VALUE("function_param").set_name("function_param")
-        )("function_params").set_name("function_params")
+        + _FUNCTION_PARAMS
         + KeyWords.RPAR
-        | DmlBase._COLUMN_NAME
     )
+
+    _COLUMN_WITH_NESTED_FUNCTION = (
+        _COLUMN_WITH_FUNCTION
+        | KeyWords.FUNCTION_ON_COLUMN
+        + KeyWords.LPAR
+        + _COLUMN_WITH_FUNCTION
+        + _FUNCTION_PARAMS
+        + KeyWords.RPAR
+    )
+
+    _REQUEST_COLUMN = _COLUMN_WITH_FUNCTION | _COLUMN_WITH_NESTED_FUNCTION | DmlBase._COLUMN_NAME
 
     _ALIAS = (
         Opt(KeyWords.SUPPRESS_QUOTE)
