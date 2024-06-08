@@ -34,6 +34,7 @@ ReturnConsumedCapacity NONE
 import logging
 import re
 from abc import ABCMeta
+from collections import OrderedDict
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
 from .util import flatten_list
@@ -103,6 +104,8 @@ class DmlSelect(DmlBase):
         + ZeroOrMore(
             KeyWords.COMMA
             + Tokens.QUOTED_STRING("function_param").set_name("function_param")
+            | KeyWords.COMMA
+            + Tokens.INT_VALUE("function_param").set_name("function_param")
         )("function_params").set_name("function_params")
         + KeyWords.RPAR
         | DmlBase._COLUMN_NAME
@@ -204,7 +207,9 @@ class DmlSelect(DmlBase):
         return request
 
     def _construct_columns(self, columns: List[Any]) -> str:
-        columns_ = list()
+        columns_ = (
+            OrderedDict()
+        )  # Create a ordered dict to avoid duplicate column names
         for column in columns:
             if column["column_name"] == "*":
                 self._is_star_column = True
@@ -219,7 +224,9 @@ class DmlSelect(DmlBase):
                 column_.append(rcolumn["column_name"])
 
             column__ = "".join(column_)
-            columns_.append(column__)
+            columns_[column__] = (
+                "_"  # Add a dummy value to avoid duplicate column names
+            )
 
             function_ = column.get("function", None)
             column_function_ = None
@@ -237,7 +244,7 @@ class DmlSelect(DmlBase):
             self._columns.append(
                 DmlSelectColumn(column__, function=column_function_, alias=alias_)
             )
-        columns_ = ",".join(columns_)
+        columns_ = ",".join(columns_.keys())
         return columns_
 
     def _construct_where_conditions(self, where_conditions: List[Any]) -> str:

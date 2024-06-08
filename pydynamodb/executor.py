@@ -275,7 +275,10 @@ class DmlStatementExecutor(BaseExecutor):
             type_ = DataTypes.STRING
             if column.function is not None:
                 function_name = column.function.name
-                if function_name in Functions.TYPE_CONVERSION:
+                if (
+                    function_name
+                    in Functions.SUPPORTED_FUNTIONS[Functions.TYPE_CONVERSION]
+                ):
                     type_ = function_name
 
             self._metadata.update(

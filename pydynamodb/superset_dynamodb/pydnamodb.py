@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Dict, Any, List, Optional
 from .helper import QueryDBHelper
 from .querydb import QueryDB
 from .dml_select import SupersetSelect
+from ..sql.dml_select import DmlSelect
 from ..converter import Converter
 from ..model import Statements, Statement, ColumnInfo
 from ..util import RetryConfig, synchronized
@@ -90,7 +91,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
                     with self.connection.cursor() as cursor:
                         cursor.result_set_class = DynamoDBResultSet
                         cursor.execute_statement(self._statement)
-                        self._load_into_query_db(cursor.result_set)
+                        self._load_into_query_db(cursor.result_set, parser)
 
                 (desc_, results_) = self._query_db.query()
                 self._rows.extend(results_)
@@ -106,8 +107,11 @@ class SupersetStatementExecutor(DmlStatementExecutor):
         finally:
             self._query_db.close()
 
-    def _load_into_query_db(self, ddb_result_set: DynamoDBResultSet) -> None:
+    def _load_into_query_db(
+        self, ddb_result_set: DynamoDBResultSet, select_sql: DmlSelect
+    ) -> None:
         self._query_db.create_query_table(ddb_result_set.metadata)
+        self._query_db.create_query_view(select_sql)
 
         raw_data = ddb_result_set.fetchmany(self._querydb_load_batch_size)
         while True:
