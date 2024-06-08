@@ -56,7 +56,7 @@ Features
 * Compatible with DB API 2.0 Specification
 * PartiQL for DML operations (INSERT, UPDATE, DELETE, SELECT)
 * Limit supported in SELECT statement
-* Extra functions (DATE, DATETIME, NUMBER, BOOL) supported in SELECT statement
+* Extra type conversion and string functions supported in SELECT statement
 * Column alias supported in SELECT statement
 * MySQL-Like statements for DDL operations (CREATE TABLE, ALTER TABLE, DROP TABLE)
 * MySQL-Like statements for Utility operations (LIST/SHOW TABLES, DESC TABLE)
@@ -70,7 +70,7 @@ Requirements
 --------------
 * Python
 
-  - CPython 3.7 3.8 3.9 3.10 3.11 3.12
+  - CPython 3.8 3.9 3.10 3.11 3.12
 
 Dependencies
 --------------
