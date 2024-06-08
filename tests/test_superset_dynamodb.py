@@ -325,6 +325,39 @@ class TestSupersetDynamoDB:
         assert len(ret) == 6
         assert ret[0] == ("F", "F_2")
 
+        superset_cursor.execute(
+            """
+            SELECT "col_list_1", "col_map_B_1", "col_map_B_1_substr", "col_map_B_1_replace" FROM (
+                SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1,
+                SUBSTR(col_map.B[1], 1, 1) col_map_B_1_substr,
+                REPLACE(col_map.B[1], '-', '_') col_map_B_1_replace
+                FROM %s WHERE key_partition='row_1'
+            )
+            ORDER BY "col_list_1" DESC
+        """
+            % TESTCASE04_TABLE
+        )
+        ret = superset_cursor.fetchall()
+        assert len(ret) == 6
+        assert ret[0] == ("F", "F-2", "F", "F_2")
+
+        superset_cursor.execute(
+            """
+            SELECT "col_list_1", "col_map_B_1_trim", "col_map_B_1_upper", "col_map_B_1_lower" FROM (
+                SELECT col_list[1] col_list_1,
+                TRIM(col_map.B[1]) col_map_B_1_trim,
+                UPPER(col_map.B[1]) col_map_B_1_upper,
+                lower(col_map.B[1]) col_map_B_1_lower
+                FROM %s WHERE key_partition='row_1'
+            )
+            ORDER BY "col_list_1" DESC
+        """
+            % TESTCASE04_TABLE
+        )
+        ret = superset_cursor.fetchall()
+        assert len(ret) == 6
+        assert ret[0] == ("F", "F-2", "F-2", "f-2")
+
     def test_sqlalchemy_execute_nested_select(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(

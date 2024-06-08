@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import hashlib
 import logging
+import re
 from datetime import date, datetime, timedelta
 from contextlib import closing
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional, Type, Any, List
 
 from ..sql.common import DataTypes, QueryType, Functions
-from ..sql.dml_select import DmlSelectColumn, DmlFunction
+from ..sql.dml_select import DmlSelect, DmlSelectColumn, DmlFunction
 from ..model import Statement, Metadata
 from ..util import synchronized
 from ..error import NotSupportedError
@@ -337,38 +338,50 @@ class QueryDB(metaclass=ABCMeta):
 
         return _col_func
 
+    def _escape_col_name(self, col_name: str) -> str:
+        return re.sub(r"[^\w]", "_", col_name)
+
     @synchronized
     def create_query_table(self, metadata: Metadata) -> None:
-        columns = list()
         columns_with_type = list()
-        columns_with_function = list()
+
         for col_info in metadata:
-            col_name = col_info.alias if col_info.alias is not None else col_info.name
             col_type = self._get_col_type(col_info)
-
-            col_func = self._get_col_function(col_name, col_info.function)
-
-            columns.append(col_name)
-            columns_with_type.append('"%s" %s' % (col_name, col_type))
-            columns_with_function.append(col_func)
+            columns_with_type.append(
+                '"%s" %s' % (self._escape_col_name(col_info.name), col_type)
+            )
 
         query_table_creation = "CREATE TABLE IF NOT EXISTS %s (%s)" % (
             self.query_id,
             ",".join(columns_with_type),
         )
         self.connection.execute(query_table_creation)
+        self.add_cache()
+
+    @synchronized
+    def create_query_view(self, select_sql: DmlSelect) -> None:
+        view_columns = list()
+        columns_with_function = list()
+
+        for col_info in select_sql.columns:
+            view_col_name = (
+                col_info.alias if col_info.alias is not None else col_info.result_name
+            )
+            view_columns.append(view_col_name)
+            col_func = self._get_col_function(
+                self._escape_col_name(col_info.result_name), col_info.function
+            )
+            columns_with_function.append(col_func)
 
         # Create view based on the query table. All the queries will be executed against the view.
         self.connection.execute("DROP VIEW IF EXISTS %s" % (self.query_view_id))
         query_view_creation = "CREATE VIEW %s (%s) AS SELECT %s FROM %s" % (
             self.query_view_id,
-            ",".join(['"%s"' % c for c in columns]),
+            ",".join(['"%s"' % c for c in view_columns]),
             ",".join(columns_with_function),
             self.query_id,
         )
         self.connection.execute(query_view_creation)
-
-        self.add_cache()
 
     @synchronized
     def drop_query_table(self) -> None:
@@ -382,8 +395,7 @@ class QueryDB(metaclass=ABCMeta):
         columns = list()
         values = list()
         for col_info in metadata:
-            col_name = col_info.alias if col_info.alias is not None else col_info.name
-            columns.append('"' + col_name + '"')
+            columns.append('"' + self._escape_col_name(col_info.name) + '"')
             values.append("?")
 
         self.connection.executemany(

@@ -48,7 +48,7 @@ class Functions:
 
     SUPPORTED_FUNTIONS = {
         TYPE_CONVERSION: ["DATE", "DATETIME", "NUMBER", "BOOL"],
-        STRING_FUNCTION: ["SUBSTR", "SUBSTRING", "REPLACE"],
+        STRING_FUNCTION: ["SUBSTR", "SUBSTRING", "REPLACE", "TRIM", "UPPER", "LOWER"],
     }
     WHERE_CONDITION = ["begins_with", "attribute_type", "contains"]
     WHERE_CONDITION_WITH_OP = ["size"]
