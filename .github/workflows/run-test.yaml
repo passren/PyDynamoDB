@@ -34,6 +34,7 @@ jobs:
           pip install tenacity
           pip install "sqlalchemy>=1.0.0,<2.0.0"
           pip install pyparsing
+          pip install sqlean.py
       - name: black
         run: |
           pip install black
