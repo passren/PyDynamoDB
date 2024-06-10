@@ -93,6 +93,20 @@ class TestSupersetDynamoDB:
             + "FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
 
+    def test_parse_nested_select_case_4(self):
+        sql = """
+            SELECT text_substring(col_str, 1, 2) col_str_1, text_replace(col_str, '-', '_', 1) col_str_2, 
+                DATETIME(col_datetime), NUMBER(col_num)
+            FROM Issues WHERE key_partition='row_1'
+        """
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        ret = parser.transform()
+        assert len(parser.parser.columns) == 4
+        assert ret == {
+            "Statement": "SELECT col_str,col_datetime,col_num "
+            + "FROM \"Issues\" WHERE key_partition = 'row_1'"
+        }
+
     def test_insert_nested_data(self, cursor):
         sql = (
             """

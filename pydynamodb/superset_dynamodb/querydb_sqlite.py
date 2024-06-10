@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-import sqlite3
+import sqlean as sqlite3
 from datetime import datetime, date
 from contextlib import closing
 from typing import Any, Type
