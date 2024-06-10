@@ -111,16 +111,7 @@ class DmlSelect(DmlBase):
         + KeyWords.RPAR
     )
 
-    _COLUMN_WITH_NESTED_FUNCTION = (
-        _COLUMN_WITH_FUNCTION
-        | KeyWords.FUNCTION_ON_COLUMN
-        + KeyWords.LPAR
-        + _COLUMN_WITH_FUNCTION
-        + _FUNCTION_PARAMS
-        + KeyWords.RPAR
-    )
-
-    _REQUEST_COLUMN = _COLUMN_WITH_FUNCTION | _COLUMN_WITH_NESTED_FUNCTION | DmlBase._COLUMN_NAME
+    _REQUEST_COLUMN = _COLUMN_WITH_FUNCTION | DmlBase._COLUMN_NAME
 
     _ALIAS = (
         Opt(KeyWords.SUPPRESS_QUOTE)
