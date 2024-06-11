@@ -45,47 +45,31 @@ class Functions:
     DATETIME = "DATETIME"
     NUMBER = "NUMBER"
     BOOL = "BOOL"
+    SUBSTR = "SUBSTR"
+    SUBSTRING = "SUBSTRING"
+    TRIM = "TRIM"
+    LTRIM = "LTRIM"
+    RTRIM = "RTRIM"
+    REPLACE = "REPLACE"
+    UPPER = "UPPER"
+    LOWER = "LOWER"
 
     SUPPORTED_FUNTIONS = {
-        TYPE_CONVERSION: ["DATE", "DATETIME", "NUMBER", "BOOL"],
+        TYPE_CONVERSION: [
+            DATE,
+            DATETIME,
+            NUMBER,
+            BOOL,
+        ],
         STRING_FUNCTION: [
-            "SUBSTR",
-            "SUBSTRING",
-            "TRIM",
-            "LTRIM",
-            "RTRIM",
-            "LENGTH",
-            "REPLACE",
-            "UPPER",
-            "LOWER",
-            "INSTR",
-            "CONCAT",
-            "CONCAT_WS",
-            "TEXT_SUBSTRING",
-            "TEXT_SLICE",
-            "TEXT_LEFT",
-            "TEXT_RIGHT",
-            "TEXT_INDEX",
-            "TEXT_LAST_INDEX",
-            "TEXT_CONTAINS",
-            "TEXT_HAS_PREFIX",
-            "TEXT_HAS_SUFFIX",
-            "TEXT_COUNT",
-            "TEXT_SPLIT",
-            "TEXT_CONCAT",
-            "TEXT_JOIN",
-            "TEXT_REPEAT",
-            "TEXT_LTRIM",
-            "TEXT_RTRIM",
-            "TEXT_TRIM",
-            "TEXT_LPAD",
-            "TEXT_RPAD",
-            "TEXT_REPLACE",
-            "TEXT_TRANSLATE",
-            "TEXT_REVERSE",
-            "TEXT_LENGTH",
-            "TEXT_SIZE",
-            "TEXT_BITSIZE",
+            SUBSTR,
+            SUBSTRING,
+            TRIM,
+            RTRIM,
+            LTRIM,
+            REPLACE,
+            UPPER,
+            LOWER,
         ],
     }
     WHERE_CONDITION = ["begins_with", "attribute_type", "contains"]

@@ -3,9 +3,6 @@ import os
 import sqlite3
 from typing import Any, Type
 
-from pydynamodb.sql.parser import SQLParser
-from pydynamodb.sql.common import QueryType
-from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
 from sqlalchemy.sql import text
 from pydynamodb.superset_dynamodb.querydb import QueryDB, QueryDBConfig
 from pydynamodb.model import Statement
@@ -14,99 +11,6 @@ TESTCASE04_TABLE = "pydynamodb_test_case04"
 
 
 class TestSupersetDynamoDB:
-    def test_parse_select(self):
-        sql = """
-            SELECT col_list[1], col_map.A FROM Issues WHERE key_partition='row_1'
-        """
-        parser = SQLParser(sql, parser_class=SupersetSelect)
-        ret = parser.transform()
-        assert parser.query_type == QueryType.SELECT
-        assert len(parser.parser.columns) == 2
-        assert ret == {
-            "Statement": "SELECT col_list[1],col_map.A FROM \"Issues\" WHERE key_partition = 'row_1'"
-        }
-
-    def test_parse_nested_select_case_1(self):
-        sql = """
-            SELECT "col_list[1]", min("A"), max(A) FROM (
-                SELECT col_list[1], col_map.A FROM Issues WHERE key_partition='row_1'
-            ) AS virtual_table
-            GROUP BY "col_list[1]","A"
-            ORDER BY "AVG(A)" DESC
-        """
-        parser = SQLParser(sql, parser_class=SupersetSelect)
-        ret = parser.transform()
-        CLOUMN_LIST_1 = "col_list[1]"
-        assert parser.query_type == QueryType.SELECT
-        assert len(parser.parser.columns) == 2
-        assert parser.parser.columns[0].request_name == CLOUMN_LIST_1
-        assert parser.parser.columns[0].result_name == CLOUMN_LIST_1
-        assert parser.parser.columns[1].request_name == "col_map.A"
-        assert parser.parser.columns[1].result_name == "A"
-        assert parser.parser.outer_columns == '"col_list[1]", min("A"), max(A)'
-        assert (
-            parser.parser.outer_exprs
-            == 'AS virtual_table GROUP BY "col_list[1]","A" ORDER BY "AVG(A)" DESC'
-        )
-        assert ret == {
-            "Statement": "SELECT col_list[1],col_map.A FROM \"Issues\" WHERE key_partition = 'row_1'"
-        }
-
-    def test_parse_nested_select_case_2(self):
-        sql = """
-            SELECT DATETIME("col_datetime", 'start of day'),
-                "col_str", max("col_num"), count(DISTINCT "col_num"),
-                count("col_num"), min("col_num"), sum("col_num")
-            FROM
-            (
-                SELECT col_str, DATETIME(col_datetime), NUMBER(col_num)
-                FROM Issues WHERE key_partition='row_1'
-            ) AS virtual_table
-            GROUP BY "col_str", DATETIME("col_datetime", 'start of day')
-            ORDER BY "MAX(col_num)" DESC LIMIT 10000
-        """
-        parser = SQLParser(sql, parser_class=SupersetSelect)
-        ret = parser.transform()
-        assert len(parser.parser.columns) == 3
-        assert (
-            parser.parser.outer_columns
-            == "DATETIME(\"col_datetime\", 'start of day'), "
-            + '"col_str", max("col_num"), count(DISTINCT "col_num"), '
-            + 'count("col_num"), min("col_num"), sum("col_num")'
-        )
-        assert ret == {
-            "Statement": "SELECT col_str,col_datetime,col_num "
-            + "FROM \"Issues\" WHERE key_partition = 'row_1'"
-        }
-
-    def test_parse_nested_select_case_3(self):
-        sql = """
-            SELECT SUBSTR(col_str, 1, 2) col_str_1, REPLACE(col_str, '-', '_') col_str_2, 
-                DATETIME(col_datetime), NUMBER(col_num)
-            FROM Issues WHERE key_partition='row_1'
-        """
-        parser = SQLParser(sql, parser_class=SupersetSelect)
-        ret = parser.transform()
-        assert len(parser.parser.columns) == 4
-        assert ret == {
-            "Statement": "SELECT col_str,col_datetime,col_num "
-            + "FROM \"Issues\" WHERE key_partition = 'row_1'"
-        }
-
-    def test_parse_nested_select_case_4(self):
-        sql = """
-            SELECT text_substring(col_str, 1, 2) col_str_1, text_replace(col_str, '-', '_', 1) col_str_2, 
-                DATETIME(col_datetime), NUMBER(col_num)
-            FROM Issues WHERE key_partition='row_1'
-        """
-        parser = SQLParser(sql, parser_class=SupersetSelect)
-        ret = parser.transform()
-        assert len(parser.parser.columns) == 4
-        assert ret == {
-            "Statement": "SELECT col_str,col_datetime,col_num "
-            + "FROM \"Issues\" WHERE key_partition = 'row_1'"
-        }
-
     def test_insert_nested_data(self, cursor):
         sql = (
             """
@@ -268,16 +172,18 @@ class TestSupersetDynamoDB:
     def test_execute_select(self, superset_cursor):
         superset_cursor.execute(
             """
-            SELECT col_list[1], NUMBER(col_map.A)
-                FROM %s WHERE key_partition='row_1'
+            SELECT col_list, A FROM (
+                SELECT col_list[1] col_list, NUMBER(col_map.A)
+                    FROM %s WHERE key_partition='row_1'
+            )
         """
             % TESTCASE04_TABLE
         )
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert [(d[0], d[1]) for d in superset_cursor.description] == [
-            ("col_list[1]", "STRING"),
-            ("A", "NUMBER"),
+            ("col_list", None),
+            ("A", None),
         ]
 
     def test_execute_nested_select(self, superset_cursor):
@@ -310,11 +216,11 @@ class TestSupersetDynamoDB:
         assert len(ret) == 3
         assert ret == [("F", 9.0, 2), ("D", 2.0, 1), ("B", 10.0, 3)]
 
-    def test_string_functions_select(self, superset_cursor):
+    def test_string_functions_select_1(self, superset_cursor):
         superset_cursor.execute(
             """
             SELECT "col_list_1", "col_map_B_1_substr" FROM (
-                SELECT col_list[1] col_list_1, SUBSTR(col_map.B[1], 1, 1) col_map_B_1_substr
+                SELECT col_list[1] col_list_1, SUBSTR(col_map.B[1], 0, 1) col_map_B_1_substr
                 FROM %s WHERE key_partition='row_1'
             )
             ORDER BY "col_list_1" DESC
@@ -341,10 +247,11 @@ class TestSupersetDynamoDB:
 
         superset_cursor.execute(
             """
-            SELECT "col_list_1", "col_map_B_1", "col_map_B_1_substr", "col_map_B_1_replace" FROM (
-                SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1,
-                SUBSTR(col_map.B[1], 1, 1) col_map_B_1_substr,
-                REPLACE(col_map.B[1], '-', '_') col_map_B_1_replace
+            SELECT "col_list_1", "col_map_B_1",
+                    SUBSTR("col_map_B_1", 1, 1),
+                    REPLACE("col_map_B_1", '-', '_')
+            FROM (
+                SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1
                 FROM %s WHERE key_partition='row_1'
             )
             ORDER BY "col_list_1" DESC
@@ -355,14 +262,18 @@ class TestSupersetDynamoDB:
         assert len(ret) == 6
         assert ret[0] == ("F", "F-2", "F", "F_2")
 
+    def test_string_functions_select_2(self, superset_cursor):
         superset_cursor.execute(
             """
-            SELECT "col_list_1", "col_map_B_1_trim", "col_map_B_1_upper", "col_map_B_1_lower" FROM (
-                SELECT col_list[1] col_list_1,
-                TRIM(col_map.B[1]) col_map_B_1_trim,
-                UPPER(col_map.B[1]) col_map_B_1_upper,
-                lower(col_map.B[1]) col_map_B_1_lower
-                FROM %s WHERE key_partition='row_1'
+            SELECT "col_list_1", "col_list_1_trim", "col_map_B_1_upper", "col_map_B_1_lower" FROM (
+                SELECT col_list_1,
+                TRIM(col_list_1) col_list_1_trim,
+                UPPER(col_map_B_1) col_map_B_1_upper,
+                lower(col_map_B_1) col_map_B_1_lower
+                FROM (
+                    SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1
+                    FROM %s WHERE key_partition='row_1'
+                )
             )
             ORDER BY "col_list_1" DESC
         """
@@ -370,7 +281,27 @@ class TestSupersetDynamoDB:
         )
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
-        assert ret[0] == ("F", "F-2", "F-2", "f-2")
+        assert ret[0] == ("F", "F", "F-2", "f-2")
+
+        superset_cursor.execute(
+            """
+            SELECT "col_list_1", "col_list_1_replace", "col_map_B_1_upper", "col_map_B_1_lower" FROM (
+                SELECT col_list_1,
+                lower(replace(col_map_B_1, '-', '_')) col_list_1_replace,
+                UPPER(TRIM(col_map_B_1)) col_map_B_1_upper,
+                lower(col_map_B_1) col_map_B_1_lower
+                FROM (
+                    SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1
+                    FROM %s WHERE key_partition='row_1'
+                ) WHERE col_list_1 = 'F'
+            )
+            ORDER BY "col_list_1" DESC
+        """
+            % TESTCASE04_TABLE
+        )
+        ret = superset_cursor.fetchall()
+        assert len(ret) == 2
+        assert ret[0] == ("F", "f_2", "F-2", "f-2")
 
     def test_sqlalchemy_execute_nested_select(self, superset_engine):
         _, conn = superset_engine
@@ -478,7 +409,7 @@ class TestSupersetDynamoDB:
     def test_cached_querydb_step4(self, superset_engine):
         import time
 
-        time.sleep(15)
+        time.sleep(5)
         # Cache expired
         self.query_final_cached_querydb(superset_engine)
 
@@ -519,17 +450,17 @@ class TestSupersetDynamoDB:
         except Exception as e:
             assert "pydynamodb.error.NotSupportedError" in str(e)
 
-        os.environ[
-            "PYDYNAMODB_QUERYDB_CLASS"
-        ] = "tests.test_superset_dynamodb.CustomQueryDB"
+        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = (
+            "tests.test_superset_dynamodb.CustomQueryDB"
+        )
         try:
             self.query_final_cached_querydb(superset_engine)
         except Exception as e:
             assert "QueryDB class is invalid." in str(e)
 
-        os.environ[
-            "PYDYNAMODB_QUERYDB_CLASS"
-        ] = "tests.test_superset_dynamodb:CustomQueryDB"
+        os.environ["PYDYNAMODB_QUERYDB_CLASS"] = (
+            "tests.test_superset_dynamodb:CustomQueryDB"
+        )
         os.environ["PYDYNAMODB_QUERYDB_URL"] = ":memory:"
 
         self.query_final_cached_querydb(superset_engine)

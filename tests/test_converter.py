@@ -105,11 +105,81 @@ class TestResponseConverter:
             {"S": "2022/09/10"}, function="DATE", function_params=["%Y/%m/%d"]
         ) == date(2022, 9, 10)
 
+    def test_deserializer_substr(self, converter):
+        assert (
+            converter.deserialize(
+                {"S": "abcdefg01234"}, function="SUBSTR", function_params=[6]
+            )
+            == "g01234"
+        )
+
+        assert (
+            converter.deserialize(
+                {"S": "abcdefg01234"}, function="SUBSTR", function_params=[1, 3]
+            )
+            == "bcd"
+        )
+
+        assert (
+            converter.deserialize(
+                {"S": "abcdefg01234"}, function="SUBSTRING", function_params=[1, 3]
+            )
+            == "bcd"
+        )
+
+        assert (
+            converter.deserialize(
+                {"S": "abcdefg01234"}, function="SUBSTRING", function_params=[1, 100]
+            )
+            == "bcdefg01234"
+        )
+
+    def test_deserializer_trim(self, converter):
+        assert (
+            converter.deserialize({"S": "  Hello World   "}, function="TRIM")
+            == "Hello World"
+        )
+
+    def test_deserializer_ltrim(self, converter):
+        assert (
+            converter.deserialize({"S": "  Hello World   "}, function="LTRIM")
+            == "Hello World   "
+        )
+
+    def test_deserializer_rtrim(self, converter):
+        assert (
+            converter.deserialize({"S": "  Hello World   "}, function="RTRIM")
+            == "  Hello World"
+        )
+
+    def test_deserializer_upper(self, converter):
+        assert converter.deserialize({"S": "abcdEFG"}, function="UPPER") == "ABCDEFG"
+
+    def test_deserializer_lower(self, converter):
+        assert converter.deserialize({"S": "abcdEFG"}, function="LOWER") == "abcdefg"
+
+    def test_deserializer_replace(self, converter):
+        assert (
+            converter.deserialize(
+                {"S": "abcdefgg_-001234"}, function="REPLACE", function_params=["g"]
+            )
+            == "abcdef_-001234"
+        )
+
+        assert (
+            converter.deserialize(
+                {"S": "abcdefgg_-001234"},
+                function="REPLACE",
+                function_params=["g", "X"],
+            )
+            == "abcdefXX_-001234"
+        )
+
     def test_deserializer_number(self, converter):
         assert converter.deserialize({"N": "2"}) == 2
-        assert converter.deserialize({"N": "2.3"}) == 2.3
-        assert converter.deserialize({"N": "2.3563"}) == 2.3563
-        assert converter.deserialize({"N": "2.0"}) == 2.0
+        assert converter.deserialize({"N": "2.3"}) == float(2.3)
+        assert converter.deserialize({"N": "2.3563"}) == float(2.3563)
+        assert converter.deserialize({"N": "2.0"}) == float(2.0)
 
     def test_deserializer_binary(self, converter):
         assert converter.deserialize({"B": b"XYZ"}) == b"XYZ"

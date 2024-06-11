@@ -186,7 +186,7 @@ class TestCursorDMLSelect:
         sql_date_row_1_0_ = (
             """
         INSERT INTO %s VALUE {
-            'key_partition': ?, 'key_sort': ?, 'col_date': ?, 'col_datetime': ?
+            'key_partition': ?, 'key_sort': ?, 'col_date': ?, 'col_datetime': ?, 'col_str': ?
         }
         """
             % TESTCASE03_TABLE
@@ -196,17 +196,19 @@ class TestCursorDMLSelect:
             0,
             date(2022, 10, 18),
             datetime(2022, 10, 18, 13, 55, 34),
+            "abcdEFG01234",
         ]
         params_1_1_ = [
             "test_date_row_1",
             1,
             date(2022, 10, 19),
             datetime(2022, 10, 19, 17, 2, 4),
+            "01234abcdefg",
         ]
         cursor.executemany(sql_date_row_1_0_, [params_1_0_, params_1_1_])
         cursor.execute(
             """
-            SELECT DATE(col_date, '%Y-%m-%d'), DATETIME(col_datetime) FROM {0}
+            SELECT DATE(col_date, '%Y-%m-%d'), DATETIME(col_datetime), SUBSTR(col_str, 2, 3) FROM {0}
             WHERE key_partition = ? AND key_sort = ?
         """.format(
                 TESTCASE03_TABLE
@@ -216,7 +218,19 @@ class TestCursorDMLSelect:
         assert cursor.fetchone() == (
             date(2022, 10, 18),
             datetime(2022, 10, 18, 13, 55, 34),
+            "cdE",
         )
+
+        cursor.execute(
+            """
+            SELECT REPLACE(col_str, 'd', 'XX') FROM {0}
+            WHERE key_partition = ? AND key_sort = ?
+        """.format(
+                TESTCASE03_TABLE
+            ),
+            ["test_date_row_1", 0],
+        )
+        assert cursor.fetchone() == ("abcXXEFG01234",)
 
     def test_alias_in_columns(self, cursor):
         cursor.execute(

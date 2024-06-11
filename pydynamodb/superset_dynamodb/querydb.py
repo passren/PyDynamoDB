@@ -8,7 +8,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional, Type, Any, List
 
 from ..sql.common import DataTypes, QueryType, Functions
-from ..sql.dml_select import DmlSelect, DmlSelectColumn, DmlFunction
+from ..sql.dml_select import DmlSelectColumn, DmlFunction
 from ..model import Statement, Metadata
 from ..util import synchronized
 from ..error import NotSupportedError
@@ -96,7 +96,6 @@ class QueryDBConfig:
 
 class QueryDB(metaclass=ABCMeta):
     CACHE_TABLE = "QUERYDB_CACHES"
-    VIEW_PREFIX = "view_"
 
     def __init__(
         self,
@@ -137,12 +136,6 @@ class QueryDB(metaclass=ABCMeta):
                 raise NotSupportedError
 
         return self._query_id
-
-    @property
-    def query_view_id(self) -> Optional[str]:
-        if self._query_id is None:
-            return None
-        return QueryDB.VIEW_PREFIX + self.query_id
 
     @abstractmethod
     def connection(self):
@@ -341,6 +334,13 @@ class QueryDB(metaclass=ABCMeta):
     def _escape_col_name(self, col_name: str) -> str:
         return re.sub(r"[^\w]", "_", col_name)
 
+    def _get_query_table_col_name(self, col_info: DmlSelectColumn) -> str:
+        return (
+            self._escape_col_name(col_info.name)
+            if col_info.alias is None
+            else col_info.alias
+        )
+
     @synchronized
     def create_query_table(self, metadata: Metadata) -> None:
         columns_with_type = list()
@@ -348,7 +348,7 @@ class QueryDB(metaclass=ABCMeta):
         for col_info in metadata:
             col_type = self._get_col_type(col_info)
             columns_with_type.append(
-                '"%s" %s' % (self._escape_col_name(col_info.name), col_type)
+                '"%s" %s' % (self._get_query_table_col_name(col_info), col_type)
             )
 
         query_table_creation = "CREATE TABLE IF NOT EXISTS %s (%s)" % (
@@ -357,31 +357,6 @@ class QueryDB(metaclass=ABCMeta):
         )
         self.connection.execute(query_table_creation)
         self.add_cache()
-
-    @synchronized
-    def create_query_view(self, select_sql: DmlSelect) -> None:
-        view_columns = list()
-        columns_with_function = list()
-
-        for col_info in select_sql.columns:
-            view_col_name = (
-                col_info.alias if col_info.alias is not None else col_info.result_name
-            )
-            view_columns.append(view_col_name)
-            col_func = self._get_col_function(
-                self._escape_col_name(col_info.result_name), col_info.function
-            )
-            columns_with_function.append(col_func)
-
-        # Create view based on the query table. All the queries will be executed against the view.
-        self.connection.execute("DROP VIEW IF EXISTS %s" % (self.query_view_id))
-        query_view_creation = "CREATE VIEW %s (%s) AS SELECT %s FROM %s" % (
-            self.query_view_id,
-            ",".join(['"%s"' % c for c in view_columns]),
-            ",".join(columns_with_function),
-            self.query_id,
-        )
-        self.connection.execute(query_view_creation)
 
     @synchronized
     def drop_query_table(self) -> None:
@@ -395,7 +370,7 @@ class QueryDB(metaclass=ABCMeta):
         columns = list()
         values = list()
         for col_info in metadata:
-            columns.append('"' + self._escape_col_name(col_info.name) + '"')
+            columns.append('"' + self._get_query_table_col_name(col_info) + '"')
             values.append("?")
 
         self.connection.executemany(
@@ -407,13 +382,34 @@ class QueryDB(metaclass=ABCMeta):
         self.connection.commit()
         self.set_cache_last_updated()
 
-    def query(self):
+    def _create_query_sql(self) -> str:
         parser = self.statement.sql_parser.parser
-        query_sql = "SELECT %s FROM %s %s" % (
-            parser.outer_columns,
-            self.query_view_id,
-            parser.outer_exprs,
-        )
+        query_sql = ""
+        outer_columns = "*" if parser.outer_columns is None else parser.outer_columns
+        outer_exprs = "" if parser.outer_exprs is None else parser.outer_exprs
+
+        if parser.inner_columns is None:
+            query_sql = "SELECT %s FROM %s %s" % (
+                outer_columns,
+                self.query_id,
+                outer_exprs,
+            )
+        else:
+            inner_columns = parser.inner_columns
+            inner_exprs = "" if parser.inner_exprs is None else parser.inner_exprs
+
+            query_sql = "SELECT %s FROM (SELECT %s FROM %s %s) %s" % (
+                outer_columns,
+                inner_columns,
+                self.query_id,
+                inner_exprs,
+                outer_exprs,
+            )
+
+        return query_sql
+
+    def query(self):
+        query_sql = self._create_query_sql()
         with closing(self.connection.cursor()) as cursor:
             cursor.execute(query_sql)
             self.set_cache_queried_times()
