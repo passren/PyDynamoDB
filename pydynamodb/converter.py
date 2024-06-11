@@ -137,6 +137,20 @@ class Deserializer(metaclass=ABCMeta):
             return self._to_date(value, **kwargs)
         elif function_ == Functions.DATETIME:
             return self._to_datetime(value, **kwargs)
+        elif function_ == Functions.SUBSTR or function_ == Functions.SUBSTRING:
+            return self._to_substr(value, **kwargs)
+        elif function_ == Functions.TRIM:
+            return value.strip()
+        elif function_ == Functions.LTRIM:
+            return value.lstrip()
+        elif function_ == Functions.RTRIM:
+            return value.rstrip()
+        elif function_ == Functions.UPPER:
+            return value.upper()
+        elif function_ == Functions.LOWER:
+            return value.lower()
+        elif function_ == Functions.REPLACE:
+            return self._to_replace(value, **kwargs)
         else:
             return value
 
@@ -210,6 +224,28 @@ class Deserializer(metaclass=ABCMeta):
 
     def _to_bool(self, value: Optional[bool], **kwargs) -> Optional[bool]:
         return value
+
+    def _to_substr(self, value: Optional[str], **kwargs) -> Optional[str]:
+        function_params_ = kwargs.get("function_params", None)
+        if function_params_ is None or len(function_params_) == 0:
+            return value
+        elif len(function_params_) == 1:
+            start = int(function_params_[0])
+            return value[start:]
+        else:
+            start = int(function_params_[0])
+            length = int(function_params_[1])
+            end = start + length if start + length < len(value) else len(value)
+            return value[start:end]
+
+    def _to_replace(self, value: Optional[str], **kwargs) -> Optional[str]:
+        function_params_ = kwargs.get("function_params", None)
+        if function_params_ is None or len(function_params_) == 0:
+            return value
+        elif len(function_params_) == 1:
+            return value.replace(function_params_[0], "")
+        else:
+            return value.replace(function_params_[0], function_params_[1])
 
     def _to_default(self, value: Optional[Any], **kwargs) -> Optional[str]:
         return value

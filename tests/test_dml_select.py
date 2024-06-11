@@ -231,13 +231,13 @@ class TestDmlSelect:
         assert parser.parser.columns[0].function.params is None
         assert parser.parser.columns[1].request_name == "IssueDesc"
         assert parser.parser.columns[1].function.name == "SUBSTR"
-        assert parser.parser.columns[1].function.params == [1,3]
+        assert parser.parser.columns[1].function.params == [1, 3]
         assert parser.parser.columns[2].request_name == "IssueDesc"
         assert parser.parser.columns[2].function.name == "SUBSTRING"
-        assert parser.parser.columns[2].function.params == [1,3]
+        assert parser.parser.columns[2].function.params == [1, 3]
         assert parser.parser.columns[3].request_name == "IssueDesc"
         assert parser.parser.columns[3].function.name == "REPLACE"
-        assert parser.parser.columns[3].function.params == ['abc', 'def']
+        assert parser.parser.columns[3].function.params == ["abc", "def"]
 
         assert ret == {
             "Statement": "SELECT IssueID,IssueDesc FROM \"Issues\" WHERE key_partition = 'row_1'"

@@ -45,10 +45,32 @@ class Functions:
     DATETIME = "DATETIME"
     NUMBER = "NUMBER"
     BOOL = "BOOL"
+    SUBSTR = "SUBSTR"
+    SUBSTRING = "SUBSTRING"
+    TRIM = "TRIM"
+    LTRIM = "LTRIM"
+    RTRIM = "RTRIM"
+    REPLACE = "REPLACE"
+    UPPER = "UPPER"
+    LOWER = "LOWER"
 
     SUPPORTED_FUNTIONS = {
-        TYPE_CONVERSION: ["DATE", "DATETIME", "NUMBER", "BOOL"],
-        STRING_FUNCTION: ["SUBSTR", "SUBSTRING", "REPLACE", "TRIM", "UPPER", "LOWER"],
+        TYPE_CONVERSION: [
+            DATE,
+            DATETIME,
+            NUMBER,
+            BOOL,
+        ],
+        STRING_FUNCTION: [
+            SUBSTR,
+            SUBSTRING,
+            TRIM,
+            RTRIM,
+            LTRIM,
+            REPLACE,
+            UPPER,
+            LOWER,
+        ],
     }
     WHERE_CONDITION = ["begins_with", "attribute_type", "contains"]
     WHERE_CONDITION_WITH_OP = ["size"]
