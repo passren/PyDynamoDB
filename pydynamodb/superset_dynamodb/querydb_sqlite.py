@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-import sqlite3
+import sqlean as sqlite3
 from datetime import datetime, date
 from contextlib import closing
 from typing import Any, Type
@@ -24,6 +24,7 @@ class SqliteFileQueryDB(QueryDB):
     @property
     def connection(self):
         if self._connection is None:
+            sqlite3.extensions.enable("math", "regexp", "stats", "text")
             self._connection = sqlite3.connect(
                 self.config.db_url,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
