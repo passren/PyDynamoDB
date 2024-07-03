@@ -2,6 +2,8 @@ name: Test
 
 on:
   push:
+    branches:
+      - "*"
 
 jobs:
   pytest:
@@ -34,6 +36,7 @@ jobs:
           pip install tenacity
           pip install "sqlalchemy>=1.0.0,<2.0.0"
           pip install pyparsing
+          pip install sqlean.py
       - name: black
         run: |
           pip install black
@@ -63,3 +66,15 @@ jobs:
           flags: unittests
           fail_ci_if_error: true
           verbose: true
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

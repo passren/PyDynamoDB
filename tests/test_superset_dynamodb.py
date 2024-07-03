@@ -182,8 +182,8 @@ class TestSupersetDynamoDB:
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert [(d[0], d[1]) for d in superset_cursor.description] == [
-            ("col_list", None),
-            ("A", None),
+            ("col_list", "TEXT"),
+            ("A", "REAL"),
         ]
 
     def test_execute_nested_select(self, superset_cursor):
@@ -285,11 +285,13 @@ class TestSupersetDynamoDB:
 
         superset_cursor.execute(
             """
-            SELECT "col_list_1", "col_list_1_replace", "col_map_B_1_upper", "col_map_B_1_lower" FROM (
+            SELECT "col_list_1", "col_list_1_replace", "col_map_B_1_upper",
+                    "col_map_B_1_lower", "col_map_B_1_substr" FROM (
                 SELECT col_list_1,
                 lower(replace(col_map_B_1, '-', '_')) col_list_1_replace,
                 UPPER(TRIM(col_map_B_1)) col_map_B_1_upper,
-                lower(col_map_B_1) col_map_B_1_lower
+                lower(col_map_B_1) col_map_B_1_lower,
+                SUBSTR(col_map_B_1, INSTR(col_map_B_1, '-')+1, 1) col_map_B_1_substr
                 FROM (
                     SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1
                     FROM %s WHERE key_partition='row_1'
@@ -301,7 +303,27 @@ class TestSupersetDynamoDB:
         )
         ret = superset_cursor.fetchall()
         assert len(ret) == 2
-        assert ret[0] == ("F", "f_2", "F-2", "f-2")
+        assert ret[0] == ("F", "f_2", "F-2", "f-2", "2")
+
+    def test_sqlean_string_functions(self, superset_cursor):
+        superset_cursor.execute(
+            """
+            SELECT "col_list_1", "col_map_B_part1", "col_map_B_part2" FROM (
+                SELECT col_list_1,
+                text_split(col_map_B_1, '-', 1) col_map_B_part1,
+                text_split(col_map_B_1, '-', 2) col_map_B_part2
+                FROM (
+                    SELECT col_list[1] col_list_1, col_map.B[1] col_map_B_1
+                    FROM %s WHERE key_partition='row_1'
+                ) WHERE col_list_1 = 'F'
+            )
+            ORDER BY "col_list_1" DESC
+        """
+            % TESTCASE04_TABLE
+        )
+        ret = superset_cursor.fetchall()
+        assert len(ret) == 2
+        assert ret[0] == ("F", "F", "2")
 
     def test_sqlalchemy_execute_nested_select(self, superset_engine):
         _, conn = superset_engine
