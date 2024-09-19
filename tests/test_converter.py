@@ -243,7 +243,8 @@ class TestResponseConverter:
         }
 
     def test_deserializer_null(self, converter):
-        assert converter.deserialize({"NULL": True})
+        assert converter.deserialize({"NULL": True}) is None
+        assert converter.deserialize({"NULL": False}) is None
 
     def test_deserializer_bool(self, converter):
         assert converter.deserialize({"BOOL": True})
