@@ -127,3 +127,24 @@ class TestSupersetDmlSelect:
             "Statement": "SELECT col_str,col_datetime,col_num "
             + "FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
+
+    def test_parse_nested_select_case_4(self):
+        sql = """
+        SELECT text_split(id,'.',1) FROM (
+            SELECT id FROM "lakefront-ingest-stg-config-table"
+        )
+        """
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        ret = parser.transform()
+
+    def test_parse_nested_select_case_5(self):
+        sql = """
+        SELECT id FROM (
+            SELECT text_split(id,'.',1) FROM (
+                SELECT id FROM "lakefront-ingest-stg-config-table"
+            )
+        ) AS virtual_table
+        GROUP BY id
+        """
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        ret = parser.transform()

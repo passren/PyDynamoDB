@@ -220,7 +220,7 @@ class Deserializer(metaclass=ABCMeta):
         return coverted_
 
     def _to_null(self, value: Optional[bool], **kwargs) -> Optional[bool]:
-        return value
+        return None
 
     def _to_bool(self, value: Optional[bool], **kwargs) -> Optional[bool]:
         return value
