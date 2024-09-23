@@ -85,7 +85,7 @@ Dependencies
 
 * SQLAlchemy (The ORM Toolkit for Python, only required if using PyDynamoDB Dialect)
 
-  - SQLAlchemy >= 1.0.0, < 2.0.0
+  - SQLAlchemy >= 1.0.0
 
 * Pyparsing (The approach to creating and executing simple grammars)
 
