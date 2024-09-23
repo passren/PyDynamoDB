@@ -564,6 +564,7 @@ class DynamoDBStatementCompiler(SQLCompiler):
     def visit_delete(self, delete_stmt, **kw):
         return super().visit_delete(delete_stmt, **kw)
 
+
 class DynamoDBTypeCompiler(GenericTypeCompiler):
 
     def visit_FLOAT(self, type_, **kw):
