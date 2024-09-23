@@ -18,7 +18,7 @@ install_requires = [
 ]
 
 extras_require = {
-    "sqlalchemy": ["sqlalchemy>=1.0.0,<2.0.0"],
+    "sqlalchemy": ["sqlalchemy>=1.0.0"],
 }
 
 setup(
@@ -37,10 +37,11 @@ setup(
         "Intended Audience :: Developers",
         'Programming Language :: Python',
         "Programming Language :: Python",
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
     ],

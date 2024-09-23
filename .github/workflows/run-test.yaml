@@ -34,7 +34,6 @@ jobs:
           sudo apt-get install -y python3-dev
           pip install boto3
           pip install tenacity
-          pip install "sqlalchemy>=1.0.0,<2.0.0"
           pip install pyparsing
           pip install sqlean.py
       - name: black
@@ -50,11 +49,21 @@ jobs:
           curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz
           tar xzf ./dynamodb_local_latest.tar.gz
           nohup java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb &
-      - name: Run test with pytest
+      - name: Install sqlalchemy 1.x
+        run: |
+          pip install "sqlalchemy>=1.0.0,<2.0.0"
+      - name: Run test with pytest for sqlalchemy 1.x
         run: |
           pip install pytest
           pip install pytest-cov
           pip install moto[sts]==4.2.0
+          pytest --cov=pydynamodb --cov-report=xml tests/
+      - name: Install sqlalchemy 2.x
+        run: |
+          pip uninstall -y sqlalchemy
+          pip install "sqlalchemy>=2.0.0"
+      - name: Run test with pytest for sqlalchemy 2.x
+        run: |
           pytest --cov=pydynamodb --cov-report=xml tests/
       - name: Upload test coverage
         uses: codecov/codecov-action@v4
