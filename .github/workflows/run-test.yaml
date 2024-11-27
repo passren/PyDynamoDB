@@ -35,7 +35,7 @@ jobs:
           pip install boto3
           pip install tenacity
           pip install pyparsing
-          pip install sqlean.py==3.45.0
+          pip install sqlean.py<3.47.0
       - name: black
         run: |
           pip install black
