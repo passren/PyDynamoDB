@@ -172,18 +172,16 @@ class TestSupersetDynamoDB:
     def test_execute_select(self, superset_cursor):
         superset_cursor.execute(
             """
-            SELECT col_list, A FROM (
-                SELECT col_list[1] col_list, NUMBER(col_map.A)
-                    FROM %s WHERE key_partition='row_1'
-            )
+            SELECT col_list[1] col_list, NUMBER(col_map.A)
+                FROM %s WHERE key_partition='row_1'
         """
             % TESTCASE04_TABLE
         )
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert [(d[0], d[1]) for d in superset_cursor.description] == [
-            ("col_list", "TEXT"),
-            ("A", "REAL"),
+            ("col_list", "STRING"),
+            ("A", "NUMBER"),
         ]
 
     def test_execute_nested_select(self, superset_cursor):
@@ -325,6 +323,20 @@ class TestSupersetDynamoDB:
         assert len(ret) == 2
         assert ret[0] == ("F", "F", "2")
 
+    def test_sqlalchemy_execute_single_select(self, superset_engine):
+        _, conn = superset_engine
+        rows = conn.execute(
+            text(
+                """
+                SELECT col_list[1] col_list_1, NUMBER(col_map.A)
+                FROM %s WHERE key_partition=:pk
+            """
+                % TESTCASE04_TABLE
+            ),
+            {"pk": "row_2"},
+        ).fetchall()
+        assert len(rows) == 8
+
     def test_sqlalchemy_execute_nested_select(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(
@@ -395,6 +407,7 @@ class TestSupersetDynamoDB:
         os.environ["PYDYNAMODB_QUERYDB_LOAD_BATCH_SIZE"] = "20"
         os.environ["PYDYNAMODB_QUERYDB_EXPIRE_TIME"] = "3"
 
+        self.test_sqlalchemy_execute_single_select(superset_engine)
         self.test_sqlalchemy_execute_nested_select(superset_engine)
         self.test_sqlalchemy_execute_flat_data(superset_engine)
         self.test_sqlalchemy_execute_alias_select(superset_engine)
@@ -425,6 +438,7 @@ class TestSupersetDynamoDB:
 
     def test_cached_querydb_step3(self, superset_engine):
         # Cache used
+        self.test_sqlalchemy_execute_single_select(superset_engine)
         self.test_sqlalchemy_execute_nested_select(superset_engine)
         self.test_sqlalchemy_execute_alias_select(superset_engine)
 

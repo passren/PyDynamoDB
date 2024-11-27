@@ -155,7 +155,7 @@ class QueryDB(metaclass=ABCMeta):
 
     def close(self):
         if self.connection is not None:
-            if self.config.purge_enabled:
+            if self.cache_enabled and self.config.purge_enabled:
                 self.purge()
             self.connection.close()
 
@@ -163,10 +163,10 @@ class QueryDB(metaclass=ABCMeta):
     def purge(self) -> int:
         purged_count = 0
 
-        if not self.cache_enabled:
+        if self.config.purge_time < self.config.expire_time:
             return purged_count
 
-        if self.config.purge_time < self.config.expire_time:
+        if not self.cache_enabled or not self.has_table(QueryDB.CACHE_TABLE):
             return purged_count
 
         _purge_period = datetime.now() - timedelta(seconds=self.config.purge_time)
