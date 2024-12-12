@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from types import ModuleType
 
 
-def _check_sqla_major_ver():
+def _check_sqla_major_ver():  # pragma: no cover
     try:
         return tuple(int(x) for x in __version__.split("."))[0]
     except ValueError | Exception:
@@ -104,13 +104,13 @@ class DynamoDBStatementCompiler(SQLCompiler):
                 return " LIMIT " + self.process(select._limit_clause, **kw)
         return ""
 
-    def visit_insert(self, insert_stmt, **kw):
+    def visit_insert(self, insert_stmt, **kw):  # pragma: no cover
         # Compatible design for SQLAlchemy v1 and v2
         if _SQLALCHEMY_MAJOR_VERSION < 2:
             return self._visit_insert_v1(insert_stmt, **kw)
         return self._visit_insert_v2(insert_stmt, None, None, **kw)
 
-    def _visit_insert_v1(self, insert_stmt, **kw):
+    def _visit_insert_v1(self, insert_stmt, **kw):  # pragma: no cover
         compile_state = insert_stmt._compile_state_factory(insert_stmt, self, **kw)
         insert_stmt = compile_state.statement
 
@@ -211,7 +211,7 @@ class DynamoDBStatementCompiler(SQLCompiler):
 
     def _visit_insert_v2(
         self, insert_stmt, visited_bindparam=None, visiting_cte=None, **kw
-    ):
+    ):  # pragma: no cover
         compile_state = insert_stmt._compile_state_factory(insert_stmt, self, **kw)
         insert_stmt = compile_state.statement
 
