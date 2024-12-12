@@ -365,7 +365,7 @@ class DdlAlter(DdlBase):
                     options = self._parse_option_path(option_path_name, option_value)
                     converted_ = {"IndexName": index_name}
 
-                    if options is not None or len(options) > 0:
+                    if options is not None and len(options) > 0:
                         converted_.update(options)
                     gsis_.append(converted_)
 
