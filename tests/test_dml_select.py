@@ -20,7 +20,7 @@ class TestDmlSelect:
         SELECT * FROM Issues.CreateDateIndex
         """
         ret = SQLParser(sql).transform()
-        assert ret == {"Statement": 'SELECT * FROM "Issues"."CreateDateIndex"'}
+        assert ret == {"Statement": 'SELECT * FROM "Issues.CreateDateIndex"'}
 
         sql = """
         SELECT * FROM "Issues"."CreateDateIndex"
@@ -339,3 +339,16 @@ class TestDmlSelect:
         assert parser.parser.where_conditions[6] == "size('Title') <= 20"
         assert parser.parser.where_conditions[7] == "AND"
         assert parser.parser.where_conditions[8] == "CreatedDate IS MISSING"
+
+    def test_parse_dot_in_table_name(self):
+        sql = """
+        SELECT * FROM "Pub.Issues"."CreateDateIndex"
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {"Statement": 'SELECT * FROM "Pub.Issues"."CreateDateIndex"'}
+
+        sql = """
+        SELECT att1, att2 FROM "This.Pub.Issues"."Index.CreateDateIndex"
+        """
+        ret = SQLParser(sql).transform()
+        assert ret == {"Statement": 'SELECT att1,att2 FROM "This.Pub.Issues"."Index.CreateDateIndex"'}
