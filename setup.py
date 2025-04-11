@@ -22,7 +22,7 @@ extras_require = {
 }
 
 setup(
-    name="PyDynamoDB",
+    name="pydynamodb",
     version=VERSION,
     description="Python DB API 2.0 (PEP 249) client for Amazon DynamoDB",
     long_description=open(readme).read(),
@@ -31,17 +31,17 @@ setup(
     author="Peng Ren",
     author_email="passren9099@hotmail.com",
     license="MIT",
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
-        'Programming Language :: Python',
         "Programming Language :: Python",
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
     ],
@@ -51,9 +51,14 @@ setup(
         "Source": "https://github.com/passren/PyDynamoDB",
         "Tracker": "https://github.com/passren/PyDynamoDB/issues",
     },
-    packages=find_packages(include=[
-        "pydynamodb", "pydynamodb.sql", "pydynamodb.sqlalchemy_dynamodb", "pydynamodb.superset_dynamodb"
-    ]),
+    packages=find_packages(
+        include=[
+            "pydynamodb",
+            "pydynamodb.sql",
+            "pydynamodb.sqlalchemy_dynamodb",
+            "pydynamodb.superset_dynamodb",
+        ]
+    ),
     include_package_data=True,
     install_requires=install_requires,
     extras_require=extras_require,
