@@ -83,6 +83,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@${{ secrets.SONAR_SCAN_ACTION_VER }}
+        uses: SonarSource/sonarqube-scan-action@v5.3.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
