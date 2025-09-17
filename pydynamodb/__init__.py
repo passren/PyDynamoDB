@@ -6,7 +6,7 @@ from .error import *  # noqa
 if TYPE_CHECKING:
     from .connection import Connection
 
-__version__: str = "0.7.2"
+__version__: str = "0.7.3"
 
 # Globals https://www.python.org/dev/peps/pep-0249/#globals
 apilevel: str = "2.0"
@@ -51,7 +51,7 @@ JSON: DBAPITypeObject = DBAPITypeObject(("STRING",))
 
 def connect(*args, **kwargs) -> "Connection":
     from .connection import Connection
-    from .superset_dynamodb.pydnamodb import SupersetCursor
+    from .superset_dynamodb.pydynamodb import SupersetCursor
 
     connector = kwargs.get("connector", None)
     if connector is not None and connector.lower() == "superset":
