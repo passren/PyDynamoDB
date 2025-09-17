@@ -51,7 +51,7 @@ JSON: DBAPITypeObject = DBAPITypeObject(("STRING",))
 
 def connect(*args, **kwargs) -> "Connection":
     from .connection import Connection
-    from .superset_dynamodb.pydnamodb import SupersetCursor
+    from .superset_dynamodb.pydynamodb import SupersetCursor
 
     connector = kwargs.get("connector", None)
     if connector is not None and connector.lower() == "superset":

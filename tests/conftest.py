@@ -187,7 +187,7 @@ def dict_cursor(request):
 
 @pytest.fixture
 def superset_cursor(request):
-    from pydynamodb.superset_dynamodb.pydnamodb import SupersetCursor
+    from pydynamodb.superset_dynamodb.pydynamodb import SupersetCursor
 
     yield from _cursor(SupersetCursor, request)
 
