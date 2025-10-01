@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from pydynamodb import cursor
+
+
 TESTCASE01_TABLE = "pydynamodb_test_case01"
+USER_TABLE = "user"
 
 
 class TestCursorDML:
@@ -276,6 +280,32 @@ class TestCursorDML:
         )
         assert self._get_value_by_column_name(desc, rows[0], "col_num") == 10
 
+    def test_delete(self, cursor):
+        sql_delete_row_1_0_ = (
+            """
+            DELETE FROM %s
+            WHERE key_partition = ? AND key_sort = ?
+            RETURNING ALL OLD *
+        """
+            % TESTCASE01_TABLE
+        )
+        params_1_0_ = ["test_one_row_1", 0]
+        cursor.execute(sql_delete_row_1_0_, params_1_0_)
+        rows = cursor.fetchall()
+        assert len(rows) == 1
+
+        sql_delete_row_1_0_ = (
+            """
+            DELETE FROM %s
+            WHERE key_partition = ? AND key_sort = ?
+        """
+            % TESTCASE01_TABLE
+        )
+        params_1_0_ = ["test_one_row_1", 0]
+        cursor.execute(sql_delete_row_1_0_, params_1_0_)
+        rows = cursor.fetchall()
+        assert len(rows) == 0
+
     def test_limit_sql(self, cursor):
         cursor.execute(
             """
@@ -344,3 +374,52 @@ class TestCursorDML:
         assert metadata_["AttributeDefinitions"][0]["AttributeType"] == "S"
         assert metadata_["AttributeDefinitions"][1]["AttributeName"] == "key_sort"
         assert metadata_["AttributeDefinitions"][1]["AttributeType"] == "N"
+
+    def test_reserved_words(self, cursor):
+        sql_reserved_words_1 = (
+            """
+        INSERT INTO %s VALUE {
+            'key_partition': ?, 'key_sort': ?, 'username': ?, 'password': ?
+        }
+        """
+            % USER_TABLE
+        )
+        params_1_ = [
+            "test_user_row_1",
+            0,
+            "admin",
+            "admin",
+        ]
+        cursor.execute(sql_reserved_words_1, params_1_)
+
+        sql_reserved_words_2 = (
+            """
+        UPDATE %s
+            SET username=?
+            SET password=?
+            WHERE key_partition=? AND key_sort=?
+            RETURNING ALL OLD *
+        """
+            % USER_TABLE
+        )
+        params_2_ = [
+            "admin1",
+            "admin1",
+            "test_user_row_1",
+            0,
+        ]
+        cursor.execute(sql_reserved_words_2, params_2_)
+
+        sql_reserved_words_3 = (
+            """
+        DELETE FROM %s
+            WHERE key_partition=? AND key_sort=?
+            RETURNING ALL OLD *
+        """
+            % USER_TABLE
+        )
+        params_3_ = [
+            "test_user_row_1",
+            0,
+        ]
+        cursor.execute(sql_reserved_words_3, params_3_)

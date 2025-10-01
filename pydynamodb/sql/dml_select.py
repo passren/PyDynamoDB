@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Syntax of PartiQL
-https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.select.html#ql-reference.select.syntax
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.select.html
 ------------------
 SELECT expression  [, ...]
 FROM table[.index]
@@ -37,8 +37,6 @@ from abc import ABCMeta
 from collections import OrderedDict
 from .dml_sql import DmlBase, DmlFunction
 from .common import KeyWords, Tokens
-from .util import flatten_list
-from pyparsing import ParseResults
 from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list, Regex
 from typing import Any, Dict, List, Optional
 
@@ -147,17 +145,12 @@ class DmlSelect(DmlBase):
 
     def __init__(self, statement: str) -> None:
         super().__init__(statement)
-        self._columns = list()
-        self._where_conditions = list()
+        self._columns = []
         self._is_star_column = False
 
     @property
     def columns(self) -> List[Optional[DmlSelectColumn]]:
         return self._columns
-
-    @property
-    def where_conditions(self) -> List[Optional[str]]:
-        return self._where_conditions
 
     @property
     def is_star_column(self) -> bool:
@@ -218,7 +211,7 @@ class DmlSelect(DmlBase):
                 self._columns.clear()
                 return "*"
 
-            column_ = list()
+            column_ = []
             column_.append(column["column_name"])
 
             for rcolumn in column["column_ops"]:
@@ -249,43 +242,11 @@ class DmlSelect(DmlBase):
         columns_ = ",".join(columns_.keys())
         return columns_
 
-    def _construct_where_conditions(self, where_conditions: List[Any]) -> str:
-        for condition in where_conditions:
-            if not isinstance(condition, ParseResults):
-                self._where_conditions.append(str(condition))
-            else:
-                function_ = condition.get("function", None)
-                function_with_op_ = condition.get("function_with_op", None)
-                if function_:
-                    flatted_func_params = ",".join(condition["function_params"])
-                    self._where_conditions.append(
-                        "%s(%s)" % (function_, flatted_func_params)
-                    )
-                elif function_with_op_:
-                    flatted_func_params = ",".join(condition["function_params"])
-                    self._where_conditions.append(
-                        "%s(%s) %s %s"
-                        % (
-                            function_with_op_,
-                            flatted_func_params,
-                            condition["comparison_operators"],
-                            condition["column_rvalue"],
-                        )
-                    )
-                else:
-                    where_conditions_ = condition.as_list()
-                    flatted_where = " ".join(
-                        str(c) for c in flatten_list(where_conditions_)
-                    )
-                    self._where_conditions.append(flatted_where)
-
-        return "WHERE %s" % " ".join(self.where_conditions)
-
     def _construct_raw_options(self, options: List[Any]) -> Optional[List[Any]]:
         converted_ = None
         for option in options:
             if converted_ is None:
-                converted_ = list()
+                converted_ = []
 
             converted_.append(" ".join(str(o) for o in option))
 
@@ -295,7 +256,7 @@ class DmlSelect(DmlBase):
         converted_ = None
         for option in options:
             if converted_ is None:
-                converted_ = dict()
+                converted_ = {}
             option_name = option[0]
             option_value = option[1]
 

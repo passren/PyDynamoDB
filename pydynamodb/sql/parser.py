@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import logging
 from abc import ABCMeta
+
 from .common import QueryType, get_query_type
 from .base import Base
 from .ddl_create import DdlCreate
 from .ddl_alter import DdlAlter
 from .ddl_drop import DdlDrop
+from .dml_insert import DmlInsert
 from .dml_select import DmlSelect
-from .dml_sql import DmlBase
+from .dml_update import DmlUpdate
+from .dml_delete import DmlDelete
 from .util_sql import UtilListTables, UtilDescTable
 from typing import Any, Dict, Tuple
 
@@ -84,12 +87,12 @@ class SQLParser(metaclass=ABCMeta):
             _parse_class = DdlDrop
         elif self.query_type == QueryType.SELECT:
             _parse_class = DmlSelect
-        elif (
-            self.query_type == QueryType.INSERT
-            or self.query_type == QueryType.UPDATE
-            or self.query_type == QueryType.DELETE
-        ):
-            _parse_class = DmlBase
+        elif self.query_type == QueryType.INSERT:
+            _parse_class = DmlInsert
+        elif self.query_type == QueryType.UPDATE:
+            _parse_class = DmlUpdate
+        elif self.query_type == QueryType.DELETE:
+            _parse_class = DmlDelete
         elif (
             self.query_type == QueryType.LIST
             or self.query_type == QueryType.LIST_GLOBAL

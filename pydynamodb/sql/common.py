@@ -92,7 +92,9 @@ class KeyWords:
         SPACE,
         LBRACKET,
         RBRACKET,
-    ) = map(Suppress, "(),;:.'\"`= []")
+        LCURLYBRACKET,
+        RCURLYBRACKET,
+    ) = map(Suppress, "(),;:.'\"`= []{}")
     STAR, QUESTION = "*", "?"
     SUPPRESS_QUOTE = (SINGLEQUOTE | BACKQUOTE | DOUBLEQUOTE).set_name("suppress_quote")
     QUOTE = one_of("' \" `").set_name("quote")
@@ -149,18 +151,23 @@ class KeyWords:
         FROM,
         WHERE,
         INSERT,
+        INTO,
+        VALUE,
         GLOBAL,
         PARTITION_KEY,
         SORT_KEY,
         HASH,
         RANGE,
         UPDATE,
+        SET,
+        REMOVE,
         DELETE,
         INDEX,
         REPLICA,
         ORDER_BY,
         LIMIT,
         AS,
+        RETURNING,
     ) = map(
         CaselessKeyword,
         [
@@ -172,18 +179,23 @@ class KeyWords:
             "FROM",
             "WHERE",
             "INSERT",
+            "INTO",
+            "VALUE",
             "GLOBAL",
             "PARTITION KEY",
             "SORT KEY",
             "HASH",
             "RANGE",
             "UPDATE",
+            "SET",
+            "REMOVE",
             "DELETE",
             "INDEX",
             "REPLICA",
             "ORDER BY",
             "Limit",
             "AS",
+            "RETURNING",
         ],
     )
 
