@@ -90,6 +90,7 @@ TEST_TABLES = [
     "pydynamodb_test_case03",
     "pydynamodb_test_case04",
     "pydynamodb_test_case05",
+    "user",
 ]
 
 
