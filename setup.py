@@ -14,7 +14,7 @@ install_requires = [
     "botocore>=1.24.7",
     "tenacity>=4.1.0",
     "pyparsing>=3.0.0",
-    "sqlean.py==3.45.1",
+    "sqlean.py>=3.45.0",
 ]
 
 extras_require = {

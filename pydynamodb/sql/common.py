@@ -353,9 +353,10 @@ def get_query_type(sql: str) -> QueryType:
 
 def escape_keyword(word: str) -> str:
     if word.upper() in RESERVED_WORDS:
-        return f"\"{word}\""
+        return f'"{word}"'
     else:
         return word
+
 
 # DynamoDB reserved words
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html

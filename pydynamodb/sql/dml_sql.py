@@ -36,7 +36,9 @@ class DmlBase(Base):
         ],
     )
 
-    ATTR_NAME = Opt('"') + Word(alphanums + "_-")("attr_name").set_name("attr_name") + Opt('"')
+    ATTR_NAME = (
+        Opt('"') + Word(alphanums + "_-")("attr_name").set_name("attr_name") + Opt('"')
+    )
     ATTR_ARRAY_NAME = ATTR_NAME + "[" + Word(nums) + "]"
 
     _COLUMN_NAME = (
