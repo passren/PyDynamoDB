@@ -36,7 +36,7 @@ import re
 from abc import ABCMeta
 from collections import OrderedDict
 from .dml_sql import DmlBase, DmlFunction
-from .common import KeyWords, Tokens, escape_keyword
+from .common import KeyWords, Tokens
 from pyparsing import Opt, Forward, Group, ZeroOrMore, delimited_list, Regex
 from typing import Any, Dict, List, Optional
 
@@ -212,7 +212,7 @@ class DmlSelect(DmlBase):
                 return "*"
 
             column_ = []
-            column_.append(escape_keyword(column["column_name"]))
+            column_.append(column["column_name"])
 
             for rcolumn in column["column_ops"]:
                 column_.append(rcolumn["arithmetic_operators"])

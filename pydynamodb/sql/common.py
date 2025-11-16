@@ -8,6 +8,7 @@ from pyparsing import (
     Combine,
     Regex,
     CaselessKeyword,
+    Literal,
     Opt,
     one_of,
     Group,
@@ -109,14 +110,8 @@ class KeyWords:
         LESS,
         GREATER_OR_EQUAL,
         LESS_OR_EQUAL,
-        AND,
-        BETWEEN,
-        IN,
-        IS,
-        NOT,
-        OR,
     ) = map(
-        CaselessKeyword,
+        Literal,
         [
             "+",
             "-",
@@ -126,6 +121,18 @@ class KeyWords:
             "<",
             ">=",
             "<=",
+        ],
+    )
+    (
+        AND,
+        BETWEEN,
+        IN,
+        IS,
+        NOT,
+        OR,
+    ) = map(
+        CaselessKeyword,
+        [
             "AND",
             "BETWEEN",
             "IN",

@@ -14,7 +14,7 @@ class TestDmlDelete:
 
         sql = "delete from user where name='John Doe' and age=30"
         ret = SQLParser(sql).transform()
-        assert ret == {"Statement": "DELETE FROM \"user\" WHERE name = 'John Doe' AND age = 30"}
+        assert ret == {"Statement": "DELETE FROM \"user\" WHERE \"name\" = 'John Doe' AND age = 30"}
 
 
     def test_parse_simple_case_2(self):

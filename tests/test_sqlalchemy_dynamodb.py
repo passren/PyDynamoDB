@@ -408,6 +408,21 @@ class TestSQLAlchemyDynamoDB:
         ).fetchall()
         assert len(rows) == 5
 
+    def test_reserved_word_table_select(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            user = session.scalars(
+                    select(_User).where(
+                        _User.key_partition == "test_user_row_2",
+                        _User.key_sort == 2,
+                    )
+                ).one()
+
+        assert user.username == "user2"
+        assert user.password == "pwd2"
+
+
     def test_reserved_word_table_update(self, engine):
         engine, conn = engine
 
@@ -416,8 +431,12 @@ class TestSQLAlchemyDynamoDB:
                 select(_User).where(
                     _User.key_partition == "test_user_row_2",
                     _User.key_sort == 1,
+                    _User.default == 1,
                 )
-            ).one()
+            ).one_or_none()
+
+            assert user is not None
+
             user.username = "user_updated"
             user.default = 0
             user.comment = "user account updated"
@@ -438,3 +457,30 @@ class TestSQLAlchemyDynamoDB:
         assert rows[0][0] == "user_updated"
         assert rows[0][1] == 0
         assert rows[0][2] == "user account updated"
+
+    def test_reserved_word_table_delete(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            user = session.scalars(
+                select(_User).where(
+                    _User.key_partition == "test_user_row_2",
+                    _User.key_sort == 0,
+                    _User.default == 1,
+                )
+            ).one()
+            session.delete(user)
+            session.commit()
+
+        rows = conn.execute(
+            text(
+                """
+            SELECT username, "default", "comment" FROM %s
+            WHERE key_partition = :pk
+            AND key_sort = :sk
+            """
+                % USER_TABLE
+            ),
+            {"pk": "test_user_row_2", "sk": 0},
+        ).fetchall()
+        assert len(rows) == 0
