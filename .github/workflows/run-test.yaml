@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12"]
+        python-version: [3.9, "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout
@@ -35,7 +35,7 @@ jobs:
           pip install boto3
           pip install tenacity
           pip install pyparsing
-          pip install sqlean.py==3.45.1
+          pip install sqlean.py
       - name: black
         run: |
           pip install black

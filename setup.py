@@ -14,7 +14,7 @@ install_requires = [
     "botocore>=1.24.7",
     "tenacity>=4.1.0",
     "pyparsing>=3.0.0",
-    "sqlean.py==3.45.1",
+    "sqlean.py>=3.45.0",
 ]
 
 extras_require = {
@@ -31,17 +31,18 @@ setup(
     author="Peng Ren",
     author_email="passren9099@hotmail.com",
     license="MIT",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
     ],

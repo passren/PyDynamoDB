@@ -21,10 +21,18 @@ REMOVE AwardDetail.Grammys[2]
 WHERE Artist='Acme Band' AND SongTitle='PartiQL Rocks'
 """
 import logging
-import re
 from .dml_sql import DmlBase
+from .json_parser import jsonArray, jsonObject
 from .common import KeyWords, Tokens
-from pyparsing import Forward, Group, OneOrMore, Opt, Regex
+from .util import flatten_list
+from pyparsing import (
+    Forward,
+    Group,
+    OneOrMore,
+    Opt,
+    Literal,
+    ZeroOrMore,
+)
 from typing import Any, Dict
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -32,24 +40,27 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class DmlUpdate(DmlBase):
 
-    # Define SET operation: SET followed by content until next SET/REMOVE/WHERE
+    _COMMA = Literal(",")
+
+    _COLUMN_UPDATE_RVAL = (jsonObject | jsonArray | DmlBase._COLUMN_RVAL)(
+        "column_update_rvalue"
+    ).set_name("column_update_rvalue")
+
+    _OPERATION_CONTENT = Group(
+        DmlBase._COLUMN + KeyWords.EQUAL_TO + _COLUMN_UPDATE_RVAL
+    )("op_content").set_name("op_content")
+
     _SET_OPERATION = Group(
-        KeyWords.SET
-        + Regex(r".*?(?=\s+(?:SET|REMOVE|WHERE))", re.IGNORECASE | re.DOTALL)(
-            "set_content"
-        ).set_name("set_content")
-    )("set_op")
+        KeyWords.SET + _OPERATION_CONTENT + ZeroOrMore(_COMMA + _OPERATION_CONTENT)
+    )("set_op").set_name("set_op")
 
-    # Define REMOVE operation: REMOVE followed by content until next SET/REMOVE/WHERE
     _REMOVE_OPERATION = Group(
-        KeyWords.REMOVE
-        + Regex(r".*?(?=\s+(?:SET|REMOVE|WHERE))", re.IGNORECASE | re.DOTALL)(
-            "remove_content"
-        ).set_name("remove_content")
-    )("remove_op")
+        KeyWords.REMOVE + _OPERATION_CONTENT + ZeroOrMore(_COMMA + _OPERATION_CONTENT)
+    )("remove_op").set_name("remove_op")
 
-    # Multiple SET or REMOVE operations
-    _OPERATIONS = Group(OneOrMore(_SET_OPERATION | _REMOVE_OPERATION))("operations")
+    _OPERATIONS = OneOrMore(_SET_OPERATION | _REMOVE_OPERATION)("operations").set_name(
+        "operations"
+    )
 
     _UPDATE_STATEMENT = (
         KeyWords.UPDATE
@@ -76,15 +87,7 @@ class DmlUpdate(DmlBase):
 
         table_ = '"%s"' % table_name_
 
-        # Build the operations part from multiple SET/REMOVE operations
-        operations_parts = []
-        for op in operations_:
-            if "set_op" == op.get_name():
-                operations_parts.append("SET %s" % op["set_content"].strip())
-            elif "remove_op" == op.get_name():
-                operations_parts.append("REMOVE %s" % op["remove_content"].strip())
-
-        operations_str = " ".join(operations_parts)
+        operations_str = " ".join(str(c) for c in flatten_list(operations_.as_list()))
 
         where_conditions = self.root_parse_results.get("where_conditions", None)
         if where_conditions is not None:

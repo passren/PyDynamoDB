@@ -3,7 +3,7 @@ import logging
 from abc import ABCMeta
 from .base import Base
 from typing import Any, Dict, List, Optional
-from .common import KeyWords, Tokens
+from .common import KeyWords, Tokens, escape_keyword
 from .util import flatten_list
 from pyparsing import (
     ParseResults,
@@ -28,6 +28,9 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 
 class DmlBase(Base):
+    def __escape_column(self, token: Any) -> str:
+        return escape_keyword(token.get("column_name"))
+
     _CONSISTENT_READ, _RETURN_CONSUMED_CAPACITY = map(
         CaselessKeyword,
         [
@@ -36,7 +39,9 @@ class DmlBase(Base):
         ],
     )
 
-    ATTR_NAME = Opt('"') + Word(alphanums + "_-") + Opt('"')
+    ATTR_NAME = (
+        Opt('"') + Word(alphanums + "_-")("attr_name").set_name("attr_name") + Opt('"')
+    )
     ATTR_ARRAY_NAME = ATTR_NAME + "[" + Word(nums) + "]"
 
     _COLUMN_NAME = (
@@ -46,7 +51,7 @@ class DmlBase(Base):
 
     _ALIAS_NAME = Word(alphanums + "_-")("alias_name").set_name("alias_name")
 
-    _COLUMN = _COLUMN_NAME
+    _COLUMN = _COLUMN_NAME.set_parse_action(__escape_column)
 
     _COLUMNS = delimited_list(
         Group(

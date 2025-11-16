@@ -187,13 +187,13 @@ class TestDmlSelect:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": 'SELECT IssueId,Total,Content.DateWatched[0] FROM "Issues"."CreateDateIndex" '
+            "Statement": 'SELECT IssueId,"Total",Content.DateWatched[0] FROM "Issues"."CreateDateIndex" '
             + "WHERE IssueId IN [100,300,234] "
             + "AND Title = 'some title' "
             + "AND Content[0] >= 100 "
             + "AND Content.DateWatched[0] <= '12/12/19' "
-            + "AND Total IN [500,600] "
-            + "OR Total BETWEEN 500 AND 600 "
+            + "AND \"Total\" IN [500,600] "
+            + "OR \"Total\" BETWEEN 500 AND 600 "
             + "AND Author IS NOT NULL "
             + "ORDER BY IssueId DESC",
             "ConsistentRead": False,
