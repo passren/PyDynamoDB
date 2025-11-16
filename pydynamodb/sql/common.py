@@ -351,6 +351,12 @@ def get_query_type(sql: str) -> QueryType:
     raise LookupError("Not supported query type")
 
 
+def escape_keyword(word: str) -> str:
+    if word.upper() in RESERVED_WORDS:
+        return f"\"{word}\""
+    else:
+        return word
+
 # DynamoDB reserved words
 # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html
 RESERVED_WORDS = [

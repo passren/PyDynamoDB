@@ -379,7 +379,7 @@ class TestCursorDML:
         sql_reserved_words_1 = (
             """
         INSERT INTO %s VALUE {
-            'key_partition': ?, 'key_sort': ?, 'username': ?, 'password': ?
+            'key_partition': ?, 'key_sort': ?, 'username': ?, 'password': ?, 'default': ?, 'comment': ?
         }
         """
             % USER_TABLE
@@ -389,14 +389,27 @@ class TestCursorDML:
             0,
             "admin",
             "admin",
+            1,
+            "",
         ]
         cursor.execute(sql_reserved_words_1, params_1_)
+
+        cursor.execute(
+            """
+        SELECT username, password, "default", "comment" FROM %s
+        WHERE key_partition=? AND key_sort=?
+        """
+            % USER_TABLE,
+            ["test_user_row_1", 0],
+        )
+        assert cursor.fetchone() == ("admin", "admin", 1, "")
 
         sql_reserved_words_2 = (
             """
         UPDATE %s
             SET username=?
             SET password=?
+            SET "default"=?
             WHERE key_partition=? AND key_sort=?
             RETURNING ALL OLD *
         """
@@ -405,10 +418,21 @@ class TestCursorDML:
         params_2_ = [
             "admin1",
             "admin1",
+            0,
             "test_user_row_1",
             0,
         ]
         cursor.execute(sql_reserved_words_2, params_2_)
+
+        cursor.execute(
+            """
+        SELECT username, password, "default" FROM %s
+        WHERE key_partition=? AND key_sort=?
+        """
+            % USER_TABLE,
+            ["test_user_row_1", 0],
+        )
+        assert cursor.fetchone() == ("admin1", "admin1", 0)
 
         sql_reserved_words_3 = (
             """

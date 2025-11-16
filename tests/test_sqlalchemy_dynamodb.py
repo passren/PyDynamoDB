@@ -7,6 +7,7 @@ from sqlalchemy.orm import declarative_base, Session
 Base = declarative_base()
 
 TESTCASE02_TABLE = "pydynamodb_test_case02"
+USER_TABLE = "user"
 
 
 # Declarative Mapping
@@ -18,6 +19,16 @@ class _TestCase02(Base):
     col_str = Column(String)
     col_num = Column(Numeric)
     col_nested = Column()
+
+class _User(Base):
+    __tablename__ = USER_TABLE
+
+    key_partition = Column(String, primary_key=True)
+    key_sort = Column(Integer, primary_key=True)
+    username = Column(String)
+    password = Column(String)
+    default = Column(Numeric)
+    comment = Column(String)
 
 
 class TestSQLAlchemyDynamoDB:
@@ -370,3 +381,60 @@ class TestSQLAlchemyDynamoDB:
         )
         rows = conn.execute(table.select().limit(1)).fetchall()
         assert len(rows) == 1
+
+    def test_reserved_word_table_insert(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            for i in range(0, 5):
+                user = _User()
+                user.key_partition = "test_user_row_2"
+                user.key_sort = i
+                user.username = "user" + str(i)
+                user.password = "pwd" + str(i)
+                user.default = 1
+                user.comment = "user account"
+                session.add(user)
+            session.commit()
+
+        rows = conn.execute(
+            text(
+                """
+            SELECT * FROM %s WHERE key_partition = :pk
+            """
+                % USER_TABLE
+            ),
+            {"pk": "test_user_row_2"},
+        ).fetchall()
+        assert len(rows) == 5
+
+    def test_reserved_word_table_update(self, engine):
+        engine, conn = engine
+
+        with Session(engine) as session:
+            user = session.scalars(
+                select(_User).where(
+                    _User.key_partition == "test_user_row_2",
+                    _User.key_sort == 1,
+                )
+            ).one()
+            user.username = "user_updated"
+            user.default = 0
+            user.comment = "user account updated"
+            session.commit()
+
+        rows = conn.execute(
+            text(
+                """
+            SELECT username, "default", "comment" FROM %s
+            WHERE key_partition = :pk
+            AND key_sort = :sk
+            """
+                % USER_TABLE
+            ),
+            {"pk": "test_user_row_2", "sk": 1},
+        ).fetchall()
+        assert len(rows) == 1
+        assert rows[0][0] == "user_updated"
+        assert rows[0][1] == 0
+        assert rows[0][2] == "user account updated"
