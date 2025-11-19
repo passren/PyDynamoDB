@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 from ..util import strtobool
-from typing import TYPE_CHECKING, Any, Callable, cast, Optional, Sequence, List
+from typing import TYPE_CHECKING, cast, Optional, Sequence, List
 
 import pydynamodb
 from pydynamodb.error import OperationalError, NotSupportedError
@@ -566,6 +566,7 @@ class DynamoDBStatementCompiler(SQLCompiler):
 
 
 class DynamoDBTypeCompiler(GenericTypeCompiler):
+
     def visit_FLOAT(self, type_, **kw):
         return self.visit_REAL(type_, **kw)
 
@@ -621,16 +622,6 @@ class DynamoDBDialect(DefaultDialect):
     postfetch_lastrowid = False
 
     _connect_options = dict()  # type: ignore
-
-    def __init__(
-        self,
-        json_serializer: Optional[Callable[..., Any]] = None,
-        json_deserializer: Optional[Callable[..., Any]] = None,
-        **kwargs: Any,
-    ) -> None:
-        DefaultDialect.__init__(self, **kwargs)
-        self._json_serializer = json_serializer
-        self._json_deserializer = json_deserializer
 
     @classmethod
     def dbapi(cls):
