@@ -59,7 +59,7 @@ jobs:
         run: |
           pip install pytest
           pip install pytest-cov
-          pip install moto[sts]==4.2.0
+          pip install moto[sts]
           pytest --cov=pydynamodb --cov-report=xml tests/
       - name: Install sqlalchemy 2.x
         run: |

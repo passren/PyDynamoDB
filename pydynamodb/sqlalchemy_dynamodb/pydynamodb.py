@@ -623,6 +623,22 @@ class DynamoDBDialect(DefaultDialect):
 
     _connect_options = dict()  # type: ignore
 
+    def __init__(
+        self,
+        json_serializer=None,
+        json_deserializer=None,
+        _json_serializer=None,
+        _json_deserializer=None,
+        **kwargs,
+    ):
+        DefaultDialect.__init__(self, **kwargs)
+        if _json_serializer:
+            json_serializer = _json_serializer
+        if _json_deserializer:
+            json_deserializer = _json_deserializer
+        self._json_serializer = json_serializer
+        self._json_deserializer = json_deserializer
+
     @classmethod
     def dbapi(cls):
         return pydynamodb
