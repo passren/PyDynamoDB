@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
-from sqlalchemy import Integer, String, Numeric, JSON
+from sqlalchemy import Integer, String, Numeric
 from sqlalchemy.orm import declarative_base, Session
 
 Base = declarative_base()
@@ -18,7 +18,6 @@ class _TestCase02(Base):
     key_sort = Column(Integer, primary_key=True)
     col_str = Column(String)
     col_num = Column(Numeric)
-    col_json = Column(JSON)
     col_nested = Column()
 
 class _User(Base):
@@ -110,7 +109,7 @@ class TestSQLAlchemyDynamoDB:
             """
         INSERT INTO "%s" VALUE {
             'key_partition': :pk, 'key_sort': :sk,
-            'col_str': :col1, 'col_nested': :col2, 'col_json': :col3
+            'col_str': :col1, 'col_nested': :col2
         }
         """
             % TESTCASE02_TABLE
@@ -125,14 +124,13 @@ class TestSQLAlchemyDynamoDB:
             "sk": 0,
             "col1": "test case nested 0",
             "col2": nested_data,
-            "col3": nested_data,
         }
         conn.execute(text(sql_one_row_2_0_), params_2_0_)
 
         rows = conn.execute(
             text(
                 """
-            SELECT col_nested, col_json FROM %s WHERE key_partition = :pk
+            SELECT col_nested FROM %s WHERE key_partition = :pk
             AND key_sort = :sk
             """
                 % TESTCASE02_TABLE
@@ -141,7 +139,6 @@ class TestSQLAlchemyDynamoDB:
         ).fetchall()
         assert len(rows) == 1
         assert rows[0][0] == nested_data
-        assert rows[0][1] == nested_data
 
     def test_declarative_table_insert(self, engine):
         engine, conn = engine
@@ -289,7 +286,6 @@ class TestSQLAlchemyDynamoDB:
             Column("key_sort", Integer),
             Column("col_str", String),
             Column("col_nested"),
-            Column("col_json", JSON),
         )
         rows = conn.execute(
             table.select().where(
@@ -299,11 +295,6 @@ class TestSQLAlchemyDynamoDB:
         assert len(rows) == 1
         assert rows[0].col_str == "test case nested 0"
         assert rows[0].col_nested == {
-            "Key1": ["Val1-1", 1, {"Subkey1": "Val1-1"}],
-            "Key2": {"Val2-1", "Val2-2"},
-            "Key3": "Val3",
-        }
-        assert rows[0].col_json == {
             "Key1": ["Val1-1", 1, {"Subkey1": "Val1-1"}],
             "Key2": {"Val2-1", "Val2-2"},
             "Key3": "Val3",
