@@ -283,14 +283,13 @@ class TestSQLAlchemyDynamoDB:
             Column("key_sort", Integer),
             Column("col_str", String),
             Column("col_num", Numeric),
-            # Column("col_json", JSON), # JSON is not able to get correct deserializered
-            Column("col_json", String),
+            Column("col_json", JSON)
         )
         assert len(table.c) == 5
 
         rows = conn.execute(table.select()).fetchall()
         assert len(rows) == 10
-        assert rows[7][4] == '{"key": "value updated"}'
+        assert rows[7][4] == {"key": "value updated"}
 
         rows = conn.execute(
             table.select().where(

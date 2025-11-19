@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import json
 from ..util import strtobool
 from typing import TYPE_CHECKING, cast, Optional, Sequence, List
 
@@ -34,6 +35,30 @@ _SQLALCHEMY_MAJOR_VERSION = _check_sqla_major_ver()
 
 if _SQLALCHEMY_MAJOR_VERSION > 2:
     from sqlalchemy.sql.compiler import InsertmanyvaluesSentinelOpts, _InsertManyValues
+
+
+class DynamoDBJSON(types.JSON):
+    """Custom JSON type for DynamoDB that handles SQLAlchemy 1.x compatibility."""
+
+    def result_processor(self, dialect, coltype):
+        string_process = self._str_impl.result_processor(dialect, coltype)
+        json_deserializer = dialect._json_deserializer or json.loads
+
+        def process(value):
+            if value is None:
+                return None
+
+            if isinstance(value, dict):
+                return value
+
+            if isinstance(value, str) and _SQLALCHEMY_MAJOR_VERSION < 2:
+                value = value.encode("utf-8")
+
+            if string_process:
+                value = string_process(value)
+            return json_deserializer(value)
+
+        return process
 
 
 class DynamoDBIdentifierPreparer(IdentifierPreparer):
@@ -620,6 +645,11 @@ class DynamoDBDialect(DefaultDialect):
     returns_unicode_strings = True
     description_encoding = None
     postfetch_lastrowid = False
+
+    # Custom type mapping for SQLAlchemy compatibility
+    colspecs = {
+        types.JSON: DynamoDBJSON,
+    }
 
     _connect_options = dict()  # type: ignore
 
