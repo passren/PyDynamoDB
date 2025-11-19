@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import contextlib
-from moto import mock_sts
+from moto import mock_aws
 
 TESTCASE01_TABLE = "pydynamodb_test_case01"
 
@@ -192,7 +192,7 @@ class TestConnectionWithSTS:
     TEST_WEB_IDENTITY_TOKEN = "Atza%7CIQEBLjAsAhRFiXuWpUXuRvQ9PZL3GMFcYevydwIUFAHZwXZXXXXXXXXJnrulxKDHwy87oGKPznh0D6bEQZTSCzyoCtL_8S07pLpr0zMbn6w1lfVZKNTBdDansFBmtGnIsIapjI6xKR02Yc_2bQ8LZbUXSGm6Ry6_BG7PrtLZtj_dfCTj92xNGed-CrKqjG7nPBjNIL016GGvuS5gSvPRUxWES3VYfm1wl7WTI7jn-Pcb6M-buCgHhFOzTQxod27L9CqnOLio7N3gZAGpsp6n1-AJBOCJckcyXe2c6uD0srOJeZlKUm2eTDVMf8IehDVI0r1QOnTV6KzzAI3OY87Vd_cVMQ"
     TEST_PROVIDER_ID = "www.amazon.com"
 
-    @mock_sts
+    @mock_aws
     def test_conn_with_credentials(self):
         from pydynamodb import connect
 
@@ -258,7 +258,7 @@ class TestConnectionWithSTS:
         assert conn._session_kwargs["aws_secret_access_key"] is not None
         assert conn._session_kwargs["aws_session_token"] is not None
 
-    @mock_sts
+    @mock_aws
     def test_conn_with_sqlalchemy(self):
         from pydynamodb import sqlalchemy_dynamodb  # noqa
         import sqlalchemy  # noqa

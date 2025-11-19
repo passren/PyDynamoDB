@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
-from sqlalchemy import Integer, String, Numeric
+from sqlalchemy import Integer, String, Numeric, JSON
 from sqlalchemy.orm import declarative_base, Session
 
 Base = declarative_base()
@@ -19,6 +19,7 @@ class _TestCase02(Base):
     col_str = Column(String)
     col_num = Column(Numeric)
     col_nested = Column()
+    col_json = Column(JSON)
 
 class _User(Base):
     __tablename__ = USER_TABLE
@@ -109,7 +110,7 @@ class TestSQLAlchemyDynamoDB:
             """
         INSERT INTO "%s" VALUE {
             'key_partition': :pk, 'key_sort': :sk,
-            'col_str': :col1, 'col_nested': :col2
+            'col_str': :col1, 'col_nested': :col2, 'col_json': :col3
         }
         """
             % TESTCASE02_TABLE
@@ -124,13 +125,14 @@ class TestSQLAlchemyDynamoDB:
             "sk": 0,
             "col1": "test case nested 0",
             "col2": nested_data,
+            "col3": nested_data,
         }
         conn.execute(text(sql_one_row_2_0_), params_2_0_)
 
         rows = conn.execute(
             text(
                 """
-            SELECT col_nested FROM %s WHERE key_partition = :pk
+            SELECT col_nested, col_json FROM %s WHERE key_partition = :pk
             AND key_sort = :sk
             """
                 % TESTCASE02_TABLE
@@ -139,6 +141,7 @@ class TestSQLAlchemyDynamoDB:
         ).fetchall()
         assert len(rows) == 1
         assert rows[0][0] == nested_data
+        assert rows[0][1] == nested_data
 
     def test_declarative_table_insert(self, engine):
         engine, conn = engine
@@ -150,6 +153,7 @@ class TestSQLAlchemyDynamoDB:
                 test_case02.key_sort = i
                 test_case02.col_str = "test case declarative table " + str(i)
                 test_case02.col_num = i
+                test_case02.col_json = {"key": "value"}
                 session.add(test_case02)
             session.commit()
 
@@ -176,6 +180,7 @@ class TestSQLAlchemyDynamoDB:
             ).one()
             test_case.col_str = "test case declarative table 99"
             test_case.col_num = 99
+            test_case.col_json = {"key": "value updated"}
             session.commit()
 
         rows = conn.execute(
@@ -192,6 +197,24 @@ class TestSQLAlchemyDynamoDB:
         assert len(rows) == 1
         assert rows[0][2] == "test case declarative table 99"
         assert rows[0][3] == 99
+        assert rows[0][5] == '{"key": "value updated"}'
+
+    def test_declarative_table_select(self, engine):
+        engine, _ = engine
+
+        with Session(engine) as session:
+            test_case = session.scalars(
+                select(_TestCase02).where(
+                    _TestCase02.key_partition == "test_one_row_3",
+                    _TestCase02.key_sort == 4,
+                )
+            ).one()
+        assert test_case.key_partition == "test_one_row_3"
+        assert test_case.key_sort == 4
+        assert test_case.col_str == "test case declarative table 4"
+        assert test_case.col_num == 4
+        assert test_case.col_nested is None
+        assert test_case.col_json == {"key": "value"}
 
     def test_declarative_table_delete(self, engine):
         engine, _ = engine
@@ -260,11 +283,13 @@ class TestSQLAlchemyDynamoDB:
             Column("key_sort", Integer),
             Column("col_str", String),
             Column("col_num", Numeric),
+            Column("col_json", JSON)
         )
-        assert len(table.c) == 4
+        assert len(table.c) == 5
 
         rows = conn.execute(table.select()).fetchall()
         assert len(rows) == 10
+        assert rows[7][4] == {"key": "value updated"}
 
         rows = conn.execute(
             table.select().where(
