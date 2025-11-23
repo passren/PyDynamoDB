@@ -20,6 +20,7 @@ class _TestCase02(Base):
     col_num = Column(Numeric)
     col_nested = Column()
     col_json = Column(JSON)
+    col_json_array = Column(JSON)
 
 class _User(Base):
     __tablename__ = USER_TABLE
@@ -154,6 +155,7 @@ class TestSQLAlchemyDynamoDB:
                 test_case02.col_str = "test case declarative table " + str(i)
                 test_case02.col_num = i
                 test_case02.col_json = {"key": "value"}
+                test_case02.col_json_array = [{"key1": "value1"}, {"key2": "value2"}]
                 session.add(test_case02)
             session.commit()
 
@@ -181,12 +183,13 @@ class TestSQLAlchemyDynamoDB:
             test_case.col_str = "test case declarative table 99"
             test_case.col_num = 99
             test_case.col_json = {"key": "value updated"}
+            test_case.col_json_array = [{"key1": "value1 updated"}, {"key2": "value2 updated"}]
             session.commit()
 
         rows = conn.execute(
             text(
                 """
-            SELECT * FROM %s
+            SELECT col_str, col_num, col_json, col_json_array FROM %s
             WHERE key_partition = :pk
             AND key_sort = :sk
             """
@@ -195,9 +198,10 @@ class TestSQLAlchemyDynamoDB:
             {"pk": "test_one_row_3", "sk": 1},
         ).fetchall()
         assert len(rows) == 1
-        assert rows[0][2] == "test case declarative table 99"
-        assert rows[0][3] == 99
-        assert rows[0][5] == '{"key": "value updated"}'
+        assert rows[0][0] == "test case declarative table 99"
+        assert rows[0][1] == 99
+        assert rows[0][2] == '{"key": "value updated"}'
+        assert rows[0][3] == '[{"key1": "value1 updated"}, {"key2": "value2 updated"}]'
 
     def test_declarative_table_select(self, engine):
         engine, _ = engine
@@ -215,6 +219,7 @@ class TestSQLAlchemyDynamoDB:
         assert test_case.col_num == 4
         assert test_case.col_nested is None
         assert test_case.col_json == {"key": "value"}
+        assert test_case.col_json_array == [{"key1": "value1"}, {"key2": "value2"}]
 
     def test_declarative_table_delete(self, engine):
         engine, _ = engine
