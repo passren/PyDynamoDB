@@ -651,7 +651,7 @@ class DynamoDBDialect(DefaultDialect):
         types.JSON: DynamoDBJSON,
     }
 
-    _connect_options = dict()  # type: ignore
+    _connect_options = {}  # type: ignore
 
     def __init__(
         self,

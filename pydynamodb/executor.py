@@ -40,7 +40,7 @@ class BaseExecutor(metaclass=ABCMeta):
         self._metadata: Metadata = Metadata()
         self._is_predef_metadata: bool = False
         self._rows: Deque[Tuple[Any]] = deque()
-        self._errors: List[Dict[str, str]] = list()
+        self._errors: List[Dict[str, str]] = []
         self._kwargs = kwargs
         self.pre_execute()
 
@@ -205,7 +205,7 @@ class DmlStatementExecutor(BaseExecutor):
         if rows is None:
             raise DataError("KeyError `Items`")
 
-        processed_rows = list()
+        processed_rows = []
         for row in rows:
             if self._is_predef_metadata:
                 row_ = self._process_predef_row_item(row)
@@ -217,14 +217,14 @@ class DmlStatementExecutor(BaseExecutor):
         self._next_token = response.get("NextToken", None)
 
     def _process_undef_row_item(self, row) -> Optional[Tuple]:
-        row_ = dict()
+        row_ = {}
         for col, val in row.items():
             type_ = next(iter(val.keys()))
             val_ = self._converter.deserialize(val)
             col_index = self._process_metadata(col, type_)
             row_[col_index] = val_
 
-        row__ = list()
+        row__ = []
         for i in range(len(self._metadata)):
             row__.append(None)
         for i, v in row_.items():
@@ -310,7 +310,7 @@ class DmlStatementDictExecutor(DmlStatementExecutor):
         )
 
     def _process_undef_row_item(self, row) -> Optional[Dict[str, Any]]:
-        row_ = dict()
+        row_ = {}
         for col, val in row.items():
             val_ = self._converter.deserialize(val)
             row_[col] = val_
@@ -318,7 +318,7 @@ class DmlStatementDictExecutor(DmlStatementExecutor):
         return row_
 
     def _process_predef_row_item(self, row) -> Optional[Dict[str, Any]]:
-        row_ = dict()
+        row_ = {}
         for col, val in row.items():
             col_info = self.metadata.get(col, None)
             if col_info:
@@ -370,8 +370,8 @@ class DmlBatchExecutor(DmlStatementExecutor):
         if rows is None:
             raise DataError("KeyError `Responses` in BatchStatementResponse")
 
-        processed_error_rows = list()
-        processed_rows = list()
+        processed_error_rows = []
+        processed_rows = []
         for row in rows:
             error = row.get("Error", None)
             if error:

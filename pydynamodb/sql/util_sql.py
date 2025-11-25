@@ -66,7 +66,7 @@ class UtilListTables(UtilBase):
         if self.root_parse_results is None:
             raise ValueError("Statement was not parsed yet")
 
-        request = dict()
+        request = {}
         is_global_table = (
             True if self.root_parse_results.get("global", None) is not None else False
         )
@@ -120,7 +120,7 @@ class UtilDescTable(UtilBase):
         if self.root_parse_results is None:
             raise ValueError("Statement was not parsed yet")
 
-        request = dict()
+        request = {}
         table_name = self.root_parse_results["table"]
         is_global_table = (
             True if self.root_parse_results.get("global", None) is not None else False
