@@ -48,7 +48,7 @@ class DynamoDBJSON(types.JSON):
             if value is None:
                 return None
 
-            if isinstance(value, dict):
+            if isinstance(value, dict) or isinstance(value, list):
                 return value
 
             if isinstance(value, str) and _SQLALCHEMY_MAJOR_VERSION < 2:
@@ -651,7 +651,7 @@ class DynamoDBDialect(DefaultDialect):
         types.JSON: DynamoDBJSON,
     }
 
-    _connect_options = dict()  # type: ignore
+    _connect_options = {}  # type: ignore
 
     def __init__(
         self,

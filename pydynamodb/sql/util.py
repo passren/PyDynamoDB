@@ -6,7 +6,7 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 
 def flatten_list(lst: List[Any]) -> List[Any]:
-    items = list()
+    items = []
     for item in lst:
         if isinstance(item, list):
             if len(item) > 2 and item[0] == "[" and item[-1] == "]":

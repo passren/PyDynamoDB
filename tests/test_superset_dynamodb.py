@@ -3,8 +3,10 @@ import os
 import sqlite3
 from typing import Any, Type
 
+import pytest
 from sqlalchemy.sql import text
 from pydynamodb.superset_dynamodb.querydb import QueryDB, QueryDBConfig
+from pydynamodb.superset_dynamodb.querydb_sqlite import has_sqlean
 from pydynamodb.model import Statement
 
 TESTCASE04_TABLE = "pydynamodb_test_case04"
@@ -303,6 +305,7 @@ class TestSupersetDynamoDB:
         assert len(ret) == 2
         assert ret[0] == ("F", "f_2", "F-2", "f-2", "2")
 
+    @pytest.mark.skipif(not has_sqlean(), reason="sqlean not available")
     def test_sqlean_string_functions(self, superset_cursor):
         superset_cursor.execute(
             """

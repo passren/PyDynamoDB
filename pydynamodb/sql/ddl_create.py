@@ -139,7 +139,7 @@ class DdlCreate(DdlBase):
         if self.root_parse_results is None:
             raise ValueError("Statement was not parsed yet")
 
-        request = dict()
+        request = {}
         is_global_table = (
             True if self.root_parse_results.get("global", None) is not None else False
         )
@@ -148,8 +148,8 @@ class DdlCreate(DdlBase):
         if is_global_table:
             request.update({"GlobalTableName": table_name_})
         else:
-            attr_def_ = list()
-            key_schema_ = list()
+            attr_def_ = []
+            key_schema_ = []
 
             for attr in self.root_parse_results["attributes"]:
                 attr_name = attr["attribute_name"]
@@ -173,11 +173,11 @@ class DdlCreate(DdlBase):
 
                     if index_type == "GLOBAL":
                         if gsis_ is None:
-                            gsis_ = list()
+                            gsis_ = []
                         gsis_.append(self._construct_index(index))
                     elif index_type == "LOCAL":
                         if lsis_ is None:
-                            lsis_ = list()
+                            lsis_ = []
                         lsis_.append(self._construct_index(index))
                     else:
                         raise LookupError("Index type is invalid")

@@ -187,7 +187,7 @@ class Statements:
                 self._validate(statement_)
             self._statments = statements
         else:
-            self._statments = list()
+            self._statments = []
 
         self._query_type = None
         self._query_category = None

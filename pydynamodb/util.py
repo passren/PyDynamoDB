@@ -45,7 +45,7 @@ def strtobool(val):
 def flatten_dict(
     d: Dict[str, Any], parent_key: str = "", separator: str = "."
 ) -> Dict[str, Any]:
-    items = list()
+    items = []
     for key, val in d.items():
         new_key = parent_key + separator + key if parent_key else key
         if isinstance(val, MutableMapping):

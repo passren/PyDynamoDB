@@ -174,13 +174,13 @@ class DdlBase(Base):
         return {"AttributeName": attr_name, "KeyType": converted_key_type}
 
     def _construct_index(self, index: ParseResults) -> Dict[str, Any]:
-        index_ = dict()
+        index_ = {}
         index_name = index["index_name"]
         index_.update({"IndexName": index_name})
 
         attrs = index.get("attributes", None)
         if attrs:
-            key_schema = list()
+            key_schema = []
 
             for attr in attrs:
                 attr_name = attr["attribute_name"]
@@ -197,7 +197,7 @@ class DdlBase(Base):
         converted_ = None
         for option in options:
             if converted_ is None:
-                converted_ = dict()
+                converted_ = {}
             option_name_path = option[0]
             option_value = option[1]
 
@@ -231,7 +231,7 @@ class DdlBase(Base):
         return_dict: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         if return_dict is None:
-            return_dict = dict()
+            return_dict = {}
 
         names = option_name_path.split(".")
         names_size = len(names)

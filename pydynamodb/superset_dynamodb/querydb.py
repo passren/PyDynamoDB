@@ -204,7 +204,7 @@ class QueryDB(metaclass=ABCMeta):
             return
 
         if not self.has_table(QueryDB.CACHE_TABLE):
-            columns = list()
+            columns = []
             columns.append(
                 "%s %s PRIMARY KEY" % ("query_id", self.type_conversion(str))
             )
@@ -343,7 +343,7 @@ class QueryDB(metaclass=ABCMeta):
 
     @synchronized
     def create_query_table(self, metadata: Metadata) -> None:
-        columns_with_type = list()
+        columns_with_type = []
 
         for col_info in metadata:
             col_type = self._get_col_type(col_info)
@@ -367,8 +367,8 @@ class QueryDB(metaclass=ABCMeta):
     def write_raw_data(
         self, metadata: Metadata, raw_data: Optional[List[Tuple[Any]]]
     ) -> None:
-        columns = list()
-        values = list()
+        columns = []
+        values = []
         for col_info in metadata:
             columns.append('"' + self._get_query_table_col_name(col_info) + '"')
             values.append("?")

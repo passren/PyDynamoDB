@@ -51,7 +51,7 @@ class DdlDrop(DdlBase):
         if self.root_parse_results is None:
             raise ValueError("Statement was not parsed yet")
 
-        request = dict()
+        request = {}
         is_global_table = (
             True if self.root_parse_results.get("global", None) is not None else False
         )

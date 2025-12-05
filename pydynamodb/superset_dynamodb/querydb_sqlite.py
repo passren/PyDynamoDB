@@ -1,14 +1,27 @@
 # -*- coding: utf-8 -*-
 import logging
-import sqlean as sqlite3
 from datetime import datetime, date
 from contextlib import closing
 from typing import Any, Type
+
+# Try to import sqlean first, fall back to native sqlite3
+try:
+    import sqlean as sqlite3
+
+    _SQLEAN_INSTALLED = True
+except ImportError:
+    import sqlite3
+
+    _SQLEAN_INSTALLED = False
 
 from .querydb import QueryDB, QueryDBConfig
 from ..model import Statement
 
 _logger = logging.getLogger(__name__)  # type: ignore
+
+
+def has_sqlean() -> bool:
+    return _SQLEAN_INSTALLED
 
 
 class SqliteFileQueryDB(QueryDB):
@@ -24,7 +37,10 @@ class SqliteFileQueryDB(QueryDB):
     @property
     def connection(self):
         if self._connection is None:
-            sqlite3.extensions.enable("math", "regexp", "stats", "text")
+            # Enable extensions only if sqlean is available
+            if _SQLEAN_INSTALLED:
+                sqlite3.extensions.enable("math", "regexp", "stats", "text")
+
             self._connection = sqlite3.connect(
                 self.config.db_url,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
