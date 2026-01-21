@@ -2,32 +2,25 @@
 
 from pydynamodb import cursor
 
-
 TESTCASE01_TABLE = "pydynamodb_test_case01"
 USER_TABLE = "user"
 
 
 class TestCursorDML:
     def test_writeone(self, cursor):
-        sql_one_row_1_0_ = (
-            """
+        sql_one_row_1_0_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_byte': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_0_ = ["test_one_row_1", 0, "test case 0", 0, b"0"]
         cursor.execute(sql_one_row_1_0_, params_1_0_)
 
-        sql_one_row_1_1_ = (
-            """
+        sql_one_row_1_1_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_map': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_1_ = [
             "test_one_row_1",
             1,
@@ -37,14 +30,11 @@ class TestCursorDML:
         ]
         cursor.execute(sql_one_row_1_1_, params_1_1_)
 
-        sql_one_row_1_2_ = (
-            """
+        sql_one_row_1_2_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_ss': ?, 'col_ns': ?, 'col_bs': ?, 'col_list': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_2_ = [
             "test_one_row_1",
             2,
@@ -56,14 +46,11 @@ class TestCursorDML:
         ]
         cursor.execute(sql_one_row_1_2_, params_1_2_)
 
-        sql_one_row_2_1_ = (
-            """
+        sql_one_row_2_1_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_nested_list': ?, 'col_nested_map': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_2_1_ = [
             "test_one_row_2",
             1,
@@ -86,8 +73,7 @@ class TestCursorDML:
         cursor.execute(sql_one_row_2_1_, params_2_1_)
 
     def test_writemany(self, cursor):
-        sql_many_rows_ = (
-            """
+        sql_many_rows_ = """
             INSERT INTO %s VALUE {
                 'key_partition': ?,
                 'key_sort': ?,
@@ -95,9 +81,7 @@ class TestCursorDML:
                 'col_num': ?,
                 'col_byte': ?
             }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_ = [
             ["test_many_rows_1", 0, "test case many 0", "0", b"0"],
             ["test_many_rows_1", 1, "test case many 1", "1", b"1"],
@@ -118,8 +102,7 @@ class TestCursorDML:
             SELECT col_str, col_num, col_byte FROM %s
             WHERE key_partition = ?
             AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_1", 0],
         )
         assert len(cursor.description) == 3
@@ -132,8 +115,7 @@ class TestCursorDML:
             """
             SELECT * FROM %s
             WHERE key_partition = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_1"],
         )
         assert cursor.rownumber == 0
@@ -164,8 +146,7 @@ class TestCursorDML:
             SELECT col_nested_list, col_nested_map FROM %s
             WHERE key_partition = ?
             AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_2", 1],
         )
         row = cursor.fetchone()
@@ -191,8 +172,7 @@ class TestCursorDML:
             """
             SELECT * FROM %s
             WHERE key_partition = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_many_rows_1"],
         )
         assert cursor.rownumber == 0
@@ -209,8 +189,7 @@ class TestCursorDML:
             """
             SELECT * FROM %s
             WHERE key_partition = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_many_rows_1"],
         )
         assert cursor.rownumber == 0
@@ -220,14 +199,11 @@ class TestCursorDML:
 
     def test_unicode(self, cursor):
         unicode_str = "测试"
-        sql_unicode_row_1_0_ = (
-            """
+        sql_unicode_row_1_0_ = """
         INSERT INTO %s VALUE {
             'key_partition': ?, 'key_sort': ?, 'col_str': ?, 'col_num': ?, 'col_byte': ?
         }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_0_ = ["test_unicode_row_1", 0, "测试案例 0", 0, unicode_str.encode()]
         cursor.execute(sql_unicode_row_1_0_, params_1_0_)
 
@@ -235,8 +211,7 @@ class TestCursorDML:
             """
             SELECT * FROM %s
             WHERE key_partition = ? AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_unicode_row_1", 0],
         )
         rows = cursor.fetchall()
@@ -245,16 +220,13 @@ class TestCursorDML:
         assert self._get_value_by_column_name(desc, rows[0], "col_str") == "测试案例 0"
 
     def test_update(self, cursor):
-        sql_update_row_1_0_ = (
-            """
+        sql_update_row_1_0_ = """
             UPDATE %s
             SET col_str=?
             SET col_num=?
             WHERE key_partition=? AND key_sort=?
             RETURNING ALL OLD *
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_0_ = ["test case update 0", 10, "test_one_row_1", 0]
         cursor.execute(sql_update_row_1_0_, params_1_0_)
         rows = cursor.fetchall()
@@ -267,8 +239,7 @@ class TestCursorDML:
             """
             SELECT col_str, col_num FROM %s
             WHERE key_partition = ? AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_one_row_1", 0],
         )
         rows = cursor.fetchall()
@@ -281,26 +252,20 @@ class TestCursorDML:
         assert self._get_value_by_column_name(desc, rows[0], "col_num") == 10
 
     def test_delete(self, cursor):
-        sql_delete_row_1_0_ = (
-            """
+        sql_delete_row_1_0_ = """
             DELETE FROM %s
             WHERE key_partition = ? AND key_sort = ?
             RETURNING ALL OLD *
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_0_ = ["test_one_row_1", 0]
         cursor.execute(sql_delete_row_1_0_, params_1_0_)
         rows = cursor.fetchall()
         assert len(rows) == 1
 
-        sql_delete_row_1_0_ = (
-            """
+        sql_delete_row_1_0_ = """
             DELETE FROM %s
             WHERE key_partition = ? AND key_sort = ?
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_0_ = ["test_one_row_1", 0]
         cursor.execute(sql_delete_row_1_0_, params_1_0_)
         rows = cursor.fetchall()
@@ -312,8 +277,7 @@ class TestCursorDML:
             SELECT * FROM %s
             WHERE key_partition = ?
             LIMIT 2
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_many_rows_1"],
         )
         assert len(cursor.fetchall()) == 2
@@ -321,14 +285,11 @@ class TestCursorDML:
     def test_insert_datetime(self, cursor):
         from datetime import date, datetime
 
-        sql_date_row_1_0_ = (
-            """
+        sql_date_row_1_0_ = """
         INSERT INTO %s VALUE {
             'key_partition': ?, 'key_sort': ?, 'col_date': ?, 'col_datetime': ?
         }
-        """
-            % TESTCASE01_TABLE
-        )
+        """ % TESTCASE01_TABLE
         params_1_0_ = [
             "test_date_row_1",
             0,
@@ -340,8 +301,7 @@ class TestCursorDML:
             """
             SELECT col_date, col_datetime FROM %s
             WHERE key_partition = ? AND key_sort = ?
-        """
-            % TESTCASE01_TABLE,
+        """ % TESTCASE01_TABLE,
             ["test_date_row_1", 0],
         )
         assert cursor.fetchone() == ("2022-10-18", "2022-10-18T13:55:34")
@@ -376,14 +336,11 @@ class TestCursorDML:
         assert metadata_["AttributeDefinitions"][1]["AttributeType"] == "N"
 
     def test_reserved_words(self, cursor):
-        sql_reserved_words_1 = (
-            """
+        sql_reserved_words_1 = """
         INSERT INTO %s VALUE {
             'key_partition': ?, 'key_sort': ?, 'username': ?, 'password': ?, 'default': ?, 'comment': ?
         }
-        """
-            % USER_TABLE
-        )
+        """ % USER_TABLE
         params_1_ = [
             "test_user_row_1",
             0,
@@ -398,23 +355,19 @@ class TestCursorDML:
             """
         SELECT username, password, "default", "comment" FROM %s
         WHERE key_partition=? AND key_sort=?
-        """
-            % USER_TABLE,
+        """ % USER_TABLE,
             ["test_user_row_1", 0],
         )
         assert cursor.fetchone() == ("admin", "admin", 1, "")
 
-        sql_reserved_words_2 = (
-            """
+        sql_reserved_words_2 = """
         UPDATE %s
             SET username=?
             SET password=?
             SET "default"=?
             WHERE key_partition=? AND key_sort=?
             RETURNING ALL OLD *
-        """
-            % USER_TABLE
-        )
+        """ % USER_TABLE
         params_2_ = [
             "admin1",
             "admin1",
@@ -428,20 +381,16 @@ class TestCursorDML:
             """
         SELECT username, password, "default" FROM %s
         WHERE key_partition=? AND key_sort=?
-        """
-            % USER_TABLE,
+        """ % USER_TABLE,
             ["test_user_row_1", 0],
         )
         assert cursor.fetchone() == ("admin1", "admin1", 0)
 
-        sql_reserved_words_3 = (
-            """
+        sql_reserved_words_3 = """
         DELETE FROM %s
             WHERE key_partition=? AND key_sort=?
             RETURNING ALL OLD *
-        """
-            % USER_TABLE
-        )
+        """ % USER_TABLE
         params_3_ = [
             "test_user_row_1",
             0,

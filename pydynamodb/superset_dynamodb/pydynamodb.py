@@ -92,7 +92,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
                         cursor.execute_statement(self._statement)
                         self._load_into_query_db(cursor.result_set)
 
-                (desc_, results_) = self._query_db.query()
+                desc_, results_ = self._query_db.query()
                 self._rows.extend(results_)
                 for d in desc_:
                     self._metadata.update(

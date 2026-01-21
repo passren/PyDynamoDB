@@ -40,6 +40,7 @@ jobs:
           pip install pyparsing
           pip install sqlean.py
       - name: black
+        if: matrix.python-version != '3.9'
         run: |
           pip install black
           black --check pydynamodb

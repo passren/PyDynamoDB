@@ -9,6 +9,7 @@ Sample SQL of Inserting:
 ------------------------
 INSERT INTO "Music" value {'Artist' : 'Acme Band','SongTitle' : 'PartiQL Rocks'}
 """
+
 import logging
 from .dml_sql import DmlBase
 from .common import KeyWords, Tokens

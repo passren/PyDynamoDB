@@ -20,6 +20,7 @@ UPDATE "Music"
 REMOVE AwardDetail.Grammys[2]
 WHERE Artist='Acme Band' AND SongTitle='PartiQL Rocks'
 """
+
 import logging
 from .dml_sql import DmlBase
 from .json_parser import jsonArray, jsonObject

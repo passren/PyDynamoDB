@@ -22,6 +22,7 @@ class _TestCase02(Base):
     col_json = Column(JSON)
     col_json_array = Column(JSON)
 
+
 class _User(Base):
     __tablename__ = USER_TABLE
 
@@ -42,15 +43,12 @@ class TestSQLAlchemyDynamoDB:
     def test_basic_insert(self, engine):
         engine, conn = engine
 
-        sql_one_row_1_0_ = (
-            """
+        sql_one_row_1_0_ = """
         INSERT INTO %s VALUE {
             'key_partition': :pk, 'key_sort': :sk,
             'col_str': :col1, 'col_num': :col2, 'col_byte': :col3
         }
-        """
-            % TESTCASE02_TABLE
-        )
+        """ % TESTCASE02_TABLE
         params_1_0_ = {
             "pk": "test_one_row_1",
             "sk": 0,
@@ -63,15 +61,12 @@ class TestSQLAlchemyDynamoDB:
     def test_batch_insert(self, engine):
         engine, conn = engine
 
-        sql_many_rows_ = (
-            """
+        sql_many_rows_ = """
         INSERT INTO %s VALUE {
             'key_partition': :pk, 'key_sort': :sk,
             'col_str': :col1, 'col_num': :col2, 'col_byte': :col3
         }
-        """
-            % TESTCASE02_TABLE
-        )
+        """ % TESTCASE02_TABLE
         params_ = [
             {
                 "pk": "test_many_rows_1",
@@ -107,15 +102,12 @@ class TestSQLAlchemyDynamoDB:
     def test_nested_data_insert(self, engine):
         engine, conn = engine
 
-        sql_one_row_2_0_ = (
-            """
+        sql_one_row_2_0_ = """
         INSERT INTO "%s" VALUE {
             'key_partition': :pk, 'key_sort': :sk,
             'col_str': :col1, 'col_nested': :col2, 'col_json': :col3
         }
-        """
-            % TESTCASE02_TABLE
-        )
+        """ % TESTCASE02_TABLE
         nested_data = {
             "Key1": ["Val1-1", 1, {"Subkey1": "Val1-1"}],
             "Key2": {"Val2-1", "Val2-2"},
@@ -131,13 +123,10 @@ class TestSQLAlchemyDynamoDB:
         conn.execute(text(sql_one_row_2_0_), params_2_0_)
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT col_nested, col_json FROM %s WHERE key_partition = :pk
             AND key_sort = :sk
-            """
-                % TESTCASE02_TABLE
-            ),
+            """ % TESTCASE02_TABLE),
             {"pk": "test_one_row_2", "sk": 0},
         ).fetchall()
         assert len(rows) == 1
@@ -160,12 +149,9 @@ class TestSQLAlchemyDynamoDB:
             session.commit()
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT * FROM %s WHERE key_partition = :pk
-            """
-                % TESTCASE02_TABLE
-            ),
+            """ % TESTCASE02_TABLE),
             {"pk": "test_one_row_3"},
         ).fetchall()
         assert len(rows) == 5
@@ -183,18 +169,18 @@ class TestSQLAlchemyDynamoDB:
             test_case.col_str = "test case declarative table 99"
             test_case.col_num = 99
             test_case.col_json = {"key": "value updated"}
-            test_case.col_json_array = [{"key1": "value1 updated"}, {"key2": "value2 updated"}]
+            test_case.col_json_array = [
+                {"key1": "value1 updated"},
+                {"key2": "value2 updated"},
+            ]
             session.commit()
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT col_str, col_num, col_json, col_json_array FROM %s
             WHERE key_partition = :pk
             AND key_sort = :sk
-            """
-                % TESTCASE02_TABLE
-            ),
+            """ % TESTCASE02_TABLE),
             {"pk": "test_one_row_3", "sk": 1},
         ).fetchall()
         assert len(rows) == 1
@@ -237,27 +223,21 @@ class TestSQLAlchemyDynamoDB:
     def test_basic_query(self, engine):
         engine, conn = engine
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT * FROM %s WHERE key_partition = :pk
-            """
-                % TESTCASE02_TABLE
-            ),
+            """ % TESTCASE02_TABLE),
             {"pk": "test_one_row_2"},
         ).fetchall()
         assert len(rows) == 1
 
     def test_basic_update(self, engine):
         engine, conn = engine
-        sql_one_row_1_0_ = (
-            """
+        sql_one_row_1_0_ = """
         UPDATE "%s"
         SET col_str=:col1
         SET col_num=:col2
         WHERE key_partition=:pk AND key_sort=:sk
-        """
-            % TESTCASE02_TABLE
-        )
+        """ % TESTCASE02_TABLE
         params_1_0_ = {
             "pk": "test_one_row_1",
             "sk": 0,
@@ -267,13 +247,10 @@ class TestSQLAlchemyDynamoDB:
         conn.execute(text(sql_one_row_1_0_), params_1_0_)
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT col_str FROM %s WHERE key_partition = :pk
             AND key_sort = :sk
-            """
-                % TESTCASE02_TABLE
-            ),
+            """ % TESTCASE02_TABLE),
             {"pk": "test_one_row_1", "sk": 0},
         ).fetchall()
         assert len(rows) == 1
@@ -288,7 +265,7 @@ class TestSQLAlchemyDynamoDB:
             Column("key_sort", Integer),
             Column("col_str", String),
             Column("col_num", Numeric),
-            Column("col_json", JSON)
+            Column("col_json", JSON),
         )
         assert len(table.c) == 5
 
@@ -428,12 +405,9 @@ class TestSQLAlchemyDynamoDB:
             session.commit()
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT * FROM %s WHERE key_partition = :pk
-            """
-                % USER_TABLE
-            ),
+            """ % USER_TABLE),
             {"pk": "test_user_row_2"},
         ).fetchall()
         assert len(rows) == 5
@@ -443,15 +417,14 @@ class TestSQLAlchemyDynamoDB:
 
         with Session(engine) as session:
             user = session.scalars(
-                    select(_User).where(
-                        _User.key_partition == "test_user_row_2",
-                        _User.key_sort == 2,
-                    )
-                ).one()
+                select(_User).where(
+                    _User.key_partition == "test_user_row_2",
+                    _User.key_sort == 2,
+                )
+            ).one()
 
         assert user.username == "user2"
         assert user.password == "pwd2"
-
 
     def test_reserved_word_table_update(self, engine):
         engine, conn = engine
@@ -473,14 +446,11 @@ class TestSQLAlchemyDynamoDB:
             session.commit()
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT username, "default", "comment" FROM %s
             WHERE key_partition = :pk
             AND key_sort = :sk
-            """
-                % USER_TABLE
-            ),
+            """ % USER_TABLE),
             {"pk": "test_user_row_2", "sk": 1},
         ).fetchall()
         assert len(rows) == 1
@@ -503,14 +473,11 @@ class TestSQLAlchemyDynamoDB:
             session.commit()
 
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT username, "default", "comment" FROM %s
             WHERE key_partition = :pk
             AND key_sort = :sk
-            """
-                % USER_TABLE
-            ),
+            """ % USER_TABLE),
             {"pk": "test_user_row_2", "sk": 0},
         ).fetchall()
         assert len(rows) == 0

@@ -31,6 +31,7 @@ LIMIT 10
 ConsistentRead False
 ReturnConsumedCapacity NONE
 """
+
 import logging
 import re
 from abc import ABCMeta

@@ -10,7 +10,6 @@ from .cursor import BaseCursor, Cursor
 from .error import NotSupportedError
 from .util import RetryConfig, retry_api_call
 
-
 if TYPE_CHECKING:
     from botocore.client import BaseClient
 

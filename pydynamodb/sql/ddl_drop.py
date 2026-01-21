@@ -11,6 +11,7 @@ DROP TABLE Issues
 DROP GLOBAL TABLE Issues
     ReplicationGroup (us-east-1, us-west-2)
 """
+
 import logging
 from .ddl_sql import DdlBase
 from .common import KeyWords, Tokens
