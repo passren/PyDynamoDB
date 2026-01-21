@@ -14,14 +14,11 @@ TESTCASE04_TABLE = "pydynamodb_test_case04"
 
 class TestSupersetDynamoDB:
     def test_insert_nested_data(self, cursor):
-        sql = (
-            """
+        sql = """
         INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_list': ?, 'col_map': ?
             }
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE
         params_1 = [
             "row_1",
             1,
@@ -65,8 +62,7 @@ class TestSupersetDynamoDB:
     def test_insert_flat_data(self, cursor):
         from datetime import date, datetime, timedelta
 
-        sql = (
-            """
+        sql = """
         INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?,
                 'col_date': ?, 'col_datetime': ?,
@@ -74,9 +70,7 @@ class TestSupersetDynamoDB:
                 'col_bytes': ?, 'col_str': ?,
                 'col_bool': ?
             }
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE
         date_ = date(2022, 9, 20)
         datetime_ = datetime(2022, 10, 20, 10, 23, 40)
         params_1 = ["row_2", 1, date_, datetime_, 1, 1.1, b"RP", "RP", True]
@@ -172,13 +166,10 @@ class TestSupersetDynamoDB:
         )
 
     def test_execute_select(self, superset_cursor):
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT col_list[1] col_list, NUMBER(col_map.A)
                 FROM %s WHERE key_partition='row_1'
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert [(d[0], d[1]) for d in superset_cursor.description] == [
@@ -187,66 +178,53 @@ class TestSupersetDynamoDB:
         ]
 
     def test_execute_nested_select(self, superset_cursor):
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", SUM("A") FROM (
                 SELECT col_list[1] col_list_1, NUMBER(col_map.A) A
                 FROM %s WHERE key_partition='row_1'
             )
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 1
         assert ret == [("B", 21.0)]
 
     def test_execute_group_select(self, superset_cursor):
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", SUM("A"), COUNT("A") FROM (
                 SELECT col_list[1] col_list_1, NUMBER(col_map.A)
                 FROM %s WHERE key_partition='row_1'
             )
             GROUP BY "col_list_1"
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 3
         assert ret == [("F", 9.0, 2), ("D", 2.0, 1), ("B", 10.0, 3)]
 
     def test_string_functions_select_1(self, superset_cursor):
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", "col_map_B_1_substr" FROM (
                 SELECT col_list[1] col_list_1, SUBSTR(col_map.B[1], 0, 1) col_map_B_1_substr
                 FROM %s WHERE key_partition='row_1'
             )
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert ret[0] == ("F", "F")
 
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", "col_map_B_1_replace" FROM (
                 SELECT col_list[1] col_list_1, REPLACE(col_map.B[1], '-', '_') col_map_B_1_replace
                 FROM %s WHERE key_partition='row_1'
             )
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert ret[0] == ("F", "F_2")
 
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", "col_map_B_1",
                     SUBSTR("col_map_B_1", 1, 1),
                     REPLACE("col_map_B_1", '-', '_')
@@ -255,16 +233,13 @@ class TestSupersetDynamoDB:
                 FROM %s WHERE key_partition='row_1'
             )
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert ret[0] == ("F", "F-2", "F", "F_2")
 
     def test_string_functions_select_2(self, superset_cursor):
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", "col_list_1_trim", "col_map_B_1_upper", "col_map_B_1_lower" FROM (
                 SELECT col_list_1,
                 TRIM(col_list_1) col_list_1_trim,
@@ -276,15 +251,12 @@ class TestSupersetDynamoDB:
                 )
             )
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 6
         assert ret[0] == ("F", "F", "F-2", "f-2")
 
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", "col_list_1_replace", "col_map_B_1_upper",
                     "col_map_B_1_lower", "col_map_B_1_substr" FROM (
                 SELECT col_list_1,
@@ -298,17 +270,14 @@ class TestSupersetDynamoDB:
                 ) WHERE col_list_1 = 'F'
             )
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 2
         assert ret[0] == ("F", "f_2", "F-2", "f-2", "2")
 
     @pytest.mark.skipif(not has_sqlean(), reason="sqlean not available")
     def test_sqlean_string_functions(self, superset_cursor):
-        superset_cursor.execute(
-            """
+        superset_cursor.execute("""
             SELECT "col_list_1", "col_map_B_part1", "col_map_B_part2" FROM (
                 SELECT col_list_1,
                 text_split(col_map_B_1, '-', 1) col_map_B_part1,
@@ -319,9 +288,7 @@ class TestSupersetDynamoDB:
                 ) WHERE col_list_1 = 'F'
             )
             ORDER BY "col_list_1" DESC
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE)
         ret = superset_cursor.fetchall()
         assert len(ret) == 2
         assert ret[0] == ("F", "F", "2")
@@ -329,13 +296,10 @@ class TestSupersetDynamoDB:
     def test_sqlalchemy_execute_single_select(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(
-            text(
-                """
+            text("""
                 SELECT col_list[1] col_list_1, NUMBER(col_map.A)
                 FROM %s WHERE key_partition=:pk
-            """
-                % TESTCASE04_TABLE
-            ),
+            """ % TESTCASE04_TABLE),
             {"pk": "row_2"},
         ).fetchall()
         assert len(rows) == 8
@@ -343,17 +307,14 @@ class TestSupersetDynamoDB:
     def test_sqlalchemy_execute_nested_select(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT "col_list_1", SUM("A"), COUNT("A") FROM (
                 SELECT col_list[1] col_list_1, NUMBER(col_map.A)
                 FROM %s WHERE key_partition=:pk
             ) AS virtual_table
             GROUP BY "col_list_1"
             ORDER BY "col_list_1" DESC
-            """
-                % TESTCASE04_TABLE
-            ),
+            """ % TESTCASE04_TABLE),
             {"pk": "row_1"},
         ).fetchall()
         assert len(rows) == 3
@@ -361,8 +322,7 @@ class TestSupersetDynamoDB:
     def test_sqlalchemy_execute_flat_data(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT "col_str", MAX("col_date"), MIN("col_datetime"),
                     SUM("col_int"), MAX("col_float"),
                     COUNT("key_sort"), COUNT("col_bool")
@@ -374,9 +334,7 @@ class TestSupersetDynamoDB:
             ) AS virtual_table
             GROUP BY "col_str"
             ORDER BY "col_str" DESC
-            """
-                % TESTCASE04_TABLE
-            ),
+            """ % TESTCASE04_TABLE),
             {"pk": "row_2"},
         ).fetchall()
         assert len(rows) == 3
@@ -389,17 +347,14 @@ class TestSupersetDynamoDB:
     def test_sqlalchemy_execute_alias_select(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
                 SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
                 FROM %s WHERE key_partition=:pk
             ) AS virtual_table
             GROUP BY "LST"
             ORDER BY "LST" DESC
-            """
-                % TESTCASE04_TABLE
-            ),
+            """ % TESTCASE04_TABLE),
             {"pk": "row_1"},
         ).fetchall()
         assert len(rows) == 3
@@ -417,14 +372,11 @@ class TestSupersetDynamoDB:
 
     def test_cached_querydb_step2(self, cursor):
         # Insert more raw data
-        sql = (
-            """
+        sql = """
         INSERT INTO %s VALUE {
                 'key_partition': ?, 'key_sort': ?, 'col_list': ?, 'col_map': ?
             }
-        """
-            % TESTCASE04_TABLE
-        )
+        """ % TESTCASE04_TABLE
         params_1 = [
             "row_1",
             7,
@@ -463,17 +415,14 @@ class TestSupersetDynamoDB:
     def query_final_cached_querydb(self, superset_engine):
         _, conn = superset_engine
         rows = conn.execute(
-            text(
-                """
+            text("""
             SELECT "LST", SUM("MAP_A"), COUNT("MAP_A") FROM (
                 SELECT col_list[1] LST, NUMBER(col_map.A) MAP_A
                 FROM %s WHERE key_partition=:pk
             ) AS virtual_table
             GROUP BY "LST"
             ORDER BY "LST" DESC
-            """
-                % TESTCASE04_TABLE
-            ),
+            """ % TESTCASE04_TABLE),
             {"pk": "row_1"},
         ).fetchall()
         assert len(rows) == 4

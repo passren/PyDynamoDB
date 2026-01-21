@@ -101,7 +101,7 @@ class QueryDBHelper(metaclass=ABCMeta):
             return kwargs[config_name]
         else:
             if config_name in SUPPORTED_QUERYDB_CONFIG:
-                (env_name, default_val) = SUPPORTED_QUERYDB_CONFIG[config_name]
+                env_name, default_val = SUPPORTED_QUERYDB_CONFIG[config_name]
                 env_val = os.getenv(env_name, None)
                 if env_val is None:
                     return default_val

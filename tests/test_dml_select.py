@@ -192,8 +192,8 @@ class TestDmlSelect:
             + "AND Title = 'some title' "
             + "AND Content[0] >= 100 "
             + "AND Content.DateWatched[0] <= '12/12/19' "
-            + "AND \"Total\" IN [500,600] "
-            + "OR \"Total\" BETWEEN 500 AND 600 "
+            + 'AND "Total" IN [500,600] '
+            + 'OR "Total" BETWEEN 500 AND 600 '
             + "AND Author IS NOT NULL "
             + "ORDER BY IssueId DESC",
             "ConsistentRead": False,
@@ -351,4 +351,6 @@ class TestDmlSelect:
         SELECT att1, att2 FROM "This.Pub.Issues"."Index.CreateDateIndex"
         """
         ret = SQLParser(sql).transform()
-        assert ret == {"Statement": 'SELECT att1,att2 FROM "This.Pub.Issues"."Index.CreateDateIndex"'}
+        assert ret == {
+            "Statement": 'SELECT att1,att2 FROM "This.Pub.Issues"."Index.CreateDateIndex"'
+        }

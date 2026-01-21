@@ -13,6 +13,7 @@ DELETE FROM "Music" WHERE "Artist" = 'Acme Band' AND "SongTitle" = 'PartiQL Rock
 
 DELETE FROM "Music" WHERE "Artist" = 'Acme Band' AND "SongTitle" = 'PartiQL Rocks' RETURNING ALL OLD *
 """
+
 import logging
 from .dml_sql import DmlBase
 from .common import KeyWords, Tokens

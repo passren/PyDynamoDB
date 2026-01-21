@@ -260,8 +260,7 @@ class QueryDB(metaclass=ABCMeta):
                     """INSERT INTO %s (query_id, statement,
                                     created, last_updated, queried_times
                         ) VALUES (?, ?, ?, ?, ?)
-                    """
-                    % QueryDB.CACHE_TABLE,
+                    """ % QueryDB.CACHE_TABLE,
                     (
                         self.query_id,
                         str(self.statement.api_request),

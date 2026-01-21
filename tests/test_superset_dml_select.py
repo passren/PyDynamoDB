@@ -39,12 +39,9 @@ class TestSupersetDmlSelect:
         assert parser.parser.columns[1].request_name == "col_map.A"
         assert parser.parser.columns[1].result_name == "A"
         assert parser.parser.outer_columns == '"col_list[1]", min("A"), max(A)'
-        assert (
-            parser.parser.outer_exprs
-            == """AS virtual_table
+        assert parser.parser.outer_exprs == """AS virtual_table
             GROUP BY "col_list[1]","A"
             ORDER BY "AVG(A)" DESC"""
-        )
         assert ret == {
             "Statement": "SELECT col_list[1],col_map.A FROM \"Issues\" WHERE key_partition = 'row_1'"
         }
@@ -66,17 +63,13 @@ class TestSupersetDmlSelect:
         ret = parser.transform()
         assert len(parser.parser.columns) == 3
         assert (
-            parser.parser.outer_columns
-            == """DATETIME("col_datetime", 'start of day'),
+            parser.parser.outer_columns == """DATETIME("col_datetime", 'start of day'),
                 "col_str", max("col_num"), count(DISTINCT "col_num"),
                 count("col_num"), min("col_num"), sum("col_num")"""
         )
-        assert (
-            parser.parser.outer_exprs
-            == """AS virtual_table
+        assert parser.parser.outer_exprs == """AS virtual_table
             GROUP BY "col_str", DATETIME("col_datetime", 'start of day')
             ORDER BY "MAX(col_num)" DESC LIMIT 10000"""
-        )
         assert ret == {
             "Statement": "SELECT col_str,col_datetime,col_num "
             + "FROM \"Issues\" WHERE key_partition = 'row_1'"
@@ -116,11 +109,8 @@ class TestSupersetDmlSelect:
         assert (
             parser.parser.outer_columns == "col_str_1, col_str_2, col_datetime, col_num"
         )
-        assert (
-            parser.parser.outer_exprs
-            == """AS virtual_table
+        assert parser.parser.outer_exprs == """AS virtual_table
             GROUP BY col_str_1"""
-        )
         assert (
             parser.parser.inner_columns
             == """SUBSTR(col_str, 1, 2) col_str_1, REPLACE(col_str, '-', '_') col_str_2,
@@ -140,7 +130,9 @@ class TestSupersetDmlSelect:
         """
         parser = SQLParser(sql, parser_class=SupersetSelect)
         ret = parser.transform()
-        assert ret == {'Statement': 'SELECT id FROM "lakefront-ingest-stg-config-table"'}
+        assert ret == {
+            "Statement": 'SELECT id FROM "lakefront-ingest-stg-config-table"'
+        }
         assert parser.parser.inner_columns == None
         assert parser.parser.inner_exprs == None
         assert parser.parser.outer_columns == "text_split(id,'.',1)"
@@ -157,7 +149,9 @@ class TestSupersetDmlSelect:
         """
         parser = SQLParser(sql, parser_class=SupersetSelect)
         ret = parser.transform()
-        assert ret == {'Statement': 'SELECT id FROM "lakefront-ingest-stg-config-table"'}
+        assert ret == {
+            "Statement": 'SELECT id FROM "lakefront-ingest-stg-config-table"'
+        }
         assert parser.parser.inner_columns == "text_split(id,'.',1)"
         assert parser.parser.inner_exprs == ""
         assert parser.parser.outer_columns == "id"

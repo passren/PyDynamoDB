@@ -109,6 +109,7 @@ SSESpecification.SSEType KMS
 SSESpecification.KMSMasterKeyId $$$$$$$$
 TableClass STANDARD_INFREQUENT_ACCESS
 """
+
 import logging
 from .ddl_sql import DdlBase
 from .common import KeyWords, Tokens
