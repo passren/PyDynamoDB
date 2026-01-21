@@ -12,7 +12,7 @@ from .dml_select import DmlSelect
 from .dml_update import DmlUpdate
 from .dml_delete import DmlDelete
 from .util_sql import UtilListTables, UtilDescTable
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Type, Optional
 
 _logger = logging.getLogger(__name__)  # type: ignore
 
@@ -71,8 +71,8 @@ class SQLParser(metaclass=ABCMeta):
 
         return self._parser
 
-    def _get_parse_class(self) -> Base:
-        _parse_class = None
+    def _get_parse_class(self) -> Optional[Type[Base]]:
+        _parse_class: Optional[Type[Base]] = None
         if (
             self.query_type == QueryType.CREATE
             or self.query_type == QueryType.CREATE_GLOBAL

@@ -9,31 +9,6 @@
 #   members optional in array and object collections
 #
 # Updated 9 Aug 2016 - use more current pyparsing constructs/idioms
-#
-'''
-json_bnf = """
-object
-    { members }
-    {}
-members
-    string : value
-    members , string : value
-array
-    [ elements ]
-    []
-elements
-    value
-    elements , value
-value
-    string
-    number
-    object
-    array
-    true
-    false
-    null
-"""
-'''
 
 import pyparsing as pp
 from pyparsing import pyparsing_common as ppc
@@ -61,11 +36,6 @@ jsonObject = pp.Forward().set_name("jsonObject")
 jsonValue = pp.Forward().set_name("jsonValue")
 
 jsonElements = pp.DelimitedList(jsonValue).set_name(None)
-# jsonArray = pp.Group(LBRACK + pp.Optional(jsonElements, []) + RBRACK)
-# jsonValue << (
-#     jsonString | jsonNumber | pp.Group(jsonObject) | jsonArray | TRUE | FALSE | NULL
-# )
-# memberDef = pp.Group(jsonString + COLON + jsonValue).set_name("jsonMember")
 
 jsonArray = pp.Group(
     LBRACK + pp.Optional(jsonElements) + RBRACK, aslist=RETURN_PYTHON_COLLECTIONS

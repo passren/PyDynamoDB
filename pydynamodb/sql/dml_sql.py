@@ -135,14 +135,14 @@ class DmlBase(Base):
 
     def __init__(self, statement: str) -> None:
         super().__init__(statement)
-        self._where_conditions = []
+        self._parsed_where_conditions = []
         self._limit = None
         self._consistent_read = False
         self._return_consumed_capacity = "NONE"
 
     @property
     def where_conditions(self) -> List[Optional[str]]:
-        return self._where_conditions
+        return self._parsed_where_conditions
 
     @property
     def limit(self) -> int:
@@ -166,18 +166,18 @@ class DmlBase(Base):
     def _construct_where_conditions(self, where_conditions: List[Any]) -> str:
         for condition in where_conditions:
             if not isinstance(condition, ParseResults):
-                self._where_conditions.append(str(condition))
+                self._parsed_where_conditions.append(str(condition))
             else:
                 function_ = condition.get("function", None)
                 function_with_op_ = condition.get("function_with_op", None)
                 if function_:
                     flatted_func_params = ",".join(condition["function_params"])
-                    self._where_conditions.append(
+                    self._parsed_where_conditions.append(
                         "%s(%s)" % (function_, flatted_func_params)
                     )
                 elif function_with_op_:
                     flatted_func_params = ",".join(condition["function_params"])
-                    self._where_conditions.append(
+                    self._parsed_where_conditions.append(
                         "%s(%s) %s %s"
                         % (
                             function_with_op_,
@@ -191,7 +191,7 @@ class DmlBase(Base):
                     flatted_where = " ".join(
                         str(c) for c in flatten_list(where_conditions_)
                     )
-                    self._where_conditions.append(flatted_where)
+                    self._parsed_where_conditions.append(flatted_where)
 
         return "WHERE %s" % " ".join(self.where_conditions)
 
