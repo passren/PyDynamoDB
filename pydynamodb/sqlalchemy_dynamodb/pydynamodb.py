@@ -712,7 +712,22 @@ class DynamoDBDialect(DefaultDialect):
         return opts
 
     def do_ping(self, dbapi_connection):
-        return dbapi_connection.test_connection()
+        connection = dbapi_connection
+
+        for attr_name in ("driver_connection", "dbapi_connection", "connection"):
+            nested_connection = getattr(connection, attr_name, None)
+            if nested_connection is not None:
+                connection = nested_connection
+                break
+
+        test_connection = getattr(connection, "test_connection", None)
+        if not callable(test_connection):
+            return False
+
+        try:
+            return bool(test_connection())
+        except Exception:
+            return False
 
     def get_schema_names(self, connection, **kw):
         # DynamoDB does not have the concept of a schema

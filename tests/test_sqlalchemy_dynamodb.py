@@ -40,6 +40,35 @@ class TestSQLAlchemyDynamoDB:
         conn = engine.raw_connection().dbapi_connection
         assert engine.dialect.do_ping(conn)
 
+    def test_ping_returns_false_without_test_connection(self, engine):
+        engine, _ = engine
+
+        class ConnectionWithoutPing:
+            pass
+
+        assert not engine.dialect.do_ping(ConnectionWithoutPing())
+
+    def test_ping_uses_wrapped_driver_connection(self, engine):
+        engine, _ = engine
+
+        class WrappedConnection:
+            def __init__(self):
+                self.driver_connection = self
+
+            def test_connection(self):
+                return True
+
+        assert engine.dialect.do_ping(WrappedConnection())
+
+    def test_ping_returns_false_when_test_connection_raises(self, engine):
+        engine, _ = engine
+
+        class FailingConnection:
+            def test_connection(self):
+                raise RuntimeError("ping failed")
+
+        assert not engine.dialect.do_ping(FailingConnection())
+
     def test_basic_insert(self, engine):
         engine, conn = engine
 
