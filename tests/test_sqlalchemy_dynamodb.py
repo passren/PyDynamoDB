@@ -436,20 +436,28 @@ class TestSQLAlchemyDynamoDB:
         ).fetchall()
         assert rows and {r[0] for r in rows} == {"test_one_row_2"}
 
-        # DynamoDB rejects "FROM t AS a"; it must not run as an unfiltered scan.
+        # DynamoDB rejects "FROM t AS a"; it must never run as an unfiltered
+        # scan. A single-table alias is resolved, so both connectors return
+        # exactly the filtered rows, with bound or literal values.
         aliased = table.alias("aliased")
         statement = select(aliased.c.key_partition).where(
             aliased.c.key_partition == "test_one_row_2"
         )
         sql = str(statement.compile(engine, compile_kwargs={"literal_binds": True}))
         assert " AS aliased" in sql
-        if engine.url.query.get("connector") == "superset":
-            # Evaluated by the query DB over a scan: exactly the filtered rows.
-            aliased_rows = conn.execute(text(sql)).fetchall()
-            assert sorted(aliased_rows) == sorted(rows)
-        else:
-            with pytest.raises(DBAPIError, match="require connector=superset"):
-                conn.execute(statement).fetchall()
+        assert sorted(conn.execute(text(sql)).fetchall()) == sorted(rows)
+        assert sorted(conn.execute(statement).fetchall()) == sorted(rows)
+        with pytest.raises(DBAPIError):
+            conn.execute(
+                text(
+                    "SELECT key_partition FROM (SELECT key_partition FROM %s) v"
+                    % TESTCASE02_TABLE
+                )
+                if engine.url.query.get("connector") != "superset"
+                else text(
+                    "SELECT a.x FROM %s a JOIN other b ON a.x = b.x" % TESTCASE02_TABLE
+                )
+            ).fetchall()
 
     def test_select_compiles_labels_only_inside_subqueries(self, engine):
         engine, _ = engine

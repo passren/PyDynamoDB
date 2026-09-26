@@ -9,7 +9,7 @@ from .dml_select import SupersetSelect
 from ..converter import Converter
 from ..model import Statements, Statement, ColumnInfo
 from ..util import RetryConfig, synchronized
-from ..cursor import Cursor
+from ..cursor import Cursor, unaliased_statement
 from ..result_set import DynamoDBResultSet
 from ..executor import BaseExecutor, DmlStatementExecutor
 from ..error import NotSupportedError, OperationalError
@@ -29,7 +29,11 @@ class SupersetCursor(Cursor):
     def execute(
         self: Cursor, operation: str, parameters: Optional[List[Dict[str, Any]]] = None
     ) -> Cursor:
-        statement = Statement(operation, SupersetSelect)
+        # A single-table alias runs as plain PartiQL (bind parameters work, no
+        # full scan) rather than in the query DB.
+        statement = unaliased_statement(operation, SupersetSelect)
+        if statement is None:
+            statement = Statement(operation, SupersetSelect)
         if parameters and statement.sql_parser.parser.is_flat:
             # Only the PartiQL scan is sent to DynamoDB; the placeholders are in
             # the part evaluated by the query DB, which receives no parameters.

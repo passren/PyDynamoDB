@@ -365,7 +365,7 @@ class TestDmlSelect:
             "SELECT id FROM Issues aliased WHERE id = 'a'",
             'SELECT id FROM "Issues" AS "aliased" WHERE id = \'a\'',
             "SELECT id FROM Issues WHERE id = 'a' GROUP BY id",
-            "SELECT id FROM Issues WHERE id = 'a' ORDER BY id",
+            "SELECT id FROM Issues WHERE id = 'a' ORDER BY id NULLS FIRST",
             "SELECT id FROM Issues WHERE id = 'a'; DELETE FROM Issues",
         ],
     )

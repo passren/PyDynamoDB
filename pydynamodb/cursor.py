@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast, TypeVar, Tupl
 from .converter import Converter
 from .common import BaseCursor, CursorIterator
 from .model import Statement, Statements
+from .sql.dml_select import DmlSelect
+from .sql.rewrite import unalias_select
 from .result_set import DynamoDBResultSet, DynamoDBDictResultSet
 from .error import NotSupportedError, ProgrammingError
 from .util import RetryConfig, synchronized
@@ -17,6 +19,18 @@ if TYPE_CHECKING:
 
 _logger = logging.getLogger(__name__)  # type: ignore
 _T = TypeVar("_T", bound="Cursor")
+
+
+def unaliased_statement(operation: str, parser_class: Any = None) -> Any:
+    """A Statement for the alias-resolved form of ``operation``, else None."""
+    unaliased = unalias_select(operation)
+    if unaliased is None:
+        return None
+    try:
+        Statement(unaliased, DmlSelect).api_request
+    except ParseException:
+        return None
+    return Statement(unaliased, parser_class) if parser_class else Statement(unaliased)
 
 
 class Cursor(BaseCursor, CursorIterator):
@@ -87,13 +101,16 @@ class Cursor(BaseCursor, CursorIterator):
         try:
             statement = Statement(operation)
         except ParseException as e:
-            if operation.lstrip()[:6].upper() == "SELECT":
+            if operation.lstrip()[:6].upper() != "SELECT":
+                raise
+            # A single-table alias is resolved and runs as plain PartiQL.
+            statement = unaliased_statement(operation)
+            if statement is None:
                 raise NotSupportedError(
                     "SELECT is not supported by PartiQL as written (subqueries, "
-                    "joins, GROUP BY, aggregates and table aliases require "
-                    "connector=superset): %s" % e
+                    "joins, GROUP BY and aggregates require connector=superset): "
+                    "%s" % e
                 ) from e
-            raise
         return self.execute_statement(statement, parameters)
 
     @synchronized
