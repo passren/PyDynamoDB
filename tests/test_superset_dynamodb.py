@@ -361,6 +361,32 @@ class TestSupersetDynamoDB:
             ("RP", 4, 10.0),
         ]
 
+    def test_sqlalchemy_execute_series_limit_join(self, superset_engine):
+        # Superset's series-limit query: JOIN the table against its own top-N
+        # subquery. Both references read the scan in the query DB.
+        _, conn = superset_engine
+        rows = conn.execute(text("""
+            SELECT col_str, COUNT(*) AS cnt
+            FROM %(t)s JOIN (
+                SELECT col_str AS col_str__, COUNT(*) AS mme_inner__
+                FROM %(t)s
+                WHERE key_partition = 'row_2'
+                GROUP BY col_str ORDER BY mme_inner__ DESC LIMIT 1
+            ) AS series_limit ON col_str = col_str__
+            WHERE key_partition = 'row_2'
+            GROUP BY col_str
+            LIMIT 100
+            """ % {"t": TESTCASE04_TABLE})).fetchall()
+        assert [(r[0], r[1]) for r in rows] == [("RP", 4)]
+
+    def test_default_cursor_explains_unsupported_select(self, cursor):
+        from pydynamodb.error import NotSupportedError
+
+        with pytest.raises(NotSupportedError, match="require connector=superset"):
+            cursor.execute(
+                "SELECT col_str, COUNT(*) FROM %s GROUP BY col_str" % TESTCASE04_TABLE
+            )
+
     def test_sqlalchemy_flat_select_rejects_bind_parameters(self, superset_engine):
         from sqlalchemy.exc import DBAPIError
 

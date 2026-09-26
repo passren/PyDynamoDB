@@ -8,7 +8,7 @@ from pyparsing import (
     SkipTo,
     StringEnd,
 )
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class SupersetSelect(DmlSelect):
@@ -67,6 +67,7 @@ class SupersetSelect(DmlSelect):
         self._inner_exprs = None
         self._is_nested = False
         self._is_flat = False
+        self._flat_table = None
 
     def preprocess(self) -> None:
         self._executed_statement = self._executed_statement.strip()
@@ -96,6 +97,11 @@ class SupersetSelect(DmlSelect):
     @property
     def is_flat(self) -> bool:
         return self._is_flat
+
+    @property
+    def flat_table(self) -> Optional[str]:
+        """The scanned table of a flat SELECT, as named in the statement."""
+        return self._flat_table
 
     @property
     def syntax_def(self) -> Forward:
@@ -132,6 +138,7 @@ class SupersetSelect(DmlSelect):
         if index_name_ is not None:
             table_ += '."%s"' % index_name_
         self._is_flat = True
+        self._flat_table = self.root_parse_results["table"]
         self._is_star_column = True
         self._columns.clear()
         return {"Statement": "SELECT * FROM %s" % table_}

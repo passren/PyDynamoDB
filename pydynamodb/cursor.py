@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 from copy import deepcopy
+
+from pyparsing import ParseException
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast, TypeVar, Tuple
 
 from .converter import Converter
@@ -82,7 +84,16 @@ class Cursor(BaseCursor, CursorIterator):
     def execute(
         self: _T, operation: str, parameters: Optional[List[Dict[str, Any]]] = None
     ) -> _T:
-        statement = Statement(operation)
+        try:
+            statement = Statement(operation)
+        except ParseException as e:
+            if operation.lstrip()[:6].upper() == "SELECT":
+                raise NotSupportedError(
+                    "SELECT is not supported by PartiQL as written (subqueries, "
+                    "joins, GROUP BY, aggregates and table aliases require "
+                    "connector=superset): %s" % e
+                ) from e
+            raise
         return self.execute_statement(statement, parameters)
 
     @synchronized

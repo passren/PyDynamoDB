@@ -387,7 +387,19 @@ class QueryDB(metaclass=ABCMeta):
         outer_columns = "*" if parser.outer_columns is None else parser.outer_columns
         outer_exprs = "" if parser.outer_exprs is None else parser.outer_exprs
 
-        if parser.inner_columns is None:
+        if getattr(parser, "is_flat", False):
+            # The whole statement runs over the scan. A CTE named after the
+            # scanned table lets every reference to it -- including subqueries
+            # such as a series-limit JOIN -- read the scanned rows.
+            table = '"%s"' % parser.flat_table.replace('"', '""')
+            query_sql = "WITH %s AS (SELECT * FROM %s) SELECT %s FROM %s %s" % (
+                table,
+                self.query_id,
+                outer_columns,
+                table,
+                outer_exprs,
+            )
+        elif parser.inner_columns is None:
             query_sql = "SELECT %s FROM %s %s" % (
                 outer_columns,
                 self.query_id,

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pyparsing import ParseException
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
-from sqlalchemy import Integer, String, Numeric, JSON
+from sqlalchemy import Integer, String, Numeric, JSON, func
 from sqlalchemy.orm import declarative_base, Session
 
 Base = declarative_base()
@@ -448,8 +448,33 @@ class TestSQLAlchemyDynamoDB:
             aliased_rows = conn.execute(text(sql)).fetchall()
             assert sorted(aliased_rows) == sorted(rows)
         else:
-            with pytest.raises(ParseException):
+            with pytest.raises(DBAPIError, match="require connector=superset"):
                 conn.execute(statement).fetchall()
+
+    def test_select_compiles_labels_only_inside_subqueries(self, engine):
+        engine, _ = engine
+        table = Table(TESTCASE02_TABLE, MetaData(), Column("key_partition", String))
+        col = table.c.key_partition
+        inner = (
+            select(col.label("key_partition__"), func.count().label("mme_inner__"))
+            .group_by(col)
+            .order_by(func.count().desc())
+            .limit(5)
+            .subquery("series_limit")
+        )
+        outer = (
+            select(col.label("key_partition"), func.count().label("count"))
+            .select_from(table.join(inner, col == inner.c.key_partition__))
+            .group_by(col)
+        )
+        sql = " ".join(str(outer.compile(engine)).split())
+        # PartiQL has no column aliases: top-level labels are not rendered.
+        assert sql.startswith("SELECT key_partition, count(*) FROM")
+        # Inside the subquery a renaming label is kept, so the JOIN resolves.
+        assert "SELECT key_partition AS key_partition__, count(*) AS mme_inner__" in sql
+        assert "ON key_partition = key_partition__" in sql
+        same = select(col.label("key_partition")).subquery("rowcount_qry")
+        assert "AS key_partition" not in str(select(same).compile(engine))
 
     def test_reserved_word_table_insert(self, engine):
         engine, conn = engine
