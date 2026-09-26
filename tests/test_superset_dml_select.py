@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytest
+from pyparsing import ParseException
+
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
 from pydynamodb.superset_dynamodb.dml_select import SupersetSelect
@@ -156,3 +159,19 @@ class TestSupersetDmlSelect:
         assert parser.parser.inner_exprs == ""
         assert parser.parser.outer_columns == "id"
         assert parser.parser.outer_exprs == "AS virtual_table\n        GROUP BY id"
+
+    def test_parse_base_select_rejects_table_alias(self):
+        # Only nested SELECTs are post-processed; for a base SELECT the alias
+        # and everything after it used to be dropped, including the WHERE.
+        sql = "SELECT id FROM Issues AS aliased WHERE key_partition='row_1'"
+        with pytest.raises(ParseException):
+            SQLParser(sql, parser_class=SupersetSelect).transform()
+
+    def test_parse_nested_select_keeps_outer_alias_and_predicate(self):
+        sql = """
+        SELECT id FROM (SELECT id FROM Issues) AS virtual_table WHERE id = 'a'
+        """
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        ret = parser.transform()
+        assert ret == {"Statement": 'SELECT id FROM "Issues"'}
+        assert parser.parser.outer_exprs == "AS virtual_table WHERE id = 'a'"

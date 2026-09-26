@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import pytest
+from pyparsing import ParseException
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
 from sqlalchemy import Integer, String, Numeric, JSON
@@ -417,6 +419,31 @@ class TestSQLAlchemyDynamoDB:
         )
         rows = conn.execute(table.select().limit(1)).fetchall()
         assert len(rows) == 1
+
+    @pytest.mark.parametrize("engine", [{}, {"connector": "superset"}], indirect=True)
+    def test_aliased_select_is_rejected_not_unfiltered(self, engine):
+        engine, conn = engine
+        table = Table(
+            TESTCASE02_TABLE,
+            MetaData(),
+            Column("key_partition", String, nullable=False),
+            Column("key_sort", Integer),
+        )
+        rows = conn.execute(
+            select(table.c.key_partition).where(
+                table.c.key_partition == "test_one_row_2"
+            )
+        ).fetchall()
+        assert rows and {r[0] for r in rows} == {"test_one_row_2"}
+
+        # DynamoDB rejects "FROM t AS a"; it must not run as an unfiltered scan.
+        aliased = table.alias("aliased")
+        statement = select(aliased.c.key_partition).where(
+            aliased.c.key_partition == "test_one_row_2"
+        )
+        assert " AS aliased" in str(statement.compile(engine))
+        with pytest.raises(ParseException):
+            conn.execute(statement).fetchall()
 
     def test_reserved_word_table_insert(self, engine):
         engine, conn = engine

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytest
+from pyparsing import ParseException
+
 from pydynamodb.sql.parser import SQLParser
 
 
@@ -354,3 +357,31 @@ class TestDmlSelect:
         assert ret == {
             "Statement": 'SELECT att1,att2 FROM "This.Pub.Issues"."Index.CreateDateIndex"'
         }
+
+    @pytest.mark.parametrize(
+        "sql",
+        [
+            "SELECT id FROM Issues AS aliased WHERE id = 'a'",
+            "SELECT id FROM Issues aliased WHERE id = 'a'",
+            'SELECT id FROM "Issues" AS "aliased" WHERE id = \'a\'',
+            "SELECT id FROM Issues WHERE id = 'a' GROUP BY id",
+            "SELECT id FROM Issues WHERE id = 'a' ORDER BY id",
+            "SELECT id FROM Issues WHERE id = 'a'; DELETE FROM Issues",
+        ],
+    )
+    def test_parse_rejects_unsupported_trailing_clauses(self, sql):
+        # These used to parse as "SELECT id FROM Issues" (or with a partial
+        # WHERE), silently dropping the predicate and returning other rows.
+        with pytest.raises(ParseException):
+            SQLParser(sql).transform()
+
+    def test_parse_allows_one_trailing_semicolon(self):
+        for sql in (
+            "SELECT id FROM Issues WHERE id = 'a';",
+            "SELECT id FROM Issues WHERE id = 'a' ;\n",
+        ):
+            ret = SQLParser(sql).transform()
+            assert ret == {"Statement": "SELECT id FROM \"Issues\" WHERE id = 'a'"}
+
+        with pytest.raises(ParseException):
+            SQLParser("SELECT id FROM Issues;;").transform()
