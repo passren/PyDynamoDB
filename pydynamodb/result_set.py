@@ -68,6 +68,7 @@ class DynamoDBResultSet(CursorIterator):
     ) -> Optional[List[Tuple[str, str, None, None, None, None, None]]]:
         if self._executor.metadata is None:
             return None
+        value_types = self._executor.value_types
         return [
             (
                 (
@@ -75,14 +76,17 @@ class DynamoDBResultSet(CursorIterator):
                     if column_info.alias is not None
                     else column_info.name
                 ),
-                column_info.type_code,
+                # Typed from the returned values; a type conversion function
+                # (NUMBER(x), DATETIME(x)) names its type explicitly.
+                (value_types.get(index) if column_info.function is None else None)
+                or column_info.type_code,
                 None,
                 None,
                 None,
                 None,
                 None,
             )
-            for column_info in self._executor.metadata
+            for index, column_info in enumerate(self._executor.metadata)
         ]
 
     def fetchone(

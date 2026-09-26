@@ -187,6 +187,8 @@ class TestSupersetDynamoDB:
         ret = superset_cursor.fetchall()
         assert len(ret) == 1
         assert ret == [("B", 21.0)]
+        # Results evaluated by the query DB are typed from their values too.
+        assert [d[1] for d in superset_cursor.description] == ["STRING", "NUMBER"]
 
     def test_execute_group_select(self, superset_cursor):
         superset_cursor.execute("""
