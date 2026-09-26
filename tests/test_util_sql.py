@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytest
+from pyparsing import ParseException
+
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
 
@@ -61,11 +64,12 @@ class TestUtilSQL:
         ret = SQLParser(sql).transform()
         assert ret == {"TableName": "Issues"}
 
+        # Trailing tokens are rejected instead of describing "Issues".
         sql = """
         desc Issues Topics
         """
-        ret = SQLParser(sql).transform()
-        assert ret == {"TableName": "Issues"}
+        with pytest.raises(ParseException):
+            SQLParser(sql).transform()
 
     def test_desc_global_table(self):
         sql = """

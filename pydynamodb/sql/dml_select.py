@@ -96,10 +96,6 @@ class DmlSelectColumn(metaclass=ABCMeta):
 
 
 class DmlSelect(DmlBase):
-    # Reject unsupported trailing clauses (e.g. ``FROM t AS a WHERE ...``) rather
-    # than dropping them: a truncated SELECT returns different rows, not an error.
-    _parse_all = True
-
     _FUNCTION_PARAMS = ZeroOrMore(
         KeyWords.COMMA
         + Tokens.QUOTED_STRING("function_param").set_name("function_param")

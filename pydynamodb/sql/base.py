@@ -11,10 +11,6 @@ _STATEMENT_END = Opt(Literal(";")).suppress() + StringEnd()
 
 
 class Base(metaclass=ABCMeta):
-    # When True the whole statement must match ``syntax_def``. Otherwise pyparsing
-    # stops at the first unrecognized token and silently ignores the rest.
-    _parse_all = False
-
     def __init__(self, statement: str) -> None:
         self._statement = statement
         self._executed_statement = statement
@@ -38,10 +34,13 @@ class Base(metaclass=ABCMeta):
         if self._statement is None:
             raise ValueError("Statement is not specified")
 
-        syntax_def = self.syntax_def
-        if self._parse_all:
-            syntax_def = syntax_def + _STATEMENT_END
-        self._root_parse_results = syntax_def.parseString(self._executed_statement)
+        # The whole statement must match. Without the end anchor pyparsing stops
+        # at the first unrecognized token and silently ignores the rest, so e.g.
+        # "SELECT ... FROM t AS a WHERE ..." ran without its WHERE clause and
+        # "DROP TABLE a b" dropped table a.
+        self._root_parse_results = (self.syntax_def + _STATEMENT_END).parseString(
+            self._executed_statement
+        )
         return self._root_parse_results
 
     @abstractmethod

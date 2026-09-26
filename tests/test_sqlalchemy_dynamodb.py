@@ -421,7 +421,7 @@ class TestSQLAlchemyDynamoDB:
         assert len(rows) == 1
 
     @pytest.mark.parametrize("engine", [{}, {"connector": "superset"}], indirect=True)
-    def test_aliased_select_is_rejected_not_unfiltered(self, engine):
+    def test_aliased_select_is_rejected_or_filtered_never_unfiltered(self, engine):
         engine, conn = engine
         table = Table(
             TESTCASE02_TABLE,
@@ -441,9 +441,15 @@ class TestSQLAlchemyDynamoDB:
         statement = select(aliased.c.key_partition).where(
             aliased.c.key_partition == "test_one_row_2"
         )
-        assert " AS aliased" in str(statement.compile(engine))
-        with pytest.raises(ParseException):
-            conn.execute(statement).fetchall()
+        sql = str(statement.compile(engine, compile_kwargs={"literal_binds": True}))
+        assert " AS aliased" in sql
+        if engine.url.query.get("connector") == "superset":
+            # Evaluated by the query DB over a scan: exactly the filtered rows.
+            aliased_rows = conn.execute(text(sql)).fetchall()
+            assert sorted(aliased_rows) == sorted(rows)
+        else:
+            with pytest.raises(ParseException):
+                conn.execute(statement).fetchall()
 
     def test_reserved_word_table_insert(self, engine):
         engine, conn = engine

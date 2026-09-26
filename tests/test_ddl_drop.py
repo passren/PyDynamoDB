@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytest
+from pyparsing import ParseException
+
 from pydynamodb.sql.parser import SQLParser
 from pydynamodb.sql.common import QueryType
 
@@ -13,13 +16,12 @@ class TestDdlDrop:
         assert parser.query_type == QueryType.DROP
         assert ret == {"TableName": "Issues"}
 
+        # Trailing tokens are rejected instead of silently dropping "Issues".
         sql = """
         DROP TABLE Issues Topics
         """
-        parser = SQLParser(sql)
-        ret = parser.transform()
-        assert parser.query_type == QueryType.DROP
-        assert ret == {"TableName": "Issues"}
+        with pytest.raises(ParseException):
+            SQLParser(sql).transform()
 
         sql = """
         drop table Issues

@@ -160,10 +160,52 @@ class TestSupersetDmlSelect:
         assert parser.parser.outer_columns == "id"
         assert parser.parser.outer_exprs == "AS virtual_table\n        GROUP BY id"
 
-    def test_parse_base_select_rejects_table_alias(self):
-        # Only nested SELECTs are post-processed; for a base SELECT the alias
-        # and everything after it used to be dropped, including the WHERE.
+    def test_parse_aliased_select_is_evaluated_in_query_db(self):
+        # A base SELECT used to lose the alias and everything after it,
+        # including the WHERE. It is now scanned and evaluated as a whole.
         sql = "SELECT id FROM Issues AS aliased WHERE key_partition='row_1'"
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        assert parser.transform() == {"Statement": 'SELECT * FROM "Issues"'}
+        assert parser.parser.is_flat and parser.parser.is_nested
+        assert parser.parser.outer_columns == "id"
+        assert parser.parser.outer_exprs == "AS aliased WHERE key_partition='row_1'"
+
+    @pytest.mark.parametrize(
+        "sql, outer_columns, outer_exprs",
+        [
+            (
+                "SELECT txt, COUNT(*) \nFROM Issues \nWHERE id = 'a' "
+                "GROUP BY txt LIMIT 100;",
+                "txt, COUNT(*)",
+                "WHERE id = 'a' GROUP BY txt LIMIT 100",
+            ),
+            (
+                'SELECT SUM("n") AS "SUM(n)" FROM "Issues"."Idx" GROUP BY k',
+                'SUM("n") AS "SUM(n)"',
+                "GROUP BY k",
+            ),
+        ],
+    )
+    def test_parse_flat_aggregate_select(self, sql, outer_columns, outer_exprs):
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        request = parser.transform()["Statement"]
+        assert request.startswith('SELECT * FROM "Issues"')
+        assert parser.parser.is_flat
+        assert parser.parser.outer_columns == outer_columns
+        assert parser.parser.outer_exprs == outer_exprs
+
+    def test_parse_base_select_is_unchanged(self):
+        sql = "SELECT id FROM Issues WHERE key_partition='row_1' LIMIT 5"
+        parser = SQLParser(sql, parser_class=SupersetSelect)
+        ret = parser.transform()
+        assert (
+            ret["Statement"]
+            == "SELECT id FROM \"Issues\" WHERE key_partition = 'row_1'"
+        )
+        assert not parser.parser.is_flat and not parser.parser.is_nested
+
+    def test_parse_rejects_second_statement(self):
+        sql = "SELECT id FROM Issues WHERE id = 'a'; DELETE FROM Issues"
         with pytest.raises(ParseException):
             SQLParser(sql, parser_class=SupersetSelect).transform()
 
