@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import Counter
 from datetime import datetime, date
+from decimal import Decimal
 
 
 class TestParameterConverter:
@@ -177,9 +178,10 @@ class TestResponseConverter:
 
     def test_deserializer_number(self, converter):
         assert converter.deserialize({"N": "2"}) == 2
-        assert converter.deserialize({"N": "2.3"}) == float(2.3)
-        assert converter.deserialize({"N": "2.3563"}) == float(2.3563)
-        assert converter.deserialize({"N": "2.0"}) == float(2.0)
+        # Exact: DynamoDB numbers are decimals, not binary floats.
+        assert converter.deserialize({"N": "2.3"}) == Decimal("2.3")
+        assert converter.deserialize({"N": "2.3563"}) == Decimal("2.3563")
+        assert converter.deserialize({"N": "2.0"}) == Decimal("2.0")
 
     def test_deserializer_binary(self, converter):
         assert converter.deserialize({"B": b"XYZ"}) == b"XYZ"
@@ -191,7 +193,7 @@ class TestResponseConverter:
         assert dict(Counter(result_)) == dict(Counter(expected_))
 
     def test_deserializer_numberset(self, converter):
-        expected_ = {1, 2, 3.2456, 4.0}
+        expected_ = {1, 2, Decimal("3.2456"), Decimal("4.0")}
         result_ = converter.deserialize({"NS": ["1", "2", "3.2456", "4.0"]})
         assert dict(Counter(result_)) == dict(Counter(expected_))
 
@@ -203,7 +205,7 @@ class TestResponseConverter:
     def test_deserializer_list(self, converter):
         assert converter.deserialize(
             {"L": [{"S": "A"}, {"N": "1"}, {"N": "2.356"}, {"B": b"XYZ"}]}
-        ) == ["A", 1, 2.356, b"XYZ"]
+        ) == ["A", 1, Decimal("2.356"), b"XYZ"]
 
         assert converter.deserialize(
             {
@@ -213,7 +215,7 @@ class TestResponseConverter:
                     {"M": {"A": {"S": "1"}, "B": {"N": "2"}, "C": {"B": b"XYZ"}}},
                 ]
             }
-        ) == ["A", ["A", 1, 2.356, b"XYZ"], {"A": "1", "B": 2, "C": b"XYZ"}]
+        ) == ["A", ["A", 1, Decimal("2.356"), b"XYZ"], {"A": "1", "B": 2, "C": b"XYZ"}]
 
     def test_deserializer_map(self, converter):
         assert converter.deserialize(
@@ -238,7 +240,7 @@ class TestResponseConverter:
             "A": "1",
             "B": 2,
             "C": b"XYZ",
-            "List": ["A", 1, 2.356, b"XYZ"],
+            "List": ["A", 1, Decimal("2.356"), b"XYZ"],
             "Map": {"A": "1", "B": 2, "C": b"XYZ"},
         }
 

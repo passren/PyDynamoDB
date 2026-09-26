@@ -354,15 +354,42 @@ class DmlBatchExecutor(DmlStatementExecutor):
             **kwargs,
         )
 
-    def execute(self) -> None:
-        request = {
-            "Statements": [statement_.api_request for statement_ in self._statements]
-        }
+    # BatchExecuteStatement accepts at most 25 statements.
+    BATCH_LIMIT = 25
 
-        response = self._dispatch_api_call(
-            self.connection.client.batch_execute_statement, request
-        )
-        self.process_rows(response)
+    def execute(self) -> None:
+        # A failed statement is reported in the response, not raised: raise it
+        # here so executemany cannot report success for a statement that did
+        # not apply. Statements other than the failed ones stay applied.
+        statements = list(self._statements)
+        for start in range(0, len(statements), self.BATCH_LIMIT):
+            end = start + self.BATCH_LIMIT
+            batch = statements[start:end]
+            response = self._dispatch_api_call(
+                self.connection.client.batch_execute_statement,
+                {"Statements": [statement_.api_request for statement_ in batch]},
+            )
+            failed = [
+                (start + index, row["Error"])
+                for index, row in enumerate(response.get("Responses", []))
+                if row.get("Error")
+            ]
+            self.process_rows(response)
+            if failed:
+                raise OperationalError(
+                    "%d of %d statements failed: %s. Every other statement up "
+                    "to #%d was applied; later statements were not sent."
+                    % (
+                        len(failed),
+                        len(statements),
+                        "; ".join(
+                            "#%d %s: %s"
+                            % (index, error.get("Code"), error.get("Message"))
+                            for index, error in failed
+                        ),
+                        start + len(batch) - 1,
+                    )
+                )
         self.post_execute()
 
     def process_rows(self, response: Dict[str, Any]) -> None:

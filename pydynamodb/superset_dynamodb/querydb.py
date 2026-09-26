@@ -3,6 +3,7 @@ import hashlib
 import logging
 import re
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from contextlib import closing
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, Optional, Type, Any, List
@@ -92,6 +93,20 @@ class QueryDBConfig:
     @property
     def purge_time(self) -> int:
         return self._purge_time
+
+
+_SQLITE_INT = range(-(2**63), 2**63)
+
+
+def _to_sqlite(value: Any) -> Any:
+    # Numbers are stored as REAL; SQLite cannot bind Decimal or ints > 64 bits.
+    if isinstance(value, Decimal) or (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and value not in _SQLITE_INT
+    ):
+        return float(value)
+    return value
 
 
 class QueryDB(metaclass=ABCMeta):
@@ -239,7 +254,8 @@ class QueryDB(metaclass=ABCMeta):
         if cache_ is None:
             return False
 
-        if (datetime.now() - cache_[2]).seconds <= self.config.expire_time:
+        age = datetime.now() - cache_[2]
+        if age.total_seconds() <= float(self.config.expire_time):
             return True
 
         return False
@@ -375,7 +391,7 @@ class QueryDB(metaclass=ABCMeta):
         self.connection.executemany(
             "INSERT INTO %s (%s) VALUES (%s)"
             % (self.query_id, ",".join(columns), ",".join(values)),
-            [r for r in raw_data],
+            [tuple(_to_sqlite(v) for v in r) for r in raw_data],
         )
 
         self.connection.commit()

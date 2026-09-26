@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 import logging
-import ast
+import re
 from .sql.common import Functions
-from datetime import datetime, date
+from datetime import datetime, date, time
+from decimal import Decimal
+from boto3.dynamodb.types import DYNAMODB_CONTEXT
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Dict, Optional, Set, List, Union, Type
 
 _logger = logging.getLogger(__name__)  # type: ignore
+
+_INTEGER = re.compile(r"[+-]?\d+")
 
 
 class Serializer(metaclass=ABCMeta):
@@ -29,10 +33,16 @@ class Serializer(metaclass=ABCMeta):
         return {"S": value}
 
     def _to_number(
-        self, value: Optional[Union[int, float]], **kwargs
+        self, value: Optional[Union[int, float, Decimal]], **kwargs
     ) -> Optional[Dict[str, str]]:
         if value is None:
             return None
+        if isinstance(value, Decimal):
+            # Exact, with boto3's DynamoDB context: a value DynamoDB cannot
+            # hold (more than 38 significant digits) raises instead of rounding.
+            if not value.is_finite():
+                raise ValueError("DynamoDB numbers must be finite: %s" % value)
+            return {"N": str(DYNAMODB_CONTEXT.create_decimal(value))}
         return {"N": str(value)}
 
     def _to_binary(self, value: Optional[bytes], **kwargs) -> Optional[Dict[str, str]]:
@@ -47,8 +57,8 @@ class Serializer(metaclass=ABCMeta):
             return None
 
         value_ = next(iter(value))
-        if isinstance(value_, type(1)) or isinstance(value_, type(1.0)):
-            return {"NS": [str(v) for v in value]}
+        if isinstance(value_, (int, float, Decimal)) and not isinstance(value_, bool):
+            return {"NS": [self._to_number(v)["N"] for v in value]}
         elif isinstance(value_, type(b"")):
             return {"BS": [v.decode() for v in value]}
         else:
@@ -106,13 +116,16 @@ class Serializer(metaclass=ABCMeta):
             int: self._to_number,
             float: self._to_number,
             bytes: self._to_binary,
+            Decimal: self._to_number,
             set: self._to_set,
+            frozenset: self._to_set,
             dict: self._to_map,
             list: self._to_list,
             type(None): self._to_null,
             bool: self._to_bool,
             datetime: self._to_datetime,
             date: self._to_datetime,
+            time: self._to_datetime,
         }
 
 
@@ -168,10 +181,14 @@ class Deserializer(metaclass=ABCMeta):
         else:
             return datetime.strptime(value, function_params_[0])
 
-    def _to_number(self, value: Optional[str], **kwargs) -> Optional[Union[int, float]]:
+    def _to_number(
+        self, value: Optional[str], **kwargs
+    ) -> Optional[Union[int, Decimal]]:
+        # DynamoDB numbers are exact decimals (38 digits): integral values are
+        # returned as int, others as Decimal (a float would lose precision).
         if value is None:
             return None
-        return ast.literal_eval(value)
+        return int(value) if _INTEGER.fullmatch(value) else Decimal(value)
 
     def _to_binary(self, value: Optional[str], **kwargs) -> Optional[bytes]:
         if value is None:
@@ -187,10 +204,10 @@ class Deserializer(metaclass=ABCMeta):
 
     def _to_number_set(
         self, value: Optional[List[str]], **kwargs
-    ) -> Optional[Set[float]]:
+    ) -> Optional[Set[Union[int, Decimal]]]:
         if value is None:
             return None
-        return set([float(v) for v in value])
+        return set([self._to_number(v) for v in value])
 
     def _to_binary_set(
         self, value: Optional[List[str]], **kwargs
