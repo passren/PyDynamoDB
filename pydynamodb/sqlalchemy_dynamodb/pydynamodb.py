@@ -64,6 +64,14 @@ class DynamoDBJSON(types.JSON):
 class DynamoDBIdentifierPreparer(IdentifierPreparer):
     reserved_words = RESERVED_WORDS
 
+    def format_table(self, table, use_schema=True, name=None):
+        # get_schema_names() advertises a synthetic schema, not a PartiQL prefix.
+        return super().format_table(
+            table,
+            use_schema=use_schema and self.schema_for_object(table) != "default",
+            name=name,
+        )
+
 
 class DynamoDBDDLCompiler(DDLCompiler):
     def __init__(
@@ -80,6 +88,14 @@ class DynamoDBStatementCompiler(SQLCompiler):
     # DynamoDB can't guarantee the column orders of result
     # _textual_ordered_columns: bool = True
     _ordered_columns: bool = False
+
+    def visit_table(self, table, **kwargs):
+        if self.preparer.schema_for_object(table) == "default":
+            kwargs["use_schema"] = False
+        # Keep schema_for_object unchanged: returning None there makes SQLAlchemy
+        # synthesize an alias for a schema-bearing Table. The PartiQL parser does
+        # not handle that alias correctly. Do not mutate Table/MetaData either.
+        return super().visit_table(table, **kwargs)
 
     def visit_column(
         self,
