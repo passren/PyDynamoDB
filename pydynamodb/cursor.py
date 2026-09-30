@@ -194,6 +194,11 @@ class Cursor(BaseCursor, CursorIterator):
         self._reset_state()
         self._statements = None
         self._transaction_statements = None
+        # Leave the connection's pool: otherwise a long-lived connection keeps
+        # every closed cursor, and commit() fails on their cleared statements.
+        pool = self.connection.cursor_pool
+        if self in pool:
+            pool.remove(self)
 
     def _reset_state(self) -> None:
         if self.result_set and not self.result_set.is_closed:

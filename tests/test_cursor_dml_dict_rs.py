@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal
+
 TESTCASE05_TABLE = "pydynamodb_test_case05"
 
 
@@ -76,7 +78,7 @@ class TestCursorDMLDictRs:
         )
         ret = dict_cursor.fetchall()
         assert len(ret) == 2
-        assert ret[0] == {"a": {1, 2, 3.3, 4.0}}
+        assert ret[0] == {"a": {1, 2, Decimal("3.3"), 4}}
         assert ret[1] == {"b": 1.0}
 
     def test_select_with_function(self, dict_cursor):

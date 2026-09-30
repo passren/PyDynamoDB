@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+from pydynamodb.error import OperationalError
 from pydynamodb import cursor
 
 TESTCASE01_TABLE = "pydynamodb_test_case01"
@@ -93,8 +95,9 @@ class TestCursorDML:
             ["test_many_rows_1", "7", "test case many 7", "7", b"7"],
             [9999, 8, "test case many 8", "8", b"8"],
         ]
-        cursor.executemany(sql_many_rows_, params_)
-        assert len(cursor.errors) == 2
+        # A failed statement raises (DB-API) and names itself; the others apply.
+        with pytest.raises(OperationalError, match="2 of 9 statements failed"):
+            cursor.executemany(sql_many_rows_, params_)
 
     def test_fetchone(self, cursor):
         cursor.execute(

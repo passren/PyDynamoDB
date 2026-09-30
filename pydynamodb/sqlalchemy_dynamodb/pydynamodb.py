@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
 import json
+from datetime import date, datetime, time
+from decimal import Decimal
 from ..util import strtobool
 from typing import TYPE_CHECKING, cast, Optional, Sequence, List
 
@@ -59,6 +61,60 @@ class DynamoDBJSON(types.JSON):
             return json_deserializer(value)
 
         return process
+
+
+def _is_int(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+class DynamoDBNumeric(types.Numeric):
+    """DynamoDB numbers are exact decimals: bind as given, return Decimal.
+
+    Whether a column returns Decimal or float follows SQLAlchemy's own
+    per-type default for ``asdecimal``, not a dialect-wide choice:
+    ``Numeric``/``DynamoDBNumeric`` columns default ``asdecimal=True`` and
+    return Decimal; ``Float``/``DynamoDBFloat`` columns default
+    ``asdecimal=False`` and return float. Pass ``asdecimal=`` explicitly on
+    the column to override either default.
+    """
+
+    def bind_processor(self, dialect):
+        return None
+
+    def result_processor(self, dialect, coltype):
+        if self.asdecimal:
+            return lambda value: Decimal(value) if _is_int(value) else value
+        return lambda value: value if value is None else float(value)
+
+
+class DynamoDBFloat(DynamoDBNumeric, types.Float):
+    pass
+
+
+def _iso_result(parse, kind):
+    def process(value):
+        if value is None or isinstance(value, kind):
+            return value
+        return parse(value)
+
+    return process
+
+
+class DynamoDBDateTime(types.DateTime):
+    """DynamoDB has no date type; values are bound as ISO-8601 strings."""
+
+    def result_processor(self, dialect, coltype):
+        return _iso_result(datetime.fromisoformat, datetime)
+
+
+class DynamoDBDate(types.Date):
+    def result_processor(self, dialect, coltype):
+        return _iso_result(date.fromisoformat, date)
+
+
+class DynamoDBTime(types.Time):
+    def result_processor(self, dialect, coltype):
+        return _iso_result(time.fromisoformat, time)
 
 
 class DynamoDBIdentifierPreparer(IdentifierPreparer):
@@ -653,7 +709,7 @@ class DynamoDBDialect(DefaultDialect):
     supports_default_values = False
     supports_empty_insert = False
     supports_multivalues_insert = False
-    supports_native_decimal = False
+    supports_native_decimal = True
     supports_native_boolean = True
     supports_unicode_statements = True
     supports_unicode_binds = True
@@ -665,6 +721,11 @@ class DynamoDBDialect(DefaultDialect):
     # Custom type mapping for SQLAlchemy compatibility
     colspecs = {
         types.JSON: DynamoDBJSON,
+        types.Numeric: DynamoDBNumeric,
+        types.Float: DynamoDBFloat,
+        types.DateTime: DynamoDBDateTime,
+        types.Date: DynamoDBDate,
+        types.Time: DynamoDBTime,
     }
 
     _connect_options = {}  # type: ignore
