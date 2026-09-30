@@ -68,7 +68,15 @@ def _is_int(value):
 
 
 class DynamoDBNumeric(types.Numeric):
-    """DynamoDB numbers are exact decimals: bind as given, return Decimal."""
+    """DynamoDB numbers are exact decimals: bind as given, return Decimal.
+
+    Whether a column returns Decimal or float follows SQLAlchemy's own
+    per-type default for ``asdecimal``, not a dialect-wide choice:
+    ``Numeric``/``DynamoDBNumeric`` columns default ``asdecimal=True`` and
+    return Decimal; ``Float``/``DynamoDBFloat`` columns default
+    ``asdecimal=False`` and return float. Pass ``asdecimal=`` explicitly on
+    the column to override either default.
+    """
 
     def bind_processor(self, dialect):
         return None
