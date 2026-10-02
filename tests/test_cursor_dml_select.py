@@ -119,7 +119,7 @@ class TestCursorDMLSelect:
         ret = cursor.fetchall()
         assert len(ret) == 2
         assert cursor.description == [
-            ("size[0]", "STRING", None, None, None, None, None),
+            ("size[0]", "NUMBER", None, None, None, None, None),
         ]
         assert ret == [(100,), (500,)]
 
@@ -188,6 +188,23 @@ class TestCursorDMLSelect:
             ["test_date_row_1", 0],
         )
         assert cursor.fetchone() == ("abcXXEFG01234",)
+
+        # Without a conversion function, the description is typed from the
+        # returned values: dates and timestamps are stored as ISO-8601 text.
+        cursor.execute(
+            """
+            SELECT key_sort, col_date, col_datetime, col_str FROM {0}
+            WHERE key_partition = ?
+        """.format(TESTCASE03_TABLE),
+            ["test_date_row_1"],
+        )
+        assert len(cursor.fetchall()) == 2
+        assert [(d[0], d[1]) for d in cursor.description] == [
+            ("key_sort", "NUMBER"),
+            ("col_date", "DATE"),
+            ("col_datetime", "DATETIME"),
+            ("col_str", "STRING"),
+        ]
 
     def test_alias_in_columns(self, cursor):
         cursor.execute("""

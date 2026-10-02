@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
 import json
-from datetime import datetime
+import re
+from datetime import date, datetime
+from decimal import Decimal
 from abc import ABCMeta, abstractmethod
 from collections import deque
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional, Tuple, cast
@@ -17,6 +19,58 @@ if TYPE_CHECKING:
     from .connection import Connection
 
 _logger = logging.getLogger(__name__)  # type: ignore
+
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_ISO_DATETIME = re.compile(
+    r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})?"
+)
+_TEMPORAL = {DataTypes.DATE, DataTypes.DATETIME}
+
+
+def _iso_type(value: str) -> Optional[str]:
+    try:
+        if _ISO_DATE.fullmatch(value):
+            date.fromisoformat(value)
+            return DataTypes.DATE
+        if _ISO_DATETIME.fullmatch(value):
+            # fromisoformat takes at most 6 fractional digits.
+            text = re.sub(r"(\.\d{6})\d+", r"\1", value)
+            datetime.fromisoformat(text.replace("Z", "+00:00"))
+            return DataTypes.DATETIME
+    except ValueError:
+        pass
+    return None
+
+
+def value_type(value: Any) -> str:
+    """The description type of one returned value.
+
+    DynamoDB has no date type; dates and timestamps are stored as ISO-8601
+    strings, so a string in that form is described as DATE/DATETIME.
+    """
+    if isinstance(value, bool):
+        return DataTypes.BOOL
+    if isinstance(value, (int, float, Decimal)):
+        return DataTypes.NUMBER
+    if isinstance(value, datetime):
+        return DataTypes.DATETIME
+    if isinstance(value, date):
+        return DataTypes.DATE
+    if isinstance(value, str):
+        return _iso_type(value) or DataTypes.STRING
+    return DataTypes.STRING
+
+
+def merge_value_type(seen: Optional[str], value: Any) -> Optional[str]:
+    """Combine the type seen so far for a column with one more value."""
+    if value is None:
+        return seen
+    type_ = value_type(value)
+    if seen is None or seen == type_:
+        return type_
+    if {seen, type_} <= _TEMPORAL:
+        return DataTypes.DATETIME
+    return DataTypes.STRING
 
 
 class BaseExecutor(metaclass=ABCMeta):
@@ -40,6 +94,8 @@ class BaseExecutor(metaclass=ABCMeta):
         self._metadata: Metadata = Metadata()
         self._is_predef_metadata: bool = False
         self._rows: Deque[Tuple[Any]] = deque()
+        # Column index -> type of every non-NULL value returned so far.
+        self._value_types: Dict[int, Optional[str]] = {}
         self._errors: List[Dict[str, str]] = []
         self._kwargs = kwargs
         self.pre_execute()
@@ -59,6 +115,18 @@ class BaseExecutor(metaclass=ABCMeta):
     @property
     def rows(self) -> Deque[Dict[str, Optional[Any]]]:
         return self._rows
+
+    @property
+    def value_types(self) -> Dict[int, Optional[str]]:
+        return self._value_types
+
+    def observe_value_types(self, rows: List[Any]) -> None:
+        for row in rows:
+            if isinstance(row, tuple):
+                for index, value in enumerate(row):
+                    self._value_types[index] = merge_value_type(
+                        self._value_types.get(index), value
+                    )
 
     @property
     def errors(self) -> List[Dict[str, str]]:
@@ -213,6 +281,7 @@ class DmlStatementExecutor(BaseExecutor):
                 row_ = self._process_undef_row_item(row)
             processed_rows.append(row_)
 
+        self.observe_value_types(processed_rows)
         self._rows.extend(processed_rows)
         self._next_token = response.get("NextToken", None)
 

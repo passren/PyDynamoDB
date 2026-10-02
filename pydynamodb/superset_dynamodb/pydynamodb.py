@@ -93,6 +93,7 @@ class SupersetStatementExecutor(DmlStatementExecutor):
                         self._load_into_query_db(cursor.result_set)
 
                 desc_, results_ = self._query_db.query()
+                self.observe_value_types(results_)
                 self._rows.extend(results_)
                 for d in desc_:
                     self._metadata.update(
