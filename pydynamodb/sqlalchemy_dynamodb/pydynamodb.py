@@ -88,7 +88,23 @@ class DynamoDBNumeric(types.Numeric):
 
 
 class DynamoDBFloat(DynamoDBNumeric, types.Float):
-    pass
+    def __init__(
+        self,
+        precision=None,
+        asdecimal=False,
+        decimal_return_scale=None,
+        **kwargs,
+    ):
+        # SQLAlchemy 2.x adapts Float via Float-compatible constructor args.
+        # Keep accepting optional extras (e.g. legacy scale) for compatibility.
+        kwargs.pop("scale", None)
+        types.Float.__init__(
+            self,
+            precision=precision,
+            asdecimal=asdecimal,
+            decimal_return_scale=decimal_return_scale,
+            **kwargs,
+        )
 
 
 def _iso_result(parse, kind):
