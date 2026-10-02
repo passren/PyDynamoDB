@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from ..sql.dml_select import DmlSelect
-from ..sql.common import KeyWords
+from ..sql.common import KeyWords, Tokens
 from pyparsing import (
     Forward,
+    Literal,
+    Opt,
     SkipTo,
+    StringEnd,
 )
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class SupersetSelect(DmlSelect):
@@ -31,8 +34,26 @@ class SupersetSelect(DmlSelect):
         + SkipTo(KeyWords.SEMICOLON)("outer_exprs").set_name("outer_exprs")
     )("outer_select").set_name("outer_select")
 
+    # A single-table SELECT that PartiQL cannot express (aggregates, GROUP BY,
+    # aliases, ...), e.g. a Superset chart on a physical dataset. The table is
+    # read with a PartiQL scan and the whole statement is evaluated by the
+    # query DB, exactly like the outer part of a nested SELECT.
+    _FLAT_SELECT_STATEMENT = (
+        KeyWords.SELECT
+        + SkipTo(KeyWords.FROM)("outer_columns").set_name("outer_columns")
+        + KeyWords.FROM
+        + Tokens.TABLE_NAME
+        + Opt(KeyWords.DOT + Tokens.INDEX_NAME)
+        + SkipTo(KeyWords.SEMICOLON)("outer_exprs").set_name("outer_exprs")
+    )("flat_select").set_name("flat_select")
+
+    # A base SELECT is only used when it matches the whole statement; otherwise
+    # the unparsed rest would be lost, so the flat form is used instead.
     _NESTED_SELECT_STATEMENT = (
-        _OUTER_SELECT_STATEMENT | _INNER_SELECT_STATEMENT | _BASE_SELECT_STATEMENT
+        _OUTER_SELECT_STATEMENT
+        | _INNER_SELECT_STATEMENT
+        | _BASE_SELECT_STATEMENT + Opt(Literal(";")) + StringEnd()
+        | _FLAT_SELECT_STATEMENT
     )("nested_select_statement").set_name("nested_select_statement")
 
     _SUPERSET_SELECT_EXPR = Forward()
@@ -45,6 +66,8 @@ class SupersetSelect(DmlSelect):
         self._inner_columns = None
         self._inner_exprs = None
         self._is_nested = False
+        self._is_flat = False
+        self._flat_table = None
 
     def preprocess(self) -> None:
         self._executed_statement = self._executed_statement.strip()
@@ -72,11 +95,23 @@ class SupersetSelect(DmlSelect):
         return self._is_nested
 
     @property
+    def is_flat(self) -> bool:
+        return self._is_flat
+
+    @property
+    def flat_table(self) -> Optional[str]:
+        """The scanned table of a flat SELECT, as named in the statement."""
+        return self._flat_table
+
+    @property
     def syntax_def(self) -> Forward:
         return SupersetSelect._SUPERSET_SELECT_EXPR
 
     def transform(self) -> Dict[str, Any]:
-        converted_ = super().transform()
+        if "flat_select" in self.root_parse_results:
+            converted_ = self._transform_flat()
+        else:
+            converted_ = super().transform()
 
         outer_columns = self.root_parse_results.get("outer_columns", None)
         if outer_columns is not None:
@@ -96,3 +131,14 @@ class SupersetSelect(DmlSelect):
             self._inner_exprs = inner_exprs.strip()
 
         return converted_
+
+    def _transform_flat(self) -> Dict[str, Any]:
+        table_ = '"%s"' % self.root_parse_results["table"]
+        index_name_ = self.root_parse_results.get("index_name", None)
+        if index_name_ is not None:
+            table_ += '."%s"' % index_name_
+        self._is_flat = True
+        self._flat_table = self.root_parse_results["table"]
+        self._is_star_column = True
+        self._columns.clear()
+        return {"Statement": "SELECT * FROM %s" % table_}

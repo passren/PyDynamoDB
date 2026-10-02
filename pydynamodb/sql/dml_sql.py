@@ -113,10 +113,12 @@ class DmlBase(Base):
         rpar=")",
     )("where_conditions").set_name("where_expression")
 
+    # ORDER BY key [ASC|DESC] [, key [ASC|DESC] ...]
     _RAW_SUPPORTED_OPTIONS = ZeroOrMore(
-        Group(KeyWords.ORDER_BY + _COLUMN + Tokens.ORDER_BY_VALUE)(
-            "raw_supported_option"
-        ).set_name("raw_supported_option")
+        Group(
+            KeyWords.ORDER_BY
+            + delimited_list(Group(_COLUMN + Opt(Tokens.ORDER_BY_VALUE)))
+        )("raw_supported_option").set_name("raw_supported_option")
     )("raw_supported_options").set_name("raw_supported_options")
 
     _OPTIONS = ZeroOrMore(

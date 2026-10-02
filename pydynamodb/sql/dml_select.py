@@ -249,7 +249,11 @@ class DmlSelect(DmlBase):
             if converted_ is None:
                 converted_ = []
 
-            converted_.append(" ".join(str(o) for o in option))
+            keyword, *keys = option
+            converted_.append(
+                "%s %s"
+                % (keyword, ", ".join(" ".join(str(t) for t in k) for k in keys))
+            )
 
         return converted_
 

@@ -1,5 +1,5 @@
 boto3>=1.21.0
 botocore>=1.24.7
 tenacity>=4.1.0
-pyparsing>=3.0.0
+pyparsing>=3.0.0,<3.3.3  # 3.3.3 rewrote infix_notation/nested_expr and breaks WHERE-clause parsing
 # sqlean.py>=3.45.0  # Optional: install for enhanced SQLite functionality

@@ -181,11 +181,17 @@ class DynamoDBStatementCompiler(SQLCompiler):
         result_map_targets=(),
         **kw,
     ):
+        # PartiQL has no column aliases, so top-level labels are not rendered.
+        # A label inside a subquery (only evaluated by the superset connector's
+        # query DB) is kept when it renames its element: e.g. Superset's
+        # series-limit JOIN matches "col = col__" against "col AS col__".
+        nested = len(self.stack) > 1 and within_columns_clause
+        renames = getattr(label.element, "name", None) != label.name
         return super().visit_label(
             label=label,
             add_to_result_map=add_to_result_map,
             within_label_clause=within_label_clause,
-            within_columns_clause=False,
+            within_columns_clause=nested and renames,
             render_label_as_label=render_label_as_label,
             result_map_targets=result_map_targets,
             kw=kw,

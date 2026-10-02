@@ -55,15 +55,27 @@ def test_reflected_default_schema_select(engine):
 
     client = boto3_connect()
     name = "pydynamodb_test_case02"
-    for key in ("schema_seed", "schema_other"):
+    seed_keys = ("schema_seed", "schema_other")
+    for key in seed_keys:
         client.put_item(
             TableName=name,
             Item={"key_partition": {"S": key}, "key_sort": {"N": "0"}},
         )
-    engine, conn = engine
-    schema = engine.dialect.get_schema_names(conn)[0]
-    table = Table(name, MetaData(), schema=schema, autoload_with=engine)
-    rows = conn.execute(
-        select(table.c.key_partition).where(table.c.key_partition == "schema_seed")
-    ).all()
-    assert rows == [("schema_seed",)]
+    try:
+        engine, conn = engine
+        schema = engine.dialect.get_schema_names(conn)[0]
+        table = Table(name, MetaData(), schema=schema, autoload_with=engine)
+        rows = conn.execute(
+            select(table.c.key_partition).where(table.c.key_partition == "schema_seed")
+        ).all()
+        assert rows == [("schema_seed",)]
+    finally:
+        # This test shares TESTCASE02_TABLE with other test modules (see
+        # test_sqlalchemy_dynamodb.py::test_reflect_table, which asserts an
+        # exact row count). Remove the seeded rows so this test doesn't
+        # leak state into others regardless of execution order.
+        for key in seed_keys:
+            client.delete_item(
+                TableName=name,
+                Key={"key_partition": {"S": key}, "key_sort": {"N": "0"}},
+            )

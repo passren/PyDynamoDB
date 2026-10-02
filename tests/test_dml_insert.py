@@ -40,5 +40,5 @@ class TestDmlInsert:
         """
         ret = SQLParser(sql).transform()
         assert ret == {
-            "Statement": "INSERT INTO \"Music\" VALUE {'Artist' : ['1', '2'],'SongTitle' : {'key': '1', 'key2': '2'}"
+            "Statement": "INSERT INTO \"Music\" VALUE {'Artist' : ['1', '2'],'SongTitle' : {'key': '1', 'key2': '2'}}"
         }

@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import pytest
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import text, select
 from sqlalchemy.sql.schema import Column, MetaData, Table
-from sqlalchemy import Integer, String, Numeric, JSON
+from sqlalchemy import Integer, String, Numeric, JSON, func
 from sqlalchemy.orm import declarative_base, Session
 
 Base = declarative_base()
@@ -417,6 +419,70 @@ class TestSQLAlchemyDynamoDB:
         )
         rows = conn.execute(table.select().limit(1)).fetchall()
         assert len(rows) == 1
+
+    @pytest.mark.parametrize("engine", [{}, {"connector": "superset"}], indirect=True)
+    def test_aliased_select_is_rejected_or_filtered_never_unfiltered(self, engine):
+        engine, conn = engine
+        table = Table(
+            TESTCASE02_TABLE,
+            MetaData(),
+            Column("key_partition", String, nullable=False),
+            Column("key_sort", Integer),
+        )
+        rows = conn.execute(
+            select(table.c.key_partition).where(
+                table.c.key_partition == "test_one_row_2"
+            )
+        ).fetchall()
+        assert rows and {r[0] for r in rows} == {"test_one_row_2"}
+
+        # DynamoDB rejects "FROM t AS a"; it must never run as an unfiltered
+        # scan. A single-table alias is resolved, so both connectors return
+        # exactly the filtered rows, with bound or literal values.
+        aliased = table.alias("aliased")
+        statement = select(aliased.c.key_partition).where(
+            aliased.c.key_partition == "test_one_row_2"
+        )
+        sql = str(statement.compile(engine, compile_kwargs={"literal_binds": True}))
+        assert " AS aliased" in sql
+        assert sorted(conn.execute(text(sql)).fetchall()) == sorted(rows)
+        assert sorted(conn.execute(statement).fetchall()) == sorted(rows)
+        with pytest.raises(DBAPIError):
+            conn.execute(
+                text(
+                    "SELECT key_partition FROM (SELECT key_partition FROM %s) v"
+                    % TESTCASE02_TABLE
+                )
+                if engine.url.query.get("connector") != "superset"
+                else text(
+                    "SELECT a.x FROM %s a JOIN other b ON a.x = b.x" % TESTCASE02_TABLE
+                )
+            ).fetchall()
+
+    def test_select_compiles_labels_only_inside_subqueries(self, engine):
+        engine, _ = engine
+        table = Table(TESTCASE02_TABLE, MetaData(), Column("key_partition", String))
+        col = table.c.key_partition
+        inner = (
+            select(col.label("key_partition__"), func.count().label("mme_inner__"))
+            .group_by(col)
+            .order_by(func.count().desc())
+            .limit(5)
+            .subquery("series_limit")
+        )
+        outer = (
+            select(col.label("key_partition"), func.count().label("count"))
+            .select_from(table.join(inner, col == inner.c.key_partition__))
+            .group_by(col)
+        )
+        sql = " ".join(str(outer.compile(engine)).split())
+        # PartiQL has no column aliases: top-level labels are not rendered.
+        assert sql.startswith("SELECT key_partition, count(*) FROM")
+        # Inside the subquery a renaming label is kept, so the JOIN resolves.
+        assert "SELECT key_partition AS key_partition__, count(*) AS mme_inner__" in sql
+        assert "ON key_partition = key_partition__" in sql
+        same = select(col.label("key_partition")).subquery("rowcount_qry")
+        assert "AS key_partition" not in str(select(same).compile(engine))
 
     def test_reserved_word_table_insert(self, engine):
         engine, conn = engine

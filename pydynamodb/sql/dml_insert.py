@@ -13,7 +13,7 @@ INSERT INTO "Music" value {'Artist' : 'Acme Band','SongTitle' : 'PartiQL Rocks'}
 import logging
 from .dml_sql import DmlBase
 from .common import KeyWords, Tokens
-from pyparsing import Forward, Group, Regex
+from pyparsing import Forward, Group, QuotedString, nested_expr, original_text_for
 from typing import Any, Dict
 
 _logger = logging.getLogger(__name__)  # type: ignore
@@ -21,11 +21,18 @@ _logger = logging.getLogger(__name__)  # type: ignore
 
 class DmlInsert(DmlBase):
 
-    # Parse everything inside curly brackets as a single string
+    # The whole item, braces included, as written. Braces must balance so that
+    # nested maps ({'a': {'b': 1}}) are kept intact; braces inside quoted
+    # strings are ignored.
     _ITEM = Group(
-        KeyWords.LCURLYBRACKET
-        + Regex(r"[^}]*")("item_content")
-        + KeyWords.RCURLYBRACKET
+        original_text_for(
+            nested_expr(
+                "{",
+                "}",
+                ignore_expr=QuotedString("'", esc_quote="''", unquote_results=False)
+                | QuotedString('"', esc_quote='""', unquote_results=False),
+            )
+        )("item_text")
     )("item").set_name("item")
 
     _INSERT_STATEMENT = (
@@ -44,10 +51,9 @@ class DmlInsert(DmlBase):
 
     def transform(self) -> Dict[str, Any]:
         table_name_ = self.root_parse_results["table"]
-        item_content_ = self.root_parse_results["item"]["item_content"]
+        item_ = self.root_parse_results["item"]["item_text"]
 
         table_ = '"%s"' % table_name_
-        item_ = "{%s}" % item_content_
 
         statement_ = "INSERT INTO {table} VALUE {item}"
         statement_ = statement_.format(
